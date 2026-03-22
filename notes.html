@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Gabriel — Notas</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F5F5F2; --surface: #FFFFFF; --border: #EAEAE6;
+      --text-primary: #1A1A1A; --text-secondary: #787874; --text-hint: #B0B0AA;
+      --accent: #1A1A1A; --accent-soft: #EFEFEB;
+      --nav-bg: rgba(255,255,255,0.94); --nav-h: 68px;
+      --radius-md: 16px; --radius-lg: 20px;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.05); --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+      --font-sans: 'DM Sans', sans-serif; --font-serif: 'DM Serif Display', serif;
+      --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+    html, body { height: 100%; background: var(--bg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; color: var(--text-primary); overflow: hidden; }
+    .app { height: 100%; display: flex; flex-direction: column; }
+
+    /* ── LISTA VIEW ──────────────────────────────────── */
+    #list-view { height: 100%; display: flex; flex-direction: column; }
+    .header { padding: calc(48px + env(safe-area-inset-top,0px)) 20px 12px; background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.05); flex-shrink: 0; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .header-title { font-family: var(--font-serif); font-size: 26px; letter-spacing: -0.3px; }
+    .icon-btn { width: 38px; height: 38px; background: var(--accent-soft); border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); transition: transform var(--transition); -webkit-tap-highlight-color: transparent; }
+    .icon-btn:active { transform: scale(0.90); }
+    .icon-btn .material-icons-round { font-size: 20px; }
+    .search-wrap { position: relative; display: flex; align-items: center; }
+    .search-icon { position: absolute; left: 12px; color: var(--text-hint); font-size: 18px; pointer-events: none; }
+    .search-input { width: 100%; padding: 10px 12px 10px 40px; border: 1.5px solid var(--border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 14px; color: var(--text-primary); background: var(--bg); outline: none; transition: border-color var(--transition); -webkit-appearance: none; }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-hint); }
+
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 16px calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 80px); }
+
+    /* Masonry grid notas */
+    .notes-grid { columns: 2; column-gap: 10px; }
+    .note-card { background: var(--surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 14px; margin-bottom: 10px; break-inside: avoid; cursor: pointer; transition: transform var(--transition); -webkit-tap-highlight-color: transparent; position: relative; }
+    .note-card:active { transform: scale(0.97); }
+    .note-card-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; line-height: 1.3; }
+    .note-card-preview { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .note-card-date { font-size: 11px; color: var(--text-hint); margin-top: 8px; }
+    .note-card-delete { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; background: none; border: none; color: var(--text-hint); cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity var(--transition), background var(--transition); }
+    .note-card:hover .note-card-delete,
+    .note-card:active .note-card-delete { opacity: 1; }
+    .note-card-delete:active { background: #FFF0F0; color: #D94040; }
+    .note-card-delete .material-icons-round { font-size: 14px; }
+
+    .empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 24px; text-align: center; color: var(--text-hint); }
+    .empty-state .material-icons-round { font-size: 44px; margin-bottom: 12px; opacity: 0.35; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* FAB */
+    .fab { position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px); right: 20px; width: 52px; height: 52px; background: var(--accent); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); cursor: pointer; z-index: 99; transition: transform var(--transition); -webkit-tap-highlight-color: transparent; }
+    .fab:active { transform: scale(0.92); }
+    .fab .material-icons-round { color: white; font-size: 24px; }
+
+    /* Bottom nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom,0px)); background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.06); display: flex; align-items: flex-start; padding-top: 8px; z-index: 100; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; -webkit-tap-highlight-color: transparent; transition: transform var(--transition); }
+    .nav-item:active { transform: scale(0.88); }
+    .nav-icon-wrap { width: 44px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 99px; transition: background var(--transition); }
+    .nav-item.active .nav-icon-wrap { background: var(--accent-soft); }
+    .nav-item .material-icons-round { font-size: 22px; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .material-icons-round { color: var(--accent); }
+    .nav-label { font-size: 10px; font-weight: 500; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .nav-label { color: var(--accent); }
+
+    /* ── EDITOR VIEW ─────────────────────────────────── */
+    #editor-view { height: 100%; display: none; flex-direction: column; }
+    #editor-view.show { display: flex; }
+
+    .editor-header { display: flex; align-items: center; gap: 10px; padding: calc(48px + env(safe-area-inset-top,0px)) 16px 12px; background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.05); flex-shrink: 0; }
+    .editor-back { width: 38px; height: 38px; background: var(--accent-soft); border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+    .editor-back .material-icons-round { font-size: 20px; }
+    .editor-status { font-size: 12px; color: var(--text-hint); flex: 1; text-align: center; }
+    .editor-save-btn { padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--font-sans); font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+    .editor-save-btn:active { opacity: 0.85; }
+
+    /* Toolbar */
+    .editor-toolbar { display: flex; gap: 2px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+    .editor-toolbar::-webkit-scrollbar { display: none; }
+    .tool-btn { width: 36px; height: 36px; background: none; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); flex-shrink: 0; transition: background var(--transition), color var(--transition); -webkit-tap-highlight-color: transparent; }
+    .tool-btn:active { background: var(--accent-soft); color: var(--text-primary); }
+    .tool-btn .material-icons-round { font-size: 18px; }
+    .tool-sep { width: 1px; background: var(--border); margin: 4px 4px; flex-shrink: 0; }
+
+    .editor-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 20px calc(env(safe-area-inset-bottom,0px) + 20px); }
+    .note-title-input { width: 100%; border: none; background: transparent; font-family: var(--font-serif); font-size: 26px; color: var(--text-primary); outline: none; line-height: 1.25; margin-bottom: 12px; letter-spacing: -0.3px; }
+    .note-title-input::placeholder { color: var(--text-hint); }
+    .note-content-input { width: 100%; border: none; background: transparent; font-family: var(--font-sans); font-size: 15px; color: var(--text-primary); outline: none; resize: none; line-height: 1.65; min-height: 300px; -webkit-appearance: none; }
+    .note-content-input::placeholder { color: var(--text-hint); }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Lista -->
+  <div id="list-view">
+    <div class="header">
+      <div class="header-top">
+        <h1 class="header-title">Caderno</h1>
+        <div style="display:flex;gap:8px">
+          <button class="icon-btn" onclick="openNewNote()">
+            <span class="material-icons-round">edit_note</span>
+          </button>
+          <button class="icon-btn" onclick="window.location.href='chat.html'">
+            <span class="material-icons-round">auto_awesome</span>
+          </button>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <span class="material-icons-round search-icon">search</span>
+        <input class="search-input" type="search" id="search-input" placeholder="Buscar notas..." oninput="filterNotes(this.value)">
+      </div>
+    </div>
+
+    <div class="scroll-area">
+      <div class="notes-grid" id="notes-grid"></div>
+    </div>
+
+    <div class="fab" onclick="openNewNote()">
+      <span class="material-icons-round">add</span>
+    </div>
+
+    <nav class="bottom-nav">
+      <div class="nav-item" onclick="window.location.href='dashboard.html'">
+        <div class="nav-icon-wrap"><span class="material-icons-round">home</span></div>
+        <span class="nav-label">Início</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='chat.html'">
+        <div class="nav-icon-wrap"><span class="material-icons-round">auto_awesome</span></div>
+        <span class="nav-label">Gabriel</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='agenda.html'">
+        <div class="nav-icon-wrap"><span class="material-icons-round">calendar_month</span></div>
+        <span class="nav-label">Agenda</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='finance.html'">
+        <div class="nav-icon-wrap"><span class="material-icons-round">account_balance_wallet</span></div>
+        <span class="nav-label">Finanças</span>
+      </div>
+      <div class="nav-item active">
+        <div class="nav-icon-wrap"><span class="material-icons-round">edit_note</span></div>
+        <span class="nav-label">Notas</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Editor -->
+  <div id="editor-view">
+    <div class="editor-header">
+      <button class="editor-back" onclick="closeEditor()">
+        <span class="material-icons-round">arrow_back</span>
+      </button>
+      <span class="editor-status" id="editor-status">Editando...</span>
+      <button class="editor-save-btn" onclick="saveNote()">Salvar</button>
+    </div>
+
+    <div class="editor-toolbar">
+      <button class="tool-btn" onclick="format('bold')" title="Negrito"><span class="material-icons-round">format_bold</span></button>
+      <button class="tool-btn" onclick="format('italic')" title="Itálico"><span class="material-icons-round">format_italic</span></button>
+      <button class="tool-btn" onclick="format('underline')" title="Sublinhado"><span class="material-icons-round">format_underlined</span></button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" onclick="insertList('ul')" title="Lista"><span class="material-icons-round">format_list_bulleted</span></button>
+      <button class="tool-btn" onclick="insertList('ol')" title="Numerada"><span class="material-icons-round">format_list_numbered</span></button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" onclick="insertLine()" title="Linha horizontal"><span class="material-icons-round">horizontal_rule</span></button>
+      <button class="tool-btn" onclick="insertDate()" title="Inserir data"><span class="material-icons-round">today</span></button>
+    </div>
+
+    <div class="editor-scroll">
+      <textarea class="note-title-input" id="note-title" placeholder="Título da nota..." rows="1" oninput="autoResizeTitle(this)"></textarea>
+      <textarea class="note-content-input" id="note-content" placeholder="Comece a escrever..."></textarea>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script>
+let currentNoteId = null;
+let allNotes      = [];
+let saveTimer     = null;
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await Auth.guard('notes.html');
+  // Verifica se abre nota específica via query param
+  const params = new URLSearchParams(window.location.search);
+  const noteId = params.get('id');
+  await loadNotes();
+  if (noteId) {
+    const note = allNotes.find(n => n.id === parseInt(noteId));
+    if (note) openNote(note);
+  }
+});
+
+async function loadNotes() {
+  allNotes = await GabrielDB.Notes.getAll();
+  renderNotes(allNotes);
+}
+
+function renderNotes(notes) {
+  const grid = document.getElementById('notes-grid');
+  if (!notes.length) {
+    grid.innerHTML = `<div class="empty-state" style="column-span:all;width:100%"><span class="material-icons-round">menu_book</span><p>Nenhuma nota ainda.<br>Toque em + para criar ou peça ao Gabriel.</p></div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  notes.forEach(note => {
+    const card = document.createElement('div');
+    card.className = 'note-card';
+    const date = note.updatedAt ? new Date(note.updatedAt).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' }) : '';
+    card.innerHTML = `
+      ${note.title ? `<div class="note-card-title">${note.title}</div>` : ''}
+      <div class="note-card-preview">${note.content || '<em style="color:var(--text-hint)">Nota vazia</em>'}</div>
+      <div class="note-card-date">${date}</div>
+      <button class="note-card-delete" onclick="deleteNote(${note.id}, event)">
+        <span class="material-icons-round">close</span>
+      </button>`;
+    card.onclick = () => openNote(note);
+    grid.appendChild(card);
+  });
+}
+
+function filterNotes(term) {
+  if (!term.trim()) { renderNotes(allNotes); return; }
+  const filtered = allNotes.filter(n =>
+    n.title?.toLowerCase().includes(term.toLowerCase()) ||
+    n.content?.toLowerCase().includes(term.toLowerCase())
+  );
+  renderNotes(filtered);
+}
+
+// ── Editor ───────────────────────────────────────────────
+function openNewNote() {
+  currentNoteId = null;
+  document.getElementById('note-title').value   = '';
+  document.getElementById('note-content').value = '';
+  document.getElementById('editor-status').textContent = 'Nova nota';
+  showEditor();
+  setTimeout(() => document.getElementById('note-title').focus(), 300);
+}
+
+function openNote(note) {
+  currentNoteId = note.id;
+  document.getElementById('note-title').value   = note.title || '';
+  document.getElementById('note-content').value = note.content || '';
+  const date = note.updatedAt ? new Date(note.updatedAt).toLocaleDateString('pt-BR') : '';
+  document.getElementById('editor-status').textContent = date ? `Editado em ${date}` : 'Editando...';
+  showEditor();
+}
+
+function showEditor() {
+  document.getElementById('list-view').style.display   = 'none';
+  document.getElementById('editor-view').style.display = 'flex';
+  document.getElementById('editor-view').classList.add('show');
+}
+
+async function closeEditor() {
+  await saveNote(true);
+  document.getElementById('list-view').style.display = '';
+  document.getElementById('editor-view').classList.remove('show');
+  document.getElementById('editor-view').style.display = 'none';
+  currentNoteId = null;
+  await loadNotes();
+}
+
+async function saveNote(silent = false) {
+  const title   = document.getElementById('note-title').value.trim();
+  const content = document.getElementById('note-content').value.trim();
+  if (!title && !content) return;
+
+  if (currentNoteId) {
+    await GabrielDB.Notes.update(currentNoteId, { title, content });
+  } else {
+    const note = await GabrielDB.Notes.create(title || 'Sem título', content);
+    currentNoteId = note.id;
+  }
+
+  if (!silent) {
+    document.getElementById('editor-status').textContent = 'Salvo ✓';
+    setTimeout(() => {
+      document.getElementById('editor-status').textContent = 'Editando...';
+    }, 2000);
+  }
+}
+
+// Auto-save a cada 3s após parar de digitar
+document.addEventListener('DOMContentLoaded', () => {
+  ['note-title', 'note-content'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      clearTimeout(saveTimer);
+      document.getElementById('editor-status').textContent = 'Salvando...';
+      saveTimer = setTimeout(() => saveNote(true).then(() => {
+        document.getElementById('editor-status').textContent = 'Salvo ✓';
+      }), 2000);
+    });
+  });
+});
+
+async function deleteNote(id, e) {
+  e.stopPropagation();
+  if (!confirm('Excluir esta nota?')) return;
+  await GabrielDB.Notes.delete(id);
+  await loadNotes();
+}
+
+function autoResizeTitle(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// ── Formatação ───────────────────────────────────────────
+function format(cmd) {
+  const ta = document.getElementById('note-content');
+  const start = ta.selectionStart;
+  const end   = ta.selectionEnd;
+  const sel   = ta.value.substring(start, end);
+  const before = ta.value.substring(0, start);
+  const after  = ta.value.substring(end);
+  let wrapped = sel;
+  if (cmd === 'bold')      wrapped = `**${sel}**`;
+  if (cmd === 'italic')    wrapped = `*${sel}*`;
+  if (cmd === 'underline') wrapped = `__${sel}__`;
+  ta.value = before + wrapped + after;
+  ta.focus();
+  ta.setSelectionRange(start + 2, end + 2);
+}
+
+function insertList(type) {
+  const ta = document.getElementById('note-content');
+  const pos = ta.selectionStart;
+  const before = ta.value.substring(0, pos);
+  const after  = ta.value.substring(pos);
+  const prefix = type === 'ul' ? '\n• ' : '\n1. ';
+  ta.value = before + prefix + after;
+  ta.focus();
+  ta.setSelectionRange(pos + prefix.length, pos + prefix.length);
+}
+
+function insertLine() {
+  const ta = document.getElementById('note-content');
+  const pos = ta.selectionStart;
+  const ins = '\n---\n';
+  ta.value = ta.value.substring(0, pos) + ins + ta.value.substring(pos);
+  ta.focus();
+}
+
+function insertDate() {
+  const ta = document.getElementById('note-content');
+  const pos = ta.selectionStart;
+  const dateStr = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  ta.value = ta.value.substring(0, pos) + dateStr + ta.value.substring(pos);
+  ta.focus();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Gabriel — Agenda</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:             #F5F5F2;
+      --surface:        #FFFFFF;
+      --border:         #EAEAE6;
+      --text-primary:   #1A1A1A;
+      --text-secondary: #787874;
+      --text-hint:      #B0B0AA;
+      --accent:         #1A1A1A;
+      --accent-soft:    #EFEFEB;
+      --today-bg:       #1A1A1A;
+      --today-text:     #FFFFFF;
+      --selected-bg:    #EFEFEB;
+      --nav-bg:         rgba(255,255,255,0.94);
+      --nav-h:          68px;
+      --radius-sm:      10px;
+      --radius-md:      16px;
+      --radius-lg:      20px;
+      --shadow-sm:      0 1px 4px rgba(0,0,0,0.05);
+      --shadow-md:      0 4px 20px rgba(0,0,0,0.08);
+      --font-sans:      'DM Sans', sans-serif;
+      --font-serif:     'DM Serif Display', serif;
+      --transition:     0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    html, body {
+      height: 100%; background: var(--bg);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+    .app { height: 100%; display: flex; flex-direction: column; }
+
+    /* ── Header ─────────────────────────────────────── */
+    .header {
+      padding: calc(48px + env(safe-area-inset-top, 0px)) 20px 12px;
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      flex-shrink: 0;
+      animation: fadeDown 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .header-title {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      letter-spacing: -0.3px;
+    }
+    .header-actions { display: flex; gap: 8px; }
+    .icon-btn {
+      width: 38px; height: 38px;
+      background: var(--accent-soft);
+      border: none; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-primary);
+      transition: transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .icon-btn:active { transform: scale(0.90); }
+    .icon-btn .material-icons-round { font-size: 20px; }
+
+    /* ── Month nav ──────────────────────────────────── */
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .month-nav-btn {
+      width: 32px; height: 32px;
+      background: none; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-secondary);
+      border-radius: 8px;
+      transition: background var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .month-nav-btn:active { background: var(--accent-soft); }
+    .month-nav-btn .material-icons-round { font-size: 20px; }
+    .month-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.1px;
+    }
+
+    /* ── Weekday labels ─────────────────────────────── */
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 6px;
+    }
+    .weekday {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-hint);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 0;
+    }
+
+    /* ── Calendar grid ──────────────────────────────── */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      cursor: pointer;
+      position: relative;
+      transition: background var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      gap: 2px;
+    }
+    .cal-day:active { transform: scale(0.88); }
+    .cal-day.empty { cursor: default; }
+    .cal-day.other-month .day-num { color: var(--text-hint); opacity: 0.4; }
+    .cal-day.today .day-num {
+      background: var(--today-bg);
+      color: var(--today-text);
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cal-day.selected:not(.today) { background: var(--selected-bg); }
+    .day-num {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .day-dots {
+      display: flex;
+      gap: 2px;
+      justify-content: center;
+      min-height: 5px;
+    }
+    .day-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .cal-day.today .day-dot { background: #4CAF50; }
+
+    /* ── Scroll area ────────────────────────────────── */
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 16px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 80px);
+    }
+
+    /* ── Day header ─────────────────────────────────── */
+    .day-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 0 2px;
+    }
+    .day-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      color: var(--text-primary);
+    }
+    .day-count {
+      font-size: 12px;
+      color: var(--text-hint);
+    }
+
+    /* ── Event card ─────────────────────────────────── */
+    .event-card {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 10px;
+      overflow: hidden;
+      animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .event-card-inner {
+      display: flex;
+      align-items: stretch;
+      min-height: 68px;
+    }
+    .event-color-bar {
+      width: 4px;
+      background: var(--accent);
+      flex-shrink: 0;
+      border-radius: 0 0 0 0;
+    }
+    .event-content {
+      flex: 1;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background var(--transition);
+    }
+    .event-content:active { background: var(--bg); }
+    .event-time-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 44px;
+      flex-shrink: 0;
+    }
+    .event-time-h {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .event-time-m {
+      font-size: 11px;
+      color: var(--text-hint);
+    }
+    .event-time-allday {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-hint);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .event-main { flex: 1; }
+    .event-title-text {
+      font-size: 14.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.3;
+      margin-bottom: 3px;
+    }
+    .event-desc-text {
+      font-size: 12.5px;
+      color: var(--text-hint);
+      line-height: 1.4;
+    }
+    .event-badges {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .event-badge {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: var(--accent-soft);
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .event-badge.reminder { background: #FFF8E7; color: #A07820; }
+    .event-done-btn {
+      width: 30px; height: 30px;
+      background: none; border: 1.5px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-hint);
+      transition: all var(--transition);
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .event-done-btn.done {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .event-done-btn .material-icons-round { font-size: 16px; }
+
+    /* ── Empty state ────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-hint);
+    }
+    .empty-state .material-icons-round { font-size: 40px; margin-bottom: 10px; opacity: 0.35; }
+    .empty-state p { font-size: 14px; line-height: 1.5; }
+
+    /* ── FAB ────────────────────────────────────────── */
+    .fab {
+      position: fixed;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+      right: 20px;
+      width: 52px; height: 52px;
+      background: var(--accent);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      cursor: pointer;
+      z-index: 99;
+      transition: transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.3s both;
+    }
+    .fab:active { transform: scale(0.92); }
+    .fab .material-icons-round { color: white; font-size: 24px; }
+
+    /* ── Bottom nav ─────────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: flex-start;
+      padding-top: 8px; z-index: 100;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 3px; cursor: pointer;
+      padding: 4px 0; -webkit-tap-highlight-color: transparent;
+      transition: transform var(--transition);
+    }
+    .nav-item:active { transform: scale(0.88); }
+    .nav-icon-wrap {
+      width: 44px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 99px; transition: background var(--transition);
+    }
+    .nav-item.active .nav-icon-wrap { background: var(--accent-soft); }
+    .nav-item .material-icons-round { font-size: 22px; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .material-icons-round { color: var(--accent); }
+    .nav-label { font-size: 10px; font-weight: 500; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .nav-label { color: var(--accent); }
+
+    /* ── Modal novo evento ──────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 200; display: none; opacity: 0;
+      transition: opacity 0.25s ease;
+      align-items: flex-end;
+    }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      width: 100%;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .modal-overlay.show .modal { transform: translateY(0); }
+    .modal-handle {
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      margin: 0 auto 20px;
+    }
+    .modal-title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field-label {
+      font-size: 11.5px; font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.7px;
+    }
+    .field-wrap { position: relative; display: flex; align-items: center; }
+    .field-icon {
+      position: absolute; left: 14px;
+      color: var(--text-hint); font-size: 18px; pointer-events: none;
+    }
+    .field-input {
+      width: 100%; padding: 13px 14px 13px 42px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 15px; color: var(--text-primary);
+      background: var(--bg); outline: none;
+      transition: border-color var(--transition);
+      -webkit-appearance: none;
+    }
+    .field-input:focus { border-color: var(--accent); }
+    .field-input::placeholder { color: var(--text-hint); }
+    .row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .toggle-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 12px 0; border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+    .toggle-label { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+    .toggle {
+      width: 46px; height: 26px;
+      background: var(--border); border-radius: 99px;
+      position: relative; cursor: pointer;
+      transition: background var(--transition);
+      border: none;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle::after {
+      content: ''; position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: white; border-radius: 50%;
+      transition: transform var(--transition);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.on::after { transform: translateX(20px); }
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-secondary {
+      flex: 1; padding: 14px;
+      background: var(--accent-soft); color: var(--text-primary);
+      border: none; border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 15px; font-weight: 500;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary {
+      flex: 2; padding: 14px;
+      background: var(--accent); color: white;
+      border: none; border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 15px; font-weight: 600;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: opacity var(--transition);
+    }
+    .btn-primary:active { opacity: 0.85; }
+
+    /* ── Animations ─────────────────────────────────── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.6); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <h1 class="header-title">Agenda</h1>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="goToday()" title="Hoje">
+          <span class="material-icons-round">today</span>
+        </button>
+        <button class="icon-btn" onclick="window.location.href='chat.html'" title="Chat">
+          <span class="material-icons-round">auto_awesome</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Month navigation -->
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeMonth(-1)">
+        <span class="material-icons-round">chevron_left</span>
+      </button>
+      <span class="month-label" id="month-label">...</span>
+      <button class="month-nav-btn" onclick="changeMonth(1)">
+        <span class="material-icons-round">chevron_right</span>
+      </button>
+    </div>
+
+    <!-- Weekdays -->
+    <div class="weekdays">
+      <div class="weekday">D</div><div class="weekday">S</div>
+      <div class="weekday">T</div><div class="weekday">Q</div>
+      <div class="weekday">Q</div><div class="weekday">S</div>
+      <div class="weekday">S</div>
+    </div>
+
+    <!-- Calendar grid -->
+    <div class="calendar-grid" id="calendar-grid"></div>
+  </div>
+
+  <!-- Events list -->
+  <div class="scroll-area" id="scroll-area">
+    <div id="events-container"></div>
+  </div>
+
+  <!-- FAB -->
+  <div class="fab" onclick="openModal()">
+    <span class="material-icons-round">add</span>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='dashboard.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">home</span></div>
+      <span class="nav-label">Início</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='chat.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">auto_awesome</span></div>
+      <span class="nav-label">Gabriel</span>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon-wrap"><span class="material-icons-round">calendar_month</span></div>
+      <span class="nav-label">Agenda</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='finance.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">account_balance_wallet</span></div>
+      <span class="nav-label">Finanças</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='folders.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">folder_open</span></div>
+      <span class="nav-label">Pastas</span>
+    </div>
+  </nav>
+
+  <!-- Modal novo evento -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Novo Evento</div>
+
+      <div class="field">
+        <label class="field-label">Título</label>
+        <div class="field-wrap">
+          <span class="material-icons-round field-icon">event</span>
+          <input class="field-input" type="text" id="ev-title" placeholder="Ex: Reunião de trabalho">
+        </div>
+      </div>
+
+      <div class="row-fields">
+        <div class="field">
+          <label class="field-label">Data</label>
+          <div class="field-wrap">
+            <span class="material-icons-round field-icon">calendar_today</span>
+            <input class="field-input" type="date" id="ev-date" style="padding-left:42px">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Horário</label>
+          <div class="field-wrap">
+            <span class="material-icons-round field-icon">schedule</span>
+            <input class="field-input" type="time" id="ev-time" style="padding-left:42px">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Descrição (opcional)</label>
+        <div class="field-wrap">
+          <span class="material-icons-round field-icon">notes</span>
+          <input class="field-input" type="text" id="ev-desc" placeholder="Detalhes do evento">
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">🔔 Lembrete 30min antes</span>
+        <button class="toggle on" id="ev-reminder" onclick="this.classList.toggle('on')"></button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveEvent()">Salvar evento</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script src="notifications.js"></script>
+
+<script>
+// ── Estado ────────────────────────────────────────────────
+const today     = new Date();
+let viewYear    = today.getFullYear();
+let viewMonth   = today.getMonth();
+let selectedDay = today.toISOString().split('T')[0];
+let allEvents   = [];
+
+const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// ── Init ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await Auth.guard('agenda.html');
+  allEvents = await GabrielDB.Events.getAll();
+  renderCalendar();
+  renderEvents(selectedDay);
+  Notifications.startPolling();
+  // Pré-preenche data de hoje no modal
+  document.getElementById('ev-date').value = today.toISOString().split('T')[0];
+});
+
+// ── Calendário ────────────────────────────────────────────
+function renderCalendar() {
+  document.getElementById('month-label').textContent =
+    `${MONTHS_PT[viewMonth]} ${viewYear}`;
+
+  const grid       = document.getElementById('calendar-grid');
+  grid.innerHTML   = '';
+
+  const firstDay   = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrev  = new Date(viewYear, viewMonth, 0).getDate();
+
+  // Dias do mês anterior
+  for (let i = firstDay - 1; i >= 0; i--) {
+    addDayCell(grid, daysInPrev - i, viewYear, viewMonth - 1, true);
+  }
+
+  // Dias do mês atual
+  for (let d = 1; d <= daysInMonth; d++) {
+    addDayCell(grid, d, viewYear, viewMonth, false);
+  }
+
+  // Completa grid com próximo mês
+  const total = firstDay + daysInMonth;
+  const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let d = 1; d <= remaining; d++) {
+    addDayCell(grid, d, viewYear, viewMonth + 1, true);
+  }
+}
+
+function addDayCell(grid, day, year, month, otherMonth) {
+  const realMonth = ((month % 12) + 12) % 12;
+  const realYear  = year + Math.floor(month / 12);
+  const dateStr   = `${realYear}-${String(realMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const isToday   = dateStr === today.toISOString().split('T')[0];
+  const isSelected = dateStr === selectedDay;
+
+  const eventsOnDay = allEvents.filter(e => e.date === dateStr && !e.done);
+
+  const cell = document.createElement('div');
+  cell.className = `cal-day${otherMonth ? ' other-month' : ''}${isToday ? ' today' : ''}${isSelected && !isToday ? ' selected' : ''}`;
+
+  const dots = eventsOnDay.slice(0, 3).map(() => `<div class="day-dot"></div>`).join('');
+
+  cell.innerHTML = `
+    <span class="day-num">${day}</span>
+    <div class="day-dots">${dots}</div>
+  `;
+
+  if (!otherMonth) {
+    cell.onclick = () => {
+      selectedDay = dateStr;
+      renderCalendar();
+      renderEvents(dateStr);
+    };
+  }
+
+  grid.appendChild(cell);
+}
+
+function changeMonth(dir) {
+  viewMonth += dir;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+  renderCalendar();
+}
+
+function goToday() {
+  viewYear    = today.getFullYear();
+  viewMonth   = today.getMonth();
+  selectedDay = today.toISOString().split('T')[0];
+  renderCalendar();
+  renderEvents(selectedDay);
+}
+
+// ── Renderiza eventos do dia ───────────────────────────────
+function renderEvents(dateStr) {
+  const container = document.getElementById('events-container');
+  container.innerHTML = '';
+
+  const date = new Date(dateStr + 'T00:00:00');
+  const isToday = dateStr === today.toISOString().split('T')[0];
+  const label   = isToday ? 'Hoje'
+    : date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const dayEvents = allEvents
+    .filter(e => e.date === dateStr)
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  const header = document.createElement('div');
+  header.className = 'day-header';
+  header.innerHTML = `
+    <span class="day-title">${label.charAt(0).toUpperCase() + label.slice(1)}</span>
+    <span class="day-count">${dayEvents.filter(e=>!e.done).length} evento${dayEvents.filter(e=>!e.done).length !== 1 ? 's' : ''}</span>
+  `;
+  container.appendChild(header);
+
+  if (dayEvents.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = `
+      <span class="material-icons-round">event_available</span>
+      <p>Nenhum evento neste dia.<br>Toque em + para adicionar.</p>
+    `;
+    container.appendChild(empty);
+    return;
+  }
+
+  dayEvents.forEach(ev => {
+    const card  = document.createElement('div');
+    card.className = 'event-card';
+
+    let timeHTML = '';
+    if (ev.time) {
+      const [h, m] = ev.time.split(':');
+      const period = parseInt(h) < 12 ? 'AM' : 'PM';
+      timeHTML = `<div class="event-time-h">${h}:${m}</div><div class="event-time-m">${period}</div>`;
+    } else {
+      timeHTML = `<div class="event-time-allday">Dia todo</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="event-card-inner">
+        <div class="event-color-bar"></div>
+        <div class="event-content">
+          <div class="event-time-col">${timeHTML}</div>
+          <div class="event-main">
+            <div class="event-title-text" style="${ev.done ? 'text-decoration:line-through;opacity:0.5' : ''}">${ev.title}</div>
+            ${ev.description ? `<div class="event-desc-text">${ev.description}</div>` : ''}
+          </div>
+          <div class="event-badges">
+            ${ev.reminder ? '<span class="event-badge reminder">🔔</span>' : ''}
+            <button class="event-done-btn ${ev.done ? 'done' : ''}" onclick="toggleEvent(${ev.id}, event)">
+              <span class="material-icons-round">${ev.done ? 'check' : 'radio_button_unchecked'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+async function toggleEvent(id, e) {
+  e.stopPropagation();
+  const ev = await GabrielDB.Events.update(id, {
+    done: !allEvents.find(ev => ev.id === id)?.done
+  });
+  allEvents = await GabrielDB.Events.getAll();
+  renderCalendar();
+  renderEvents(selectedDay);
+}
+
+// ── Modal ─────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('ev-date').value = selectedDay;
+  const overlay = document.getElementById('modal-overlay');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('show'));
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('show');
+  setTimeout(() => { overlay.style.display = 'none'; }, 300);
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+async function saveEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  const date  = document.getElementById('ev-date').value;
+  const time  = document.getElementById('ev-time').value;
+  const desc  = document.getElementById('ev-desc').value.trim();
+  const reminder = document.getElementById('ev-reminder').classList.contains('on');
+
+  if (!title) { document.getElementById('ev-title').focus(); return; }
+  if (!date)  { document.getElementById('ev-date').focus(); return; }
+
+  const ev = await GabrielDB.Events.create({ title, date, time: time || null, description: desc, reminder });
+
+  if (reminder && time) {
+    await Notifications.scheduleEvent(ev);
+  }
+
+  allEvents = await GabrielDB.Events.getAll();
+  selectedDay = date;
+  renderCalendar();
+  renderEvents(date);
+  closeModal();
+
+  // Reset form
+  document.getElementById('ev-title').value = '';
+  document.getElementById('ev-time').value  = '';
+  document.getElementById('ev-desc').value  = '';
+}
+</script>
+
+</body>
+</html>

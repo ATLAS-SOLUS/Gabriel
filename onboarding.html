@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Gabriel — Configuração</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --white:          #FFFFFF;
+      --bg:             #F7F7F5;
+      --surface:        #FFFFFF;
+      --border:         #E8E8E4;
+      --border-focus:   #1A1A1A;
+      --text-primary:   #1A1A1A;
+      --text-secondary: #767672;
+      --text-hint:      #ABABAB;
+      --accent:         #1A1A1A;
+      --accent-soft:    #F0F0EE;
+      --success:        #2E7D5E;
+      --radius-sm:      10px;
+      --radius-md:      16px;
+      --radius-lg:      24px;
+      --shadow-sm:      0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:      0 4px 16px rgba(0,0,0,0.08);
+      --font-sans:      'DM Sans', sans-serif;
+      --font-serif:     'DM Serif Display', serif;
+      --transition:     0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Decoração de fundo ─────────────────────────── */
+    .bg-blob {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .blob-1 {
+      top: -60px; right: -40px;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, #F0EFE9 0%, transparent 70%);
+    }
+    .blob-2 {
+      bottom: 35%; left: -60px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, #EDF0EB 0%, transparent 70%);
+    }
+
+    /* ── Top bar ────────────────────────────────────── */
+    .top-bar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 56px 24px 20px;
+      animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @supports (padding-top: env(safe-area-inset-top)) {
+      .top-bar { padding-top: calc(44px + env(safe-area-inset-top)); }
+    }
+
+    .back-btn {
+      width: 40px; height: 40px;
+      background: var(--surface);
+      border: none;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      color: var(--text-primary);
+      transition: transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .back-btn:active { transform: scale(0.93); }
+    .back-btn .material-icons-round { font-size: 20px; }
+    .back-btn.hidden { opacity: 0; pointer-events: none; }
+
+    /* ── Progress bar ───────────────────────────────── */
+    .progress-wrap {
+      flex: 1;
+      margin: 0 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .progress-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 99px;
+      background: var(--border);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dot.active {
+      width: 20px;
+      background: var(--accent);
+    }
+    .dot.done {
+      background: var(--text-hint);
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--text-hint);
+      letter-spacing: 0.3px;
+    }
+
+    /* Placeholder direita */
+    .top-bar-right { width: 40px; }
+
+    /* ── Slides container ───────────────────────────── */
+    .slides-viewport {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .slides-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .slide {
+      min-width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 24px 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Slide header ───────────────────────────────── */
+    .slide-icon {
+      width: 56px; height: 56px;
+      background: var(--accent);
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-md);
+    }
+    .slide-icon .material-icons-round { color: white; font-size: 28px; }
+    .slide-icon.light {
+      background: var(--accent-soft);
+    }
+    .slide-icon.light .material-icons-round { color: var(--text-primary); }
+
+    .slide-title {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .slide-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      margin-bottom: 28px;
+    }
+
+    /* ── Fields ─────────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+
+    .field-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .field-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .field-icon {
+      position: absolute;
+      left: 14px;
+      color: var(--text-hint);
+      font-size: 20px;
+      pointer-events: none;
+      transition: color var(--transition);
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 14px 14px 14px 46px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+      -webkit-appearance: none;
+    }
+    .field-input::placeholder { color: var(--text-hint); }
+    .field-input:focus {
+      border-color: var(--border-focus);
+      background: var(--surface);
+    }
+    .field-wrap:focus-within .field-icon { color: var(--text-primary); }
+
+    /* Input senha com toggle */
+    .toggle-pass {
+      position: absolute; right: 14px;
+      background: none; border: none;
+      cursor: pointer; color: var(--text-hint);
+      display: flex; align-items: center;
+      padding: 4px;
+      transition: color var(--transition);
+    }
+    .toggle-pass .material-icons-round { font-size: 20px; }
+
+    /* ── Chips de seleção ───────────────────────────── */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 99px;
+      background: var(--bg);
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .chip .material-icons-round { font-size: 16px; }
+    .chip.selected {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+    .chip:active { transform: scale(0.96); }
+
+    /* ── Card de info (chave API) ───────────────────── */
+    .info-card {
+      background: var(--accent-soft);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .info-card .material-icons-round {
+      font-size: 18px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .info-card-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .info-card-text a {
+      color: var(--text-primary);
+      font-weight: 500;
+      text-decoration: underline;
+    }
+
+    /* ── Input senha visível (API key) ──────────────── */
+    .api-input-wrap { position: relative; }
+    .api-input {
+      width: 100%;
+      padding: 14px 46px 14px 46px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+      transition: border-color var(--transition);
+      -webkit-appearance: none;
+      letter-spacing: 0.5px;
+    }
+    .api-input:focus { border-color: var(--border-focus); background: var(--surface); }
+    .api-input::placeholder { font-family: var(--font-sans); font-size: 14px; letter-spacing: 0; color: var(--text-hint); }
+
+    /* ── Slide final (Tudo pronto) ──────────────────── */
+    .ready-icon {
+      width: 80px; height: 80px;
+      background: var(--accent);
+      border-radius: 24px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 28px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+    }
+    .ready-icon .material-icons-round { color: white; font-size: 38px; }
+
+    .ready-title {
+      font-family: var(--font-serif);
+      font-size: 34px;
+      text-align: center;
+      margin-bottom: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    .ready-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .ready-features {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .ready-feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      animation: slideRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .ready-feature:nth-child(1) { animation-delay: 0.1s; }
+    .ready-feature:nth-child(2) { animation-delay: 0.18s; }
+    .ready-feature:nth-child(3) { animation-delay: 0.26s; }
+    .ready-feature:nth-child(4) { animation-delay: 0.34s; }
+
+    .feature-icon-wrap {
+      width: 36px; height: 36px;
+      background: var(--accent-soft);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .feature-icon-wrap .material-icons-round { font-size: 18px; color: var(--text-primary); }
+
+    .feature-text { font-size: 13.5px; color: var(--text-secondary); line-height: 1.4; }
+    .feature-text strong { color: var(--text-primary); font-weight: 600; display: block; font-size: 14px; }
+
+    /* ── Bottom action bar ──────────────────────────── */
+    .bottom-bar {
+      position: relative;
+      z-index: 2;
+      padding: 16px 24px;
+      background: transparent;
+      padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform var(--transition), opacity var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.45; pointer-events: none; }
+    .btn-primary .material-icons-round { font-size: 20px; }
+
+    .btn-skip {
+      display: block;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-hint);
+      cursor: pointer;
+      padding: 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Mensagem de erro ───────────────────────────── */
+    .msg {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      background: #FFF0F0;
+      color: #D94040;
+      margin-bottom: 12px;
+      animation: fadeIn 0.2s ease both;
+    }
+    .msg.show { display: flex; }
+    .msg .material-icons-round { font-size: 16px; }
+
+    /* ── Animations ─────────────────────────────────── */
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideRight {
+      from { opacity: 0; transform: translateX(-16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.6); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <button class="back-btn hidden" id="back-btn" onclick="prevStep()">
+      <span class="material-icons-round">arrow_back</span>
+    </button>
+
+    <div class="progress-wrap">
+      <div class="progress-dots" id="dots"></div>
+      <span class="progress-label" id="progress-label">Passo 1 de 4</span>
+    </div>
+
+    <div class="top-bar-right"></div>
+  </div>
+
+  <!-- Slides -->
+  <div class="slides-viewport">
+    <div class="slides-track" id="track">
+
+      <!-- ── SLIDE 1: Boas-vindas + nome ── -->
+      <div class="slide" id="slide-0">
+        <div class="slide-icon">
+          <span class="material-icons-round">waving_hand</span>
+        </div>
+        <h2 class="slide-title">Olá! Sou o Gabriel.</h2>
+        <p class="slide-subtitle">Seu assistente pessoal inteligente. Vou me lembrar de tudo que você me contar e executar tarefas por você. Mas primeiro, como posso te chamar?</p>
+
+        <div class="msg" id="msg-0">
+          <span class="material-icons-round">error_outline</span>
+          <span id="msg-0-text"></span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="input-name">Seu nome</label>
+          <div class="field-wrap">
+            <input class="field-input" type="text" id="input-name"
+              placeholder="Ex: João Silva" autocomplete="name"
+              enterkeyhint="next" onkeydown="if(event.key==='Enter') nextStep()">
+            <span class="material-icons-round field-icon">person_outline</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="input-city">Sua cidade (opcional)</label>
+          <div class="field-wrap">
+            <input class="field-input" type="text" id="input-city"
+              placeholder="Ex: São Paulo, SP"
+              enterkeyhint="next">
+            <span class="material-icons-round field-icon">location_on</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SLIDE 2: Tom de conversa ── -->
+      <div class="slide" id="slide-1">
+        <div class="slide-icon light">
+          <span class="material-icons-round">chat_bubble_outline</span>
+        </div>
+        <h2 class="slide-title">Como prefere que eu fale?</h2>
+        <p class="slide-subtitle">Escolha o tom que mais combina com você. Isso define como o Gabriel vai se comunicar.</p>
+
+        <div class="chip-group" id="chips-tone">
+          <div class="chip" data-value="formal" onclick="selectChip('chips-tone', this)">
+            <span class="material-icons-round">business_center</span> Formal
+          </div>
+          <div class="chip selected" data-value="informal" onclick="selectChip('chips-tone', this)">
+            <span class="material-icons-round">mood</span> Informal
+          </div>
+          <div class="chip" data-value="tecnico" onclick="selectChip('chips-tone', this)">
+            <span class="material-icons-round">code</span> Técnico
+          </div>
+          <div class="chip" data-value="objetivo" onclick="selectChip('chips-tone', this)">
+            <span class="material-icons-round">bolt</span> Direto ao ponto
+          </div>
+        </div>
+
+        <p class="slide-subtitle" style="margin-top:24px; margin-bottom:12px">Quais áreas são mais importantes para você?</p>
+
+        <div class="chip-group" id="chips-focus">
+          <div class="chip selected" data-value="agenda" onclick="selectChip('chips-focus', this, true)">
+            <span class="material-icons-round">calendar_today</span> Agenda
+          </div>
+          <div class="chip selected" data-value="financas" onclick="selectChip('chips-focus', this, true)">
+            <span class="material-icons-round">account_balance_wallet</span> Finanças
+          </div>
+          <div class="chip" data-value="notas" onclick="selectChip('chips-focus', this, true)">
+            <span class="material-icons-round">note_alt</span> Notas
+          </div>
+          <div class="chip" data-value="tarefas" onclick="selectChip('chips-focus', this, true)">
+            <span class="material-icons-round">check_circle_outline</span> Tarefas
+          </div>
+          <div class="chip" data-value="clima" onclick="selectChip('chips-focus', this, true)">
+            <span class="material-icons-round">wb_sunny</span> Clima
+          </div>
+          <div class="chip" data-value="pesquisa" onclick="selectChip('chips-focus', this, true)">
+            <span class="material-icons-round">search</span> Pesquisa
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SLIDE 3: Chave Groq ── -->
+      <div class="slide" id="slide-2">
+        <div class="slide-icon light">
+          <span class="material-icons-round">vpn_key</span>
+        </div>
+        <h2 class="slide-title">Conecte a inteligência.</h2>
+        <p class="slide-subtitle">O Gabriel usa a Groq para pensar. Você precisa de uma chave de API gratuita para ativar.</p>
+
+        <div class="info-card">
+          <span class="material-icons-round">info_outline</span>
+          <span class="info-card-text">
+            Acesse <a href="https://console.groq.com" target="_blank">console.groq.com</a>, crie uma conta gratuita e gere uma chave API. Cole ela abaixo. A chave fica salva apenas no seu dispositivo.
+          </span>
+        </div>
+
+        <div class="msg" id="msg-2">
+          <span class="material-icons-round">error_outline</span>
+          <span id="msg-2-text"></span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="input-apikey">Chave API Groq</label>
+          <div class="field-wrap api-input-wrap">
+            <input class="api-input" type="password" id="input-apikey"
+              placeholder="gsk_xxxxxxxxxxxx"
+              autocomplete="off" spellcheck="false">
+            <span class="material-icons-round field-icon">key</span>
+            <button class="toggle-pass" type="button" onclick="toggleApiKey()" tabindex="-1">
+              <span class="material-icons-round" id="apikey-eye">visibility_off</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Cidade para clima</label>
+          <div class="field-wrap">
+            <input class="field-input" type="text" id="input-weather-city"
+              placeholder="Ex: São Paulo (deixe em branco para auto)"
+              enterkeyhint="done">
+            <span class="material-icons-round field-icon">wb_cloudy</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SLIDE 4: Tudo pronto ── -->
+      <div class="slide" id="slide-3" style="align-items:center; padding-top: 32px;">
+        <div class="ready-icon">
+          <span class="material-icons-round">auto_awesome</span>
+        </div>
+        <h2 class="ready-title">Tudo pronto!</h2>
+        <p class="ready-subtitle">Gabriel está configurado e pronto para te ajudar com o que precisar.</p>
+
+        <div class="ready-features">
+          <div class="ready-feature">
+            <div class="feature-icon-wrap">
+              <span class="material-icons-round">psychology</span>
+            </div>
+            <div class="feature-text">
+              <strong>Memória inteligente</strong>
+              Vou lembrar do que você me contar automaticamente.
+            </div>
+          </div>
+          <div class="ready-feature">
+            <div class="feature-icon-wrap">
+              <span class="material-icons-round">bolt</span>
+            </div>
+            <div class="feature-text">
+              <strong>Ações autônomas</strong>
+              Crie pastas, eventos e gastos em linguagem natural.
+            </div>
+          </div>
+          <div class="ready-feature">
+            <div class="feature-icon-wrap">
+              <span class="material-icons-round">lock_outline</span>
+            </div>
+            <div class="feature-text">
+              <strong>100% privado</strong>
+              Todos os dados ficam só no seu dispositivo.
+            </div>
+          </div>
+          <div class="ready-feature">
+            <div class="feature-icon-wrap">
+              <span class="material-icons-round">notifications_none</span>
+            </div>
+            <div class="feature-text">
+              <strong>Notificações</strong>
+              Lembretes de eventos e resumo diário.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /track -->
+  </div><!-- /viewport -->
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    <button class="btn-primary" id="btn-next" onclick="nextStep()">
+      <span class="btn-text" id="btn-label">Continuar</span>
+      <span class="material-icons-round" id="btn-icon">arrow_forward</span>
+    </button>
+    <span class="btn-skip" id="btn-skip" onclick="skipStep()">Pular por agora</span>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script src="groq.js"></script>
+<script src="weather.js"></script>
+
+<script>
+  // ── Estado ───────────────────────────────────────────────
+  const TOTAL_STEPS = 4;
+  let currentStep = 0;
+
+  // ── Init ─────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', async () => {
+    await Auth.guard('onboarding.html');
+    await prefillName();
+    renderDots();
+    updateUI();
+  });
+
+  async function prefillName() {
+    const session = Auth.getSession();
+    if (session?.name) {
+      document.getElementById('input-name').value = session.name;
+    }
+  }
+
+  // ── Dots ─────────────────────────────────────────────────
+  function renderDots() {
+    const container = document.getElementById('dots');
+    container.innerHTML = '';
+    for (let i = 0; i < TOTAL_STEPS; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot' +
+        (i === currentStep ? ' active' : '') +
+        (i < currentStep ? ' done' : '');
+      container.appendChild(dot);
+    }
+    document.getElementById('progress-label').textContent =
+      `Passo ${currentStep + 1} de ${TOTAL_STEPS}`;
+  }
+
+  // ── Navegação ─────────────────────────────────────────────
+  async function nextStep() {
+    if (!(await validateStep(currentStep))) return;
+    await saveStep(currentStep);
+
+    if (currentStep < TOTAL_STEPS - 1) {
+      currentStep++;
+      animateSlide();
+      renderDots();
+      updateUI();
+    } else {
+      await finish();
+    }
+  }
+
+  function prevStep() {
+    if (currentStep === 0) return;
+    currentStep--;
+    animateSlide();
+    renderDots();
+    updateUI();
+  }
+
+  async function skipStep() {
+    if (currentStep < TOTAL_STEPS - 1) {
+      currentStep++;
+      animateSlide();
+      renderDots();
+      updateUI();
+    }
+  }
+
+  function animateSlide() {
+    const track = document.getElementById('track');
+    track.style.transform = `translateX(-${currentStep * 100}%)`;
+  }
+
+  function updateUI() {
+    // Back btn
+    const backBtn = document.getElementById('back-btn');
+    backBtn.classList.toggle('hidden', currentStep === 0);
+
+    // Skip btn
+    const skipBtn = document.getElementById('btn-skip');
+    skipBtn.style.display = (currentStep === 2) ? 'block' : 'none';
+
+    // Next btn label
+    const btnLabel = document.getElementById('btn-label');
+    const btnIcon  = document.getElementById('btn-icon');
+
+    if (currentStep === TOTAL_STEPS - 1) {
+      btnLabel.textContent = 'Começar com Gabriel';
+      btnIcon.textContent  = 'rocket_launch';
+    } else {
+      btnLabel.textContent = 'Continuar';
+      btnIcon.textContent  = 'arrow_forward';
+    }
+  }
+
+  // ── Validação por passo ──────────────────────────────────
+  async function validateStep(step) {
+    hideMsg(step);
+
+    if (step === 0) {
+      const name = document.getElementById('input-name').value.trim();
+      if (name.length < 2) {
+        showMsg(0, 'Por favor, informe seu nome.');
+        return false;
+      }
+    }
+
+    if (step === 2) {
+      const key = document.getElementById('input-apikey').value.trim();
+      if (key && !key.startsWith('gsk_')) {
+        showMsg(2, 'Chave inválida. Deve começar com "gsk_".');
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // ── Salvar dados do passo ────────────────────────────────
+  async function saveStep(step) {
+    if (step === 0) {
+      const name = document.getElementById('input-name').value.trim();
+      const city = document.getElementById('input-city').value.trim();
+      await GabrielDB.Profile.save({ name, city });
+      // Salva cidade no clima
+      if (city) await Weather.setDefaultCity(city);
+    }
+
+    if (step === 1) {
+      const tone  = getSelectedChip('chips-tone');
+      const focus = getSelectedChips('chips-focus');
+      const session = Auth.getSession();
+      await Auth.updateUser({ prefs: { tone, focus } });
+      await GabrielDB.Profile.save({ tone, focus });
+    }
+
+    if (step === 2) {
+      const key  = document.getElementById('input-apikey').value.trim();
+      const city = document.getElementById('input-weather-city').value.trim();
+      if (key) await Groq.setApiKey(key);
+      if (city) await Weather.setDefaultCity(city);
+    }
+  }
+
+  // ── Finalizar onboarding ─────────────────────────────────
+  async function finish() {
+    await Auth.completeOnboarding();
+
+    // Solicita permissão de notificações
+    if ('Notification' in window) {
+      await Notification.requestPermission().catch(() => {});
+    }
+
+    // Registra SW
+    if ('serviceWorker' in navigator) {
+      await navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    // Pequeno delay para UX
+    const btn = document.getElementById('btn-next');
+    btn.disabled = true;
+    btn.querySelector('#btn-label').textContent = 'Carregando...';
+
+    setTimeout(() => {
+      window.location.href = 'dashboard.html';
+    }, 800);
+  }
+
+  // ── Chips ────────────────────────────────────────────────
+  function selectChip(groupId, el, multi = false) {
+    if (!multi) {
+      document.querySelectorAll(`#${groupId} .chip`).forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+    } else {
+      el.classList.toggle('selected');
+    }
+  }
+
+  function getSelectedChip(groupId) {
+    const selected = document.querySelector(`#${groupId} .chip.selected`);
+    return selected?.dataset.value || null;
+  }
+
+  function getSelectedChips(groupId) {
+    return [...document.querySelectorAll(`#${groupId} .chip.selected`)]
+      .map(c => c.dataset.value);
+  }
+
+  // ── Toggle API Key visibility ────────────────────────────
+  function toggleApiKey() {
+    const input = document.getElementById('input-apikey');
+    const eye   = document.getElementById('apikey-eye');
+    if (input.type === 'password') {
+      input.type = 'text';
+      eye.textContent = 'visibility';
+    } else {
+      input.type = 'password';
+      eye.textContent = 'visibility_off';
+    }
+  }
+
+  // ── Mensagens ────────────────────────────────────────────
+  function showMsg(step, text) {
+    const el = document.getElementById(`msg-${step}`);
+    if (!el) return;
+    document.getElementById(`msg-${step}-text`).textContent = text;
+    el.classList.add('show');
+  }
+
+  function hideMsg(step) {
+    const el = document.getElementById(`msg-${step}`);
+    if (el) el.classList.remove('show');
+  }
+</script>
+
+</body>
+</html>

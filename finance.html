@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Gabriel — Finanças</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F5F5F2; --surface: #FFFFFF; --border: #EAEAE6;
+      --text-primary: #1A1A1A; --text-secondary: #787874; --text-hint: #B0B0AA;
+      --accent: #1A1A1A; --accent-soft: #EFEFEB;
+      --green: #2E7D5E; --green-soft: #F0FFF8;
+      --red: #D94040; --red-soft: #FFF0F0;
+      --nav-bg: rgba(255,255,255,0.94); --nav-h: 68px;
+      --radius-md: 16px; --radius-lg: 20px; --radius-xl: 28px;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.05); --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+      --font-sans: 'DM Sans', sans-serif; --font-serif: 'DM Serif Display', serif;
+      --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+    html, body { height: 100%; background: var(--bg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; color: var(--text-primary); overflow: hidden; }
+    .app { height: 100%; display: flex; flex-direction: column; }
+
+    /* Header */
+    .header { padding: calc(48px + env(safe-area-inset-top,0px)) 20px 0; background: var(--surface); flex-shrink: 0; animation: fadeDown 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .header-title { font-family: var(--font-serif); font-size: 26px; letter-spacing: -0.3px; }
+    .header-actions { display: flex; gap: 8px; }
+    .icon-btn { width: 38px; height: 38px; background: var(--accent-soft); border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); transition: transform var(--transition); -webkit-tap-highlight-color: transparent; }
+    .icon-btn:active { transform: scale(0.90); }
+    .icon-btn .material-icons-round { font-size: 20px; }
+
+    /* Resumo hero */
+    .hero-card { background: var(--accent); border-radius: var(--radius-xl); margin: 0 20px 0; padding: 20px 22px; color: white; position: relative; overflow: hidden; cursor: pointer; }
+    .hero-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+    .hero-label { font-size: 12px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+    .hero-value { font-family: var(--font-serif); font-size: 42px; letter-spacing: -1.5px; line-height: 1; margin-bottom: 16px; }
+    .hero-row { display: flex; gap: 20px; }
+    .hero-stat { display: flex; flex-direction: column; gap: 2px; }
+    .hero-stat-label { font-size: 11px; opacity: 0.55; }
+    .hero-stat-value { font-size: 15px; font-weight: 600; }
+
+    /* Month tabs */
+    .month-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 16px 20px 0; scrollbar-width: none; -webkit-scrollbar: none; }
+    .month-tabs::-webkit-scrollbar { display: none; }
+    .month-tab { padding: 7px 14px; border-radius: 99px; border: 1.5px solid var(--border); font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--surface); cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all var(--transition); -webkit-tap-highlight-color: transparent; }
+    .month-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    /* Scroll */
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 20px calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 80px); }
+
+    /* Section */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 20px; }
+    .section-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.7px; display: flex; align-items: center; gap: 6px; }
+    .section-title .material-icons-round { font-size: 14px; }
+
+    /* Category bars */
+    .cat-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .cat-item { display: flex; flex-direction: column; gap: 5px; }
+    .cat-row { display: flex; align-items: center; justify-content: space-between; }
+    .cat-label { font-size: 13.5px; color: var(--text-primary); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .cat-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; }
+    .cat-icon .material-icons-round { font-size: 15px; color: var(--text-primary); }
+    .cat-value { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    .cat-pct { font-size: 11px; color: var(--text-hint); }
+    .cat-track { height: 4px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+    .cat-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); width: 0; }
+
+    /* Transactions list */
+    .tx-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .tx-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--bg); cursor: pointer; transition: background var(--transition); -webkit-tap-highlight-color: transparent; }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-item:active { background: var(--bg); }
+    .tx-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .tx-icon .material-icons-round { font-size: 20px; color: var(--text-primary); }
+    .tx-info { flex: 1; }
+    .tx-desc { font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.3; }
+    .tx-meta { font-size: 12px; color: var(--text-hint); margin-top: 2px; display: flex; gap: 6px; align-items: center; }
+    .tx-meta .material-icons-round { font-size: 12px; }
+    .tx-value { font-size: 15px; font-weight: 600; color: var(--red); white-space: nowrap; }
+    .tx-badge { font-size: 10.5px; padding: 2px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--text-secondary); font-weight: 500; }
+
+    /* Cards métodos */
+    .card-methods { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .card-methods::-webkit-scrollbar { display: none; }
+    .method-card { background: var(--surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 14px 16px; min-width: 130px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+    .method-icon { font-size: 20px; }
+    .method-label { font-size: 12px; color: var(--text-hint); font-weight: 500; }
+    .method-value { font-family: var(--font-serif); font-size: 20px; color: var(--text-primary); letter-spacing: -0.5px; }
+
+    /* Empty */
+    .empty-state { display: flex; flex-direction: column; align-items: center; padding: 40px 24px; text-align: center; color: var(--text-hint); }
+    .empty-state .material-icons-round { font-size: 40px; margin-bottom: 10px; opacity: 0.35; }
+    .empty-state p { font-size: 14px; line-height: 1.5; }
+
+    /* FAB */
+    .fab { position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px); right: 20px; width: 52px; height: 52px; background: var(--accent); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); cursor: pointer; z-index: 99; transition: transform var(--transition); -webkit-tap-highlight-color: transparent; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both; }
+    .fab:active { transform: scale(0.92); }
+    .fab .material-icons-round { color: white; font-size: 24px; }
+
+    /* Bottom nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom,0px)); background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.06); display: flex; align-items: flex-start; padding-top: 8px; z-index: 100; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; -webkit-tap-highlight-color: transparent; transition: transform var(--transition); }
+    .nav-item:active { transform: scale(0.88); }
+    .nav-icon-wrap { width: 44px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 99px; transition: background var(--transition); }
+    .nav-item.active .nav-icon-wrap { background: var(--accent-soft); }
+    .nav-item .material-icons-round { font-size: 22px; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .material-icons-round { color: var(--accent); }
+    .nav-label { font-size: 10px; font-weight: 500; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .nav-label { color: var(--accent); }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: none; opacity: 0; transition: opacity 0.25s ease; align-items: flex-end; }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    .modal { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; padding: 20px 20px calc(20px + env(safe-area-inset-bottom,0px)); transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); max-height: 90vh; overflow-y: auto; }
+    .modal-overlay.show .modal { transform: translateY(0); }
+    .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+    .modal-title { font-family: var(--font-serif); font-size: 22px; margin-bottom: 20px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field-label { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.7px; }
+    .field-wrap { position: relative; display: flex; align-items: center; }
+    .field-icon { position: absolute; left: 14px; color: var(--text-hint); font-size: 18px; pointer-events: none; }
+    .field-input { width: 100%; padding: 13px 14px 13px 42px; border: 1.5px solid var(--border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; color: var(--text-primary); background: var(--bg); outline: none; transition: border-color var(--transition); -webkit-appearance: none; }
+    .field-input:focus { border-color: var(--accent); }
+    .field-input::placeholder { color: var(--text-hint); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 99px; background: var(--bg); font-size: 13px; color: var(--text-secondary); cursor: pointer; font-family: var(--font-sans); transition: all var(--transition); -webkit-tap-highlight-color: transparent; }
+    .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-secondary { flex: 1; padding: 14px; background: var(--accent-soft); color: var(--text-primary); border: none; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; font-weight: 500; cursor: pointer; }
+    .btn-primary { flex: 2; padding: 14px; background: var(--accent); color: white; border: none; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; font-weight: 600; cursor: pointer; }
+
+    /* Delete swipe hint */
+    .tx-item .delete-btn { opacity: 0; width: 0; overflow: hidden; background: var(--red); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all var(--transition); display: flex; align-items: center; gap: 4px; white-space: nowrap; padding: 0; }
+    .tx-item:active .delete-btn { opacity: 1; width: 70px; padding: 6px 10px; }
+    .delete-btn .material-icons-round { font-size: 16px; }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-top">
+      <h1 class="header-title">Finanças</h1>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="window.location.href='chat.html'" title="Gabriel">
+          <span class="material-icons-round">auto_awesome</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Hero resumo -->
+    <div class="hero-card" id="hero-card">
+      <div class="hero-label">Total gasto</div>
+      <div class="hero-value" id="hero-value">R$ 0</div>
+      <div class="hero-row">
+        <div class="hero-stat">
+          <span class="hero-stat-label">Crédito</span>
+          <span class="hero-stat-value" id="hero-credit">R$ 0</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">Débito</span>
+          <span class="hero-stat-value" id="hero-debit">R$ 0</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">Outros</span>
+          <span class="hero-stat-value" id="hero-other">R$ 0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Month tabs -->
+    <div class="month-tabs" id="month-tabs"></div>
+  </div>
+
+  <div class="scroll-area">
+
+    <!-- Por método -->
+    <div class="section-header" style="margin-top:16px">
+      <span class="section-title"><span class="material-icons-round">credit_card</span>Por método</span>
+    </div>
+    <div class="card-methods" id="methods-row"></div>
+
+    <!-- Por categoria -->
+    <div class="section-header">
+      <span class="section-title"><span class="material-icons-round">pie_chart_outline</span>Por categoria</span>
+    </div>
+    <div class="cat-card" id="cats-card">
+      <div class="empty-state" style="padding:16px">
+        <span class="material-icons-round">bar_chart</span>
+        <p>Nenhum gasto este mês</p>
+      </div>
+    </div>
+
+    <!-- Lançamentos -->
+    <div class="section-header">
+      <span class="section-title"><span class="material-icons-round">receipt_long</span>Lançamentos</span>
+    </div>
+    <div class="tx-card" id="tx-list">
+      <div class="empty-state">
+        <span class="material-icons-round">account_balance_wallet</span>
+        <p>Nenhum lançamento.<br>Toque em + ou peça ao Gabriel.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="fab" onclick="openModal()">
+    <span class="material-icons-round">add</span>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='dashboard.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">home</span></div>
+      <span class="nav-label">Início</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='chat.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">auto_awesome</span></div>
+      <span class="nav-label">Gabriel</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='agenda.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">calendar_month</span></div>
+      <span class="nav-label">Agenda</span>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon-wrap"><span class="material-icons-round">account_balance_wallet</span></div>
+      <span class="nav-label">Finanças</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='folders.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">folder_open</span></div>
+      <span class="nav-label">Pastas</span>
+    </div>
+  </nav>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Novo Gasto</div>
+
+      <div class="field">
+        <label class="field-label">Descrição</label>
+        <div class="field-wrap">
+          <span class="material-icons-round field-icon">receipt</span>
+          <input class="field-input" type="text" id="tx-desc" placeholder="Ex: Supermercado, Gasolina...">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label class="field-label">Valor (R$)</label>
+          <div class="field-wrap">
+            <span class="material-icons-round field-icon">attach_money</span>
+            <input class="field-input" type="number" id="tx-value" placeholder="0,00" inputmode="decimal" step="0.01" min="0">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Data</label>
+          <div class="field-wrap">
+            <span class="material-icons-round field-icon">calendar_today</span>
+            <input class="field-input" type="date" id="tx-date" style="padding-left:42px">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Categoria</label>
+        <div class="chip-row" id="cat-chips">
+          <div class="chip active" data-val="Alimentação" onclick="selChip('cat-chips',this)">🍔 Alimentação</div>
+          <div class="chip" data-val="Transporte" onclick="selChip('cat-chips',this)">🚗 Transporte</div>
+          <div class="chip" data-val="Saúde" onclick="selChip('cat-chips',this)">🏥 Saúde</div>
+          <div class="chip" data-val="Lazer" onclick="selChip('cat-chips',this)">🎉 Lazer</div>
+          <div class="chip" data-val="Casa" onclick="selChip('cat-chips',this)">🏠 Casa</div>
+          <div class="chip" data-val="Educação" onclick="selChip('cat-chips',this)">📚 Educação</div>
+          <div class="chip" data-val="Vestuário" onclick="selChip('cat-chips',this)">👕 Vestuário</div>
+          <div class="chip" data-val="Geral" onclick="selChip('cat-chips',this)">📦 Geral</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Método de pagamento</label>
+        <div class="chip-row" id="card-chips">
+          <div class="chip active" data-val="crédito" onclick="selChip('card-chips',this)">💳 Crédito</div>
+          <div class="chip" data-val="débito" onclick="selChip('card-chips',this)">💰 Débito</div>
+          <div class="chip" data-val="pix" onclick="selChip('card-chips',this)">📱 Pix</div>
+          <div class="chip" data-val="dinheiro" onclick="selChip('card-chips',this)">💵 Dinheiro</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveTx()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script>
+const CAT_ICONS = { 'Alimentação':'restaurant','Transporte':'directions_car','Saúde':'local_hospital','Lazer':'sports_esports','Casa':'home','Educação':'school','Vestuário':'checkroom','Geral':'inventory_2' };
+const CARD_ICONS = { 'crédito':'credit_card','débito':'account_balance_card','pix':'pix','dinheiro':'payments','outros':'wallet' };
+
+let currentMonth = '';
+let allMonths    = [];
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await Auth.guard('finance.html');
+  const now = new Date();
+  currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('tx-date').value = now.toISOString().split('T')[0];
+  await buildMonthTabs();
+  await loadMonth(currentMonth);
+});
+
+async function buildMonthTabs() {
+  const all = await GabrielDB.Finances.getAll();
+  const months = [...new Set(all.map(f => f.month))].sort().reverse();
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  if (!months.includes(thisMonth)) months.unshift(thisMonth);
+  allMonths = months;
+
+  const PT_MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const container = document.getElementById('month-tabs');
+  container.innerHTML = '';
+  months.forEach(m => {
+    const [y, mo] = m.split('-');
+    const label   = `${PT_MONTHS[parseInt(mo)-1]} ${y}`;
+    const tab     = document.createElement('div');
+    tab.className = `month-tab${m === currentMonth ? ' active' : ''}`;
+    tab.textContent = label;
+    tab.onclick = () => {
+      document.querySelectorAll('.month-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      loadMonth(m);
+    };
+    container.appendChild(tab);
+  });
+}
+
+async function loadMonth(month) {
+  currentMonth = month;
+  const summary = await GabrielDB.Finances.getSummary(month);
+  renderHero(summary);
+  renderMethods(summary);
+  renderCategories(summary);
+  renderTransactions(summary.items);
+}
+
+function fmt(v) { return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+
+function renderHero(s) {
+  document.getElementById('hero-value').textContent = fmt(s.total);
+  const credit = s.items.filter(i=>i.card==='crédito').reduce((a,i)=>a+Number(i.value),0);
+  const debit  = s.items.filter(i=>i.card==='débito').reduce((a,i)=>a+Number(i.value),0);
+  const other  = s.total - credit - debit;
+  document.getElementById('hero-credit').textContent = fmt(credit);
+  document.getElementById('hero-debit').textContent  = fmt(debit);
+  document.getElementById('hero-other').textContent  = fmt(other > 0 ? other : 0);
+}
+
+function renderMethods(s) {
+  const row = document.getElementById('methods-row');
+  const byCard = {};
+  s.items.forEach(i => { byCard[i.card] = (byCard[i.card]||0) + Number(i.value); });
+  if (!Object.keys(byCard).length) { row.innerHTML = '<div style="color:var(--text-hint);font-size:13px;padding:4px 0">Nenhum lançamento</div>'; return; }
+  row.innerHTML = '';
+  Object.entries(byCard).sort((a,b)=>b[1]-a[1]).forEach(([card, val]) => {
+    const el = document.createElement('div');
+    el.className = 'method-card';
+    el.innerHTML = `
+      <div class="method-icon">${card==='crédito'?'💳':card==='débito'?'💰':card==='pix'?'📱':'💵'}</div>
+      <div class="method-label">${card.charAt(0).toUpperCase()+card.slice(1)}</div>
+      <div class="method-value">${fmt(val)}</div>`;
+    row.appendChild(el);
+  });
+}
+
+function renderCategories(s) {
+  const container = document.getElementById('cats-card');
+  if (!s.count) { container.innerHTML = '<div class="empty-state" style="padding:16px"><span class="material-icons-round">bar_chart</span><p>Nenhum gasto este mês</p></div>'; return; }
+  const cats = Object.entries(s.byCategory).sort((a,b)=>b[1]-a[1]);
+  const max  = cats[0][1];
+  container.innerHTML = '';
+  cats.forEach(([cat, val]) => {
+    const pct = Math.round((val/max)*100);
+    const el = document.createElement('div');
+    el.className = 'cat-item';
+    el.innerHTML = `
+      <div class="cat-row">
+        <div class="cat-label">
+          <div class="cat-icon"><span class="material-icons-round">${CAT_ICONS[cat]||'category'}</span></div>
+          ${cat}
+        </div>
+        <div>
+          <div class="cat-value">${fmt(val)}</div>
+          <div class="cat-pct">${pct}%</div>
+        </div>
+      </div>
+      <div class="cat-track"><div class="cat-fill" data-pct="${pct}"></div></div>`;
+    container.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.cat-fill').forEach(b => { b.style.width = b.dataset.pct + '%'; });
+  });
+}
+
+function renderTransactions(items) {
+  const list = document.getElementById('tx-list');
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-state"><span class="material-icons-round">account_balance_wallet</span><p>Nenhum lançamento.<br>Toque em + ou peça ao Gabriel.</p></div>';
+    return;
+  }
+  list.innerHTML = '';
+  [...items].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).forEach(tx => {
+    const el = document.createElement('div');
+    el.className = 'tx-item';
+    const dateStr = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '';
+    el.innerHTML = `
+      <div class="tx-icon"><span class="material-icons-round">${CAT_ICONS[tx.category]||'receipt'}</span></div>
+      <div class="tx-info">
+        <div class="tx-desc">${tx.desc}</div>
+        <div class="tx-meta">
+          <span class="material-icons-round">${CARD_ICONS[tx.card]||'wallet'}</span>
+          ${tx.card} · ${dateStr}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div class="tx-value">− ${fmt(tx.value)}</div>
+        <span class="tx-badge">${tx.category}</span>
+      </div>`;
+    el.onclick = () => deleteTx(tx.id, el);
+    list.appendChild(el);
+  });
+}
+
+async function deleteTx(id, el) {
+  if (!confirm('Remover este lançamento?')) return;
+  await GabrielDB.Finances.delete(id);
+  el.remove();
+  await loadMonth(currentMonth);
+  await buildMonthTabs();
+}
+
+/* Modal */
+function openModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('show'));
+}
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('show');
+  setTimeout(() => { overlay.style.display = 'none'; }, 300);
+}
+function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+function selChip(groupId, el) {
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function saveTx() {
+  const desc  = document.getElementById('tx-desc').value.trim();
+  const value = parseFloat(document.getElementById('tx-value').value);
+  const date  = document.getElementById('tx-date').value;
+  const cat   = document.querySelector('#cat-chips .chip.active')?.dataset.val || 'Geral';
+  const card  = document.querySelector('#card-chips .chip.active')?.dataset.val || 'outros';
+
+  if (!desc)  { document.getElementById('tx-desc').focus(); return; }
+  if (!value || value <= 0) { document.getElementById('tx-value').focus(); return; }
+
+  const [y, mo] = (date || new Date().toISOString().split('T')[0]).split('-');
+  const month   = `${y}-${mo}`;
+
+  await GabrielDB.Finances.create({ desc, value, category: cat, card, month });
+  closeModal();
+  document.getElementById('tx-desc').value  = '';
+  document.getElementById('tx-value').value = '';
+  await buildMonthTabs();
+  await loadMonth(month);
+
+  // Sinaliza dashboard
+  localStorage.setItem('gabriel_data_updated', JSON.stringify({ types:['create_finance'], ts:Date.now() }));
+}
+</script>
+</body>
+</html>

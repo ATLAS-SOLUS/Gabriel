@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Gabriel</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:             #F5F5F2;
+      --surface:        #FFFFFF;
+      --surface-2:      #FAFAF8;
+      --border:         #EBEBЕ7;
+      --text-primary:   #1A1A1A;
+      --text-secondary: #787874;
+      --text-hint:      #B0B0AA;
+      --accent:         #1A1A1A;
+      --accent-soft:    #EFEFEB;
+      --nav-bg:         rgba(255,255,255,0.92);
+      --radius-sm:      10px;
+      --radius-md:      16px;
+      --radius-lg:      20px;
+      --radius-xl:      28px;
+      --shadow-sm:      0 1px 4px rgba(0,0,0,0.05);
+      --shadow-md:      0 4px 20px rgba(0,0,0,0.07);
+      --shadow-lg:      0 8px 32px rgba(0,0,0,0.10);
+      --font-sans:      'DM Sans', sans-serif;
+      --font-serif:     'DM Serif Display', serif;
+      --nav-h:          68px;
+      --transition:     0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body {
+      height: 100%; background: var(--bg);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ── Scroll area ──────────────────────────────────── */
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+      scroll-behavior: smooth;
+    }
+
+    /* ── Header ───────────────────────────────────────── */
+    .header {
+      padding: calc(52px + env(safe-area-inset-top, 0px)) 20px 16px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    .greeting-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-hint);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .greeting-name {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .icon-btn {
+      width: 40px; height: 40px;
+      background: var(--surface);
+      border: none;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      transition: transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    .icon-btn:active { transform: scale(0.92); }
+    .icon-btn .material-icons-round { font-size: 20px; }
+
+    .notif-dot {
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 7px; height: 7px;
+      background: #E05252;
+      border-radius: 50%;
+      border: 1.5px solid var(--surface);
+      display: none;
+    }
+    .notif-dot.show { display: block; }
+
+    /* ── Seção comum ──────────────────────────────────── */
+    .section {
+      padding: 0 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-title .material-icons-round { font-size: 15px; }
+
+    .section-link {
+      font-size: 13px;
+      color: var(--text-hint);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .section-link .material-icons-round { font-size: 14px; }
+
+    /* ── Weather card ─────────────────────────────────── */
+    .weather-card {
+      background: var(--accent);
+      border-radius: var(--radius-xl);
+      padding: 20px 22px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+      min-height: 110px;
+      box-shadow: var(--shadow-lg);
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .weather-card::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 140px; height: 140px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    .weather-card::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; right: 60px;
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+    }
+
+    .weather-left { position: relative; z-index: 1; }
+
+    .weather-city {
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.6;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .weather-temp {
+      font-family: var(--font-serif);
+      font-size: 52px;
+      line-height: 1;
+      letter-spacing: -2px;
+      margin-bottom: 4px;
+    }
+
+    .weather-desc {
+      font-size: 13px;
+      opacity: 0.75;
+      font-weight: 400;
+    }
+
+    .weather-right {
+      position: relative;
+      z-index: 1;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .weather-emoji {
+      font-size: 46px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .weather-detail {
+      font-size: 12px;
+      opacity: 0.65;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .weather-detail .material-icons-round { font-size: 13px; }
+
+    .weather-skeleton {
+      animation: pulse 1.4s ease infinite;
+    }
+
+    /* ── Quick actions ────────────────────────────────── */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both;
+    }
+
+    .quick-btn {
+      background: var(--surface);
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 14px 8px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .quick-btn:active { transform: scale(0.94); }
+
+    .quick-btn-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .quick-btn-icon .material-icons-round { font-size: 20px; color: var(--text-primary); }
+
+    .quick-btn-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* ── Cards genéricos ──────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    /* ── Hoje na agenda ───────────────────────────────── */
+    .agenda-card {
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.15s both;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: center;
+      padding: 13px 16px;
+      gap: 12px;
+      border-bottom: 1px solid var(--bg);
+      transition: background var(--transition);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .event-item:last-child { border-bottom: none; }
+    .event-item:active { background: var(--bg); }
+
+    .event-time-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 42px;
+    }
+
+    .event-time {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .event-time-period {
+      font-size: 10px;
+      color: var(--text-hint);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .event-dot-line {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .event-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .event-info { flex: 1; }
+
+    .event-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .event-desc {
+      font-size: 12px;
+      color: var(--text-hint);
+      margin-top: 2px;
+    }
+
+    .event-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      background: var(--accent-soft);
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* ── Tarefas ──────────────────────────────────────── */
+    .tasks-card {
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.2s both;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 12px;
+      border-bottom: 1px solid var(--bg);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background var(--transition);
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-item:active { background: var(--bg); }
+
+    .task-check {
+      width: 22px; height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 7px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition);
+    }
+    .task-check.done {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .task-check .material-icons-round { font-size: 14px; color: white; }
+
+    .task-text {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+    .task-text.done {
+      text-decoration: line-through;
+      color: var(--text-hint);
+    }
+
+    .task-due {
+      font-size: 11px;
+      color: var(--text-hint);
+      white-space: nowrap;
+    }
+    .task-due.overdue { color: #E05252; }
+
+    /* ── Resumo financeiro ────────────────────────────── */
+    .finance-card {
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.25s both;
+    }
+
+    .finance-summary {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--bg);
+    }
+
+    .finance-total-label {
+      font-size: 12px;
+      color: var(--text-hint);
+      margin-bottom: 3px;
+    }
+
+    .finance-total-value {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+
+    .finance-month-badge {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--accent-soft);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .finance-bars {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .finance-bar-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .finance-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .finance-bar-label {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .finance-bar-value {
+      font-size: 12.5px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .finance-bar-track {
+      height: 5px;
+      background: var(--bg);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .finance-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 0%;
+    }
+
+    /* ── Memórias recentes ────────────────────────────── */
+    .memories-card {
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.3s both;
+    }
+
+    .memory-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--bg);
+    }
+    .memory-item:last-child { border-bottom: none; }
+
+    .memory-tag {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: var(--accent-soft);
+      color: var(--text-secondary);
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .memory-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    /* ── Estado vazio ─────────────────────────────────── */
+    .empty-state {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-hint);
+    }
+    .empty-state .material-icons-round { font-size: 28px; margin-bottom: 6px; opacity: 0.4; }
+    .empty-state p { font-size: 13px; line-height: 1.5; }
+
+    /* ── Bottom Navigation ────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      align-items: flex-start;
+      padding-top: 8px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      padding: 4px 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform var(--transition);
+    }
+    .nav-item:active { transform: scale(0.88); }
+
+    .nav-icon-wrap {
+      position: relative;
+      width: 44px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 99px;
+      transition: background var(--transition);
+    }
+
+    .nav-item.active .nav-icon-wrap {
+      background: var(--accent-soft);
+    }
+
+    .nav-item .material-icons-round {
+      font-size: 22px;
+      color: var(--text-hint);
+      transition: color var(--transition);
+    }
+    .nav-item.active .material-icons-round { color: var(--accent); }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-hint);
+      letter-spacing: 0.2px;
+      transition: color var(--transition);
+    }
+    .nav-item.active .nav-label { color: var(--accent); }
+
+    /* ── FAB Chat ─────────────────────────────────────── */
+    .fab {
+      position: fixed;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+      right: 20px;
+      width: 52px; height: 52px;
+      background: var(--accent);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      cursor: pointer;
+      z-index: 99;
+      transition: transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.4s both;
+    }
+    .fab:active { transform: scale(0.92); }
+    .fab .material-icons-round { color: white; font-size: 24px; }
+
+    /* ── Skeleton loader ──────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg) 25%, var(--accent-soft) 50%, var(--bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: 6px;
+    }
+
+    /* ── Animations ───────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.6); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- Banner Google -->
+    <div id="google-banner" style="display:none;margin:12px 16px 0;background:#FFF8E7;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+      <span class="material-icons-round" style="color:#E8A838;font-size:22px;flex-shrink:0">link</span>
+      <div style="flex:1">
+        <div style="font-size:13.5px;font-weight:600;color:#1A1A1A">Conecte Gmail e Agenda</div>
+        <div style="font-size:12px;color:#787874;margin-top:2px">Deixe o Gabriel ler e enviar e-mails e sincronizar sua agenda Google.</div>
+      </div>
+      <button onclick="Google.connect()" style="padding:7px 12px;background:#1A1A1A;color:white;border:none;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit">Conectar</button>
+      <button onclick="dismissGoogleBanner()" style="background:none;border:none;cursor:pointer;color:#B0B0AA;padding:4px">
+        <span class="material-icons-round" style="font-size:18px">close</span>
+      </button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <div class="greeting-label" id="greeting-label">Bom dia</div>
+        <div class="greeting-name" id="greeting-name">...</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="window.location.href='notes.html'" title="Caderno">
+          <span class="material-icons-round">edit_note</span>
+        </button>
+        <button class="icon-btn" id="notif-btn" onclick="window.location.href='agenda.html'" title="Notificações">
+          <span class="material-icons-round">notifications_none</span>
+          <div class="notif-dot" id="notif-dot"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Clima -->
+    <div class="section">
+      <div class="weather-card" id="weather-card" onclick="window.location.href='chat.html'">
+        <div class="weather-left">
+          <div class="weather-city" id="w-city">Carregando...</div>
+          <div class="weather-temp" id="w-temp">--°</div>
+          <div class="weather-desc" id="w-desc">...</div>
+        </div>
+        <div class="weather-right">
+          <div class="weather-emoji" id="w-emoji">🌡️</div>
+          <div class="weather-detail">
+            <span class="material-icons-round">water_drop</span>
+            <span id="w-humidity">--%</span>
+          </div>
+          <div class="weather-detail">
+            <span class="material-icons-round">air</span>
+            <span id="w-wind">-- km/h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section">
+      <div class="quick-actions">
+        <button class="quick-btn" onclick="window.location.href='chat.html'">
+          <div class="quick-btn-icon">
+            <span class="material-icons-round">auto_awesome</span>
+          </div>
+          <span class="quick-btn-label">Gabriel</span>
+        </button>
+        <button class="quick-btn" onclick="window.location.href='agenda.html'">
+          <div class="quick-btn-icon">
+            <span class="material-icons-round">calendar_today</span>
+          </div>
+          <span class="quick-btn-label">Agenda</span>
+        </button>
+        <button class="quick-btn" onclick="window.location.href='finance.html'">
+          <div class="quick-btn-icon">
+            <span class="material-icons-round">account_balance_wallet</span>
+          </div>
+          <span class="quick-btn-label">Finanças</span>
+        </button>
+        <button class="quick-btn" onclick="window.location.href='folders.html'">
+          <div class="quick-btn-icon">
+            <span class="material-icons-round">folder_open</span>
+          </div>
+          <span class="quick-btn-label">Pastas</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Agenda do dia -->
+    <div class="section agenda-card">
+      <div class="section-header">
+        <span class="section-title">
+          <span class="material-icons-round">today</span>
+          Hoje
+        </span>
+        <span class="section-link" onclick="window.location.href='agenda.html'">
+          Ver tudo <span class="material-icons-round">chevron_right</span>
+        </span>
+      </div>
+      <div class="card" id="events-list">
+        <div class="empty-state">
+          <span class="material-icons-round">event_available</span>
+          <p>Nenhum evento hoje</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarefas pendentes -->
+    <div class="section tasks-card">
+      <div class="section-header">
+        <span class="section-title">
+          <span class="material-icons-round">check_circle_outline</span>
+          Tarefas
+        </span>
+        <span class="section-link" onclick="window.location.href='chat.html'">
+          + Nova <span class="material-icons-round">chevron_right</span>
+        </span>
+      </div>
+      <div class="card" id="tasks-list">
+        <div class="empty-state">
+          <span class="material-icons-round">task_alt</span>
+          <p>Nenhuma tarefa pendente</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumo financeiro -->
+    <div class="section finance-card">
+      <div class="section-header">
+        <span class="section-title">
+          <span class="material-icons-round">pie_chart_outline</span>
+          Finanças
+        </span>
+        <span class="section-link" onclick="window.location.href='finance.html'">
+          Ver tudo <span class="material-icons-round">chevron_right</span>
+        </span>
+      </div>
+      <div class="card" id="finance-card-inner">
+        <div class="empty-state">
+          <span class="material-icons-round">account_balance_wallet</span>
+          <p>Nenhum gasto este mês</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memórias recentes -->
+    <div class="section memories-card">
+      <div class="section-header">
+        <span class="section-title">
+          <span class="material-icons-round">psychology</span>
+          Memórias
+        </span>
+        <span class="section-link" onclick="alert('Em breve: tela de memórias')">
+          Ver tudo <span class="material-icons-round">chevron_right</span>
+        </span>
+      </div>
+      <div class="card" id="memories-list">
+        <div class="empty-state">
+          <span class="material-icons-round">lightbulb_outline</span>
+          <p>Converse com Gabriel para ele começar a te conhecer</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <!-- FAB -->
+  <div class="fab" onclick="window.location.href='chat.html'" title="Chat com Gabriel">
+    <span class="material-icons-round">auto_awesome</span>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" onclick="navTo('dashboard.html', this)">
+      <div class="nav-icon-wrap">
+        <span class="material-icons-round">home</span>
+      </div>
+      <span class="nav-label">Início</span>
+    </div>
+    <div class="nav-item" onclick="navTo('chat.html', this)">
+      <div class="nav-icon-wrap">
+        <span class="material-icons-round">auto_awesome</span>
+      </div>
+      <span class="nav-label">Gabriel</span>
+    </div>
+    <div class="nav-item" onclick="navTo('agenda.html', this)">
+      <div class="nav-icon-wrap">
+        <span class="material-icons-round">calendar_month</span>
+      </div>
+      <span class="nav-label">Agenda</span>
+    </div>
+    <div class="nav-item" onclick="navTo('finance.html', this)">
+      <div class="nav-icon-wrap">
+        <span class="material-icons-round">account_balance_wallet</span>
+      </div>
+      <span class="nav-label">Finanças</span>
+    </div>
+    <div class="nav-item" onclick="navTo('folders.html', this)">
+      <div class="nav-icon-wrap">
+        <span class="material-icons-round">folder_open</span>
+      </div>
+      <span class="nav-label">Pastas</span>
+    </div>
+  </nav>
+
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script src="weather.js"></script>
+<script src="notifications.js"></script>
+<script src="google.js"></script>
+
+<script>
+// ── Init ──────────────────────────────────────────────────
+async function reloadAll() {
+  loadGreeting();
+  loadWeather();
+  loadEvents();
+  loadTasks();
+  loadFinances();
+  loadMemories();
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await Auth.guard('dashboard.html');
+  await reloadAll();
+  Notifications.startPolling();
+  checkGoogleBanner();
+  await Notifications.scheduleDailySummary(8, 0);
+});
+
+// ✅ Recarrega dados ao voltar de outra tela (ex: chat criou tarefas)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    const updated = localStorage.getItem('gabriel_data_updated');
+    if (updated) {
+      localStorage.removeItem('gabriel_data_updated');
+      reloadAll();
+    }
+  }
+});
+
+// ✅ Também recarrega ao receber foco (Android WebView)
+window.addEventListener('focus', () => {
+  const updated = localStorage.getItem('gabriel_data_updated');
+  if (updated) {
+    localStorage.removeItem('gabriel_data_updated');
+    reloadAll();
+  }
+});
+
+// ✅ Recarrega ao voltar com botão back
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) reloadAll();
+});
+
+// ── Saudação ──────────────────────────────────────────────
+function loadGreeting() {
+  const session = Auth.getSession();
+  const name    = session?.name?.split(' ')[0] || 'Olá';
+  const hour    = new Date().getHours();
+  const label   = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+  document.getElementById('greeting-label').textContent = label;
+  document.getElementById('greeting-name').textContent  = name;
+}
+
+// ── Clima ─────────────────────────────────────────────────
+async function loadWeather() {
+  try {
+    const city   = await Weather.getDefaultCity();
+    const data   = await Weather.getForDashboard(city);
+    if (!data) return;
+
+    document.getElementById('w-city').textContent    = data.city;
+    document.getElementById('w-temp').textContent    = `${data.temp}°`;
+    document.getElementById('w-desc').textContent    = data.description;
+    document.getElementById('w-emoji').textContent   = data.icon;
+    document.getElementById('w-humidity').textContent = `${data.humidity}%`;
+    document.getElementById('w-wind').textContent    = `${data.windKmph} km/h`;
+  } catch (e) {
+    document.getElementById('w-city').textContent = 'Clima indisponível';
+    document.getElementById('w-temp').textContent = '--°';
+    document.getElementById('w-desc').textContent = '';
+  }
+}
+
+// ── Eventos de hoje ───────────────────────────────────────
+async function loadEvents() {
+  const today = new Date().toISOString().split('T')[0];
+  const all   = await GabrielDB.Events.getAll();
+  const todayEvents = all.filter(e => e.date === today && !e.done)
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  if (todayEvents.length === 0) return;
+
+  const container = document.getElementById('events-list');
+  container.innerHTML = '';
+
+  todayEvents.slice(0, 4).forEach(ev => {
+    const timeParts = ev.time ? ev.time.split(':') : null;
+    const timeH = timeParts ? parseInt(timeParts[0]) : null;
+    const period = timeH !== null ? (timeH < 12 ? 'AM' : 'PM') : '';
+    const timeDisplay = timeParts
+      ? `${String(timeH % 12 || 12).padStart(2,'0')}:${timeParts[1]}`
+      : 'Todo dia';
+
+    const item = document.createElement('div');
+    item.className = 'event-item';
+    item.innerHTML = `
+      <div class="event-time-wrap">
+        <span class="event-time">${timeDisplay}</span>
+        <span class="event-time-period">${period}</span>
+      </div>
+      <div class="event-dot"></div>
+      <div class="event-info">
+        <div class="event-title">${ev.title}</div>
+        ${ev.description ? `<div class="event-desc">${ev.description}</div>` : ''}
+      </div>
+      ${ev.reminder ? '<span class="event-badge">🔔</span>' : ''}
+    `;
+    item.onclick = () => window.location.href = 'agenda.html';
+    container.appendChild(item);
+  });
+
+  // Notif dot
+  document.getElementById('notif-dot').classList.add('show');
+}
+
+// ── Tarefas ───────────────────────────────────────────────
+async function loadTasks() {
+  const tasks = await GabrielDB.Tasks.getPending();
+  if (tasks.length === 0) return;
+
+  const container = document.getElementById('tasks-list');
+  container.innerHTML = '';
+  const today = new Date().toISOString().split('T')[0];
+
+  tasks.slice(0, 5).forEach(task => {
+    const isOverdue = task.dueDate && task.dueDate < today;
+    const dueLabel  = task.dueDate
+      ? (task.dueDate === today ? 'Hoje'
+        : isOverdue ? 'Atrasada'
+        : new Date(task.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }))
+      : '';
+
+    const item = document.createElement('div');
+    item.className = 'task-item';
+    item.innerHTML = `
+      <div class="task-check" id="tc-${task.id}">
+        <span class="material-icons-round" style="display:none">check</span>
+      </div>
+      <span class="task-text" id="tt-${task.id}">${task.title}</span>
+      ${dueLabel ? `<span class="task-due ${isOverdue ? 'overdue' : ''}">${dueLabel}</span>` : ''}
+    `;
+    item.onclick = () => toggleTask(task.id);
+    container.appendChild(item);
+  });
+}
+
+async function toggleTask(id) {
+  await GabrielDB.Tasks.toggle(id);
+  const check = document.getElementById(`tc-${id}`);
+  const text  = document.getElementById(`tt-${id}`);
+  if (check && text) {
+    check.classList.add('done');
+    check.querySelector('.material-icons-round').style.display = 'block';
+    text.classList.add('done');
+    setTimeout(() => {
+      check.closest('.task-item')?.remove();
+    }, 600);
+  }
+}
+
+// ── Finanças ──────────────────────────────────────────────
+async function loadFinances() {
+  const now   = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const summary = await GabrielDB.Finances.getSummary(month);
+
+  if (summary.count === 0) return;
+
+  const container = document.getElementById('finance-card-inner');
+  const monthName = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  const total = summary.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  let barsHTML = '';
+  const cats = Object.entries(summary.byCategory)
+    .sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const maxCat = cats[0]?.[1] || 1;
+
+  cats.forEach(([cat, val]) => {
+    const pct = Math.round((val / maxCat) * 100);
+    const valFmt = val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    barsHTML += `
+      <div class="finance-bar-item">
+        <div class="finance-bar-header">
+          <span class="finance-bar-label">${cat}</span>
+          <span class="finance-bar-value">${valFmt}</span>
+        </div>
+        <div class="finance-bar-track">
+          <div class="finance-bar-fill" data-pct="${pct}"></div>
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = `
+    <div class="finance-summary">
+      <div>
+        <div class="finance-total-label">Total gasto</div>
+        <div class="finance-total-value">${total}</div>
+      </div>
+      <div class="finance-month-badge">${monthName}</div>
+    </div>
+    <div class="finance-bars">${barsHTML}</div>
+  `;
+
+  // Anima barras
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.finance-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.pct + '%';
+    });
+  });
+}
+
+// ── Memórias ──────────────────────────────────────────────
+async function loadMemories() {
+  const memories = await GabrielDB.Memories.getRecent(4);
+  if (memories.length === 0) return;
+
+  const container = document.getElementById('memories-list');
+  container.innerHTML = '';
+
+  memories.forEach(mem => {
+    const tag = mem.tags?.[0] || 'geral';
+    const item = document.createElement('div');
+    item.className = 'memory-item';
+    item.innerHTML = `
+      <span class="memory-tag">${tag}</span>
+      <span class="memory-text">${mem.content}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+// ── Nav ───────────────────────────────────────────────────
+function navTo(page, el) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  if (page !== 'dashboard.html') {
+    setTimeout(() => window.location.href = page, 120);
+  }
+}
+</script>
+
+</body>
+</html>

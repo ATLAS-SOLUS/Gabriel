@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Gabriel — Pastas</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F5F5F2; --surface: #FFFFFF; --border: #EAEAE6;
+      --text-primary: #1A1A1A; --text-secondary: #787874; --text-hint: #B0B0AA;
+      --accent: #1A1A1A; --accent-soft: #EFEFEB;
+      --nav-bg: rgba(255,255,255,0.94); --nav-h: 68px;
+      --radius-md: 16px; --radius-lg: 20px;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.05); --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+      --font-sans: 'DM Sans', sans-serif; --font-serif: 'DM Serif Display', serif;
+      --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+    html, body { height: 100%; background: var(--bg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; color: var(--text-primary); overflow: hidden; }
+    .app { height: 100%; display: flex; flex-direction: column; }
+
+    /* Header */
+    .header { padding: calc(48px + env(safe-area-inset-top,0px)) 20px 12px; background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.05); flex-shrink: 0; animation: fadeDown 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+    .header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .back-btn { width: 36px; height: 36px; background: var(--accent-soft); border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); flex-shrink: 0; -webkit-tap-highlight-color: transparent; transition: transform var(--transition); }
+    .back-btn:active { transform: scale(0.90); }
+    .back-btn.hidden { display: none; }
+    .back-btn .material-icons-round { font-size: 20px; }
+    .header-title { font-family: var(--font-serif); font-size: 24px; flex: 1; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .icon-btn { width: 38px; height: 38px; background: var(--accent-soft); border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); flex-shrink: 0; transition: transform var(--transition); -webkit-tap-highlight-color: transparent; }
+    .icon-btn:active { transform: scale(0.90); }
+    .icon-btn .material-icons-round { font-size: 20px; }
+
+    /* Breadcrumb */
+    .breadcrumb { display: flex; align-items: center; gap: 4px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; padding-bottom: 2px; }
+    .breadcrumb::-webkit-scrollbar { display: none; }
+    .breadcrumb-item { font-size: 12.5px; color: var(--text-hint); cursor: pointer; flex-shrink: 0; }
+    .breadcrumb-item:last-child { color: var(--text-primary); font-weight: 500; cursor: default; }
+    .breadcrumb-sep { font-size: 12px; color: var(--text-hint); }
+
+    /* Scroll */
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 16px calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 80px); }
+
+    /* Grid pastas */
+    .folders-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .folder-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px 14px; cursor: pointer; transition: transform var(--transition); -webkit-tap-highlight-color: transparent; position: relative; }
+    .folder-card:active { transform: scale(0.96); }
+    .folder-icon { width: 44px; height: 44px; background: var(--accent-soft); border-radius: 13px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+    .folder-icon .material-icons-round { font-size: 22px; color: var(--text-primary); }
+    .folder-name { font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.3; margin-bottom: 4px; word-break: break-word; }
+    .folder-count { font-size: 11.5px; color: var(--text-hint); }
+    .folder-menu-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background: none; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-hint); transition: background var(--transition); }
+    .folder-menu-btn:active { background: var(--accent-soft); }
+    .folder-menu-btn .material-icons-round { font-size: 16px; }
+
+    /* Seção conteúdo */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .section-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.7px; display: flex; align-items: center; gap: 6px; }
+    .section-title .material-icons-round { font-size: 14px; }
+
+    /* Itens dentro da pasta */
+    .item-list { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .item-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--bg); cursor: pointer; transition: background var(--transition); -webkit-tap-highlight-color: transparent; }
+    .item-row:last-child { border-bottom: none; }
+    .item-row:active { background: var(--bg); }
+    .item-icon { width: 38px; height: 38px; border-radius: 11px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .item-icon .material-icons-round { font-size: 19px; color: var(--text-primary); }
+    .item-info { flex: 1; }
+    .item-title { font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.3; }
+    .item-meta { font-size: 12px; color: var(--text-hint); margin-top: 2px; }
+    .item-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--text-secondary); font-weight: 500; }
+
+    /* Empty */
+    .empty-state { display: flex; flex-direction: column; align-items: center; padding: 48px 24px; text-align: center; color: var(--text-hint); }
+    .empty-state .material-icons-round { font-size: 40px; margin-bottom: 10px; opacity: 0.35; }
+    .empty-state p { font-size: 14px; line-height: 1.5; }
+
+    /* FAB */
+    .fab { position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px); right: 20px; width: 52px; height: 52px; background: var(--accent); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); cursor: pointer; z-index: 99; -webkit-tap-highlight-color: transparent; transition: transform var(--transition); }
+    .fab:active { transform: scale(0.92); }
+    .fab .material-icons-round { color: white; font-size: 24px; }
+
+    /* Bottom nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom,0px)); background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.06); display: flex; align-items: flex-start; padding-top: 8px; z-index: 100; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; -webkit-tap-highlight-color: transparent; transition: transform var(--transition); }
+    .nav-item:active { transform: scale(0.88); }
+    .nav-icon-wrap { width: 44px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 99px; transition: background var(--transition); }
+    .nav-item.active .nav-icon-wrap { background: var(--accent-soft); }
+    .nav-item .material-icons-round { font-size: 22px; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .material-icons-round { color: var(--accent); }
+    .nav-label { font-size: 10px; font-weight: 500; color: var(--text-hint); transition: color var(--transition); }
+    .nav-item.active .nav-label { color: var(--accent); }
+
+    /* Modal nova pasta */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: none; opacity: 0; transition: opacity 0.25s ease; align-items: flex-end; }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    .modal { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; padding: 20px 20px calc(20px + env(safe-area-inset-bottom,0px)); transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); }
+    .modal-overlay.show .modal { transform: translateY(0); }
+    .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+    .modal-title { font-family: var(--font-serif); font-size: 22px; margin-bottom: 20px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field-label { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.7px; }
+    .field-wrap { position: relative; display: flex; align-items: center; }
+    .field-icon { position: absolute; left: 14px; color: var(--text-hint); font-size: 18px; pointer-events: none; }
+    .field-input { width: 100%; padding: 13px 14px 13px 42px; border: 1.5px solid var(--border); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; color: var(--text-primary); background: var(--bg); outline: none; transition: border-color var(--transition); -webkit-appearance: none; }
+    .field-input:focus { border-color: var(--accent); }
+    .field-input::placeholder { color: var(--text-hint); }
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-secondary { flex: 1; padding: 14px; background: var(--accent-soft); color: var(--text-primary); border: none; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; font-weight: 500; cursor: pointer; }
+    .btn-primary { flex: 2; padding: 14px; background: var(--accent); color: white; border: none; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; font-weight: 600; cursor: pointer; }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-top">
+      <button class="back-btn hidden" id="back-btn" onclick="navigateUp()">
+        <span class="material-icons-round">arrow_back</span>
+      </button>
+      <h1 class="header-title" id="header-title">Pastas</h1>
+      <button class="icon-btn" onclick="openModal()">
+        <span class="material-icons-round">create_new_folder</span>
+      </button>
+      <button class="icon-btn" onclick="window.location.href='chat.html'">
+        <span class="material-icons-round">auto_awesome</span>
+      </button>
+    </div>
+    <div class="breadcrumb" id="breadcrumb">
+      <span class="breadcrumb-item">Início</span>
+    </div>
+  </div>
+
+  <div class="scroll-area" id="scroll-area">
+    <div id="content"></div>
+  </div>
+
+  <div class="fab" onclick="openModal()">
+    <span class="material-icons-round">add</span>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='dashboard.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">home</span></div>
+      <span class="nav-label">Início</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='chat.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">auto_awesome</span></div>
+      <span class="nav-label">Gabriel</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='agenda.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">calendar_month</span></div>
+      <span class="nav-label">Agenda</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='finance.html'">
+      <div class="nav-icon-wrap"><span class="material-icons-round">account_balance_wallet</span></div>
+      <span class="nav-label">Finanças</span>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon-wrap"><span class="material-icons-round">folder_open</span></div>
+      <span class="nav-label">Pastas</span>
+    </div>
+  </nav>
+
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modal-title">Nova Pasta</div>
+      <div class="field">
+        <label class="field-label">Nome da pasta</label>
+        <div class="field-wrap">
+          <span class="material-icons-round field-icon">folder</span>
+          <input class="field-input" type="text" id="folder-name-input" placeholder="Ex: Trabalho, Pessoal..." onkeydown="if(event.key==='Enter') saveFolder()">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveFolder()">Criar pasta</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script>
+// ── Estado ──────────────────────────────────────────────────
+let navStack = [{ id: 0, name: 'Início' }]; // pilha de navegação
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await Auth.guard('folders.html');
+  await renderLevel(0);
+});
+
+// ── Renderiza nível atual ─────────────────────────────────
+async function renderLevel(parentId) {
+  const content  = document.getElementById('content');
+  content.innerHTML = '';
+
+  const folders  = await GabrielDB.Folders.getChildren(parentId);
+  const events   = await (async () => { try { const all = await GabrielDB.Events.getAll(); return all.filter(e => e.folderId === parentId); } catch { return []; } })();
+  const finances = await (async () => { try { const all = await GabrielDB.Finances.getAll(); return all.filter(f => f.folderId === parentId); } catch { return []; } })();
+  const notes    = await (async () => { try { const all = await GabrielDB.Notes.getAll(); return all.filter(n => n.folderId === parentId); } catch { return []; } })();
+
+  const hasContent = events.length || finances.length || notes.length;
+
+  if (!folders.length && !hasContent) {
+    content.innerHTML = `<div class="empty-state"><span class="material-icons-round">folder_open</span><p>Pasta vazia.<br>Crie subpastas ou peça ao Gabriel para adicionar conteúdo.</p></div>`;
+    return;
+  }
+
+  // Subpastas
+  if (folders.length) {
+    const grid = document.createElement('div');
+    grid.className = 'folders-grid';
+    for (const folder of folders) {
+      const childCount = await countChildren(folder.id);
+      const card = document.createElement('div');
+      card.className = 'folder-card';
+      card.innerHTML = `
+        <div class="folder-icon"><span class="material-icons-round">folder</span></div>
+        <div class="folder-name">${folder.name}</div>
+        <div class="folder-count">${childCount} item${childCount !== 1 ? 's' : ''}</div>
+        <button class="folder-menu-btn" onclick="deleteFolder(${folder.id}, event)">
+          <span class="material-icons-round">more_vert</span>
+        </button>`;
+      card.onclick = () => navigateTo(folder);
+      grid.appendChild(card);
+    }
+    content.appendChild(grid);
+  }
+
+  // Eventos
+  if (events.length) {
+    const sh = document.createElement('div');
+    sh.className = 'section-header';
+    sh.innerHTML = `<span class="section-title"><span class="material-icons-round">calendar_today</span>Eventos</span>`;
+    content.appendChild(sh);
+    const list = document.createElement('div');
+    list.className = 'item-list';
+    events.forEach(ev => {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <div class="item-icon"><span class="material-icons-round">event</span></div>
+        <div class="item-info">
+          <div class="item-title">${ev.title}</div>
+          <div class="item-meta">${ev.date}${ev.time ? ' · ' + ev.time : ''}</div>
+        </div>
+        ${ev.reminder ? '<span class="item-badge">🔔</span>' : ''}`;
+      row.onclick = () => window.location.href = 'agenda.html';
+      list.appendChild(row);
+    });
+    content.appendChild(list);
+  }
+
+  // Notas
+  if (notes.length) {
+    const sh = document.createElement('div');
+    sh.className = 'section-header';
+    sh.style.marginTop = '16px';
+    sh.innerHTML = `<span class="section-title"><span class="material-icons-round">edit_note</span>Notas</span>`;
+    content.appendChild(sh);
+    const list = document.createElement('div');
+    list.className = 'item-list';
+    notes.forEach(note => {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      const date = note.updatedAt ? new Date(note.updatedAt).toLocaleDateString('pt-BR') : '';
+      row.innerHTML = `
+        <div class="item-icon"><span class="material-icons-round">description</span></div>
+        <div class="item-info">
+          <div class="item-title">${note.title}</div>
+          <div class="item-meta">${date}${note.content ? ' · ' + note.content.slice(0,40) + '...' : ''}</div>
+        </div>`;
+      row.onclick = () => window.location.href = `notes.html?id=${note.id}`;
+      list.appendChild(row);
+    });
+    content.appendChild(list);
+  }
+
+  // Finanças
+  if (finances.length) {
+    const sh = document.createElement('div');
+    sh.className = 'section-header';
+    sh.style.marginTop = '16px';
+    sh.innerHTML = `<span class="section-title"><span class="material-icons-round">account_balance_wallet</span>Gastos</span>`;
+    content.appendChild(sh);
+    const list = document.createElement('div');
+    list.className = 'item-list';
+    finances.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <div class="item-icon"><span class="material-icons-round">receipt</span></div>
+        <div class="item-info">
+          <div class="item-title">${f.desc}</div>
+          <div class="item-meta">${f.card} · ${f.month}</div>
+        </div>
+        <span style="font-size:14px;font-weight:600;color:#D94040">− R$ ${Number(f.value).toFixed(2)}</span>`;
+      row.onclick = () => window.location.href = 'finance.html';
+      list.appendChild(row);
+    });
+    content.appendChild(list);
+  }
+}
+
+async function countChildren(folderId) {
+  const sub   = await GabrielDB.Folders.getChildren(folderId);
+  const notes = (await GabrielDB.Notes.getAll()).filter(n => n.folderId === folderId);
+  return sub.length + notes.length;
+}
+
+// ── Navegação ─────────────────────────────────────────────
+function navigateTo(folder) {
+  navStack.push({ id: folder.id, name: folder.name });
+  updateHeader();
+  renderLevel(folder.id);
+}
+
+function navigateUp() {
+  if (navStack.length > 1) navStack.pop();
+  updateHeader();
+  renderLevel(navStack[navStack.length - 1].id);
+}
+
+function navigateTo_breadcrumb(index) {
+  navStack = navStack.slice(0, index + 1);
+  updateHeader();
+  renderLevel(navStack[navStack.length - 1].id);
+}
+
+function updateHeader() {
+  const current = navStack[navStack.length - 1];
+  document.getElementById('header-title').textContent = current.name;
+  document.getElementById('back-btn').classList.toggle('hidden', navStack.length <= 1);
+
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = navStack.map((item, i) =>
+    `<span class="breadcrumb-item" onclick="navigateTo_breadcrumb(${i})">${item.name}</span>${i < navStack.length - 1 ? '<span class="breadcrumb-sep">›</span>' : ''}`
+  ).join('');
+}
+
+// ── Modal ──────────────────────────────────────────────────
+function openModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('show'));
+  setTimeout(() => document.getElementById('folder-name-input').focus(), 350);
+}
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('show');
+  setTimeout(() => { overlay.style.display = 'none'; }, 300);
+}
+function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+async function saveFolder() {
+  const name = document.getElementById('folder-name-input').value.trim();
+  if (!name) { document.getElementById('folder-name-input').focus(); return; }
+  const parentId = navStack[navStack.length - 1].id;
+  await GabrielDB.Folders.create(name, parentId);
+  document.getElementById('folder-name-input').value = '';
+  closeModal();
+  await renderLevel(parentId);
+}
+
+async function deleteFolder(id, e) {
+  e.stopPropagation();
+  if (!confirm('Excluir esta pasta e todo seu conteúdo?')) return;
+  await GabrielDB.Folders.delete(id);
+  await renderLevel(navStack[navStack.length - 1].id);
+}
+</script>
+</body>
+</html>
