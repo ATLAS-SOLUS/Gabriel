@@ -197,21 +197,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     showState('error');
   }
 });
-</script>      document.getElementById('google-avatar').innerHTML = `<img src="${userInfo.picture}" alt="${name}">`;
-    }
-
-    let redirectTo = 'dashboard.html';
-    try { const d = JSON.parse(atob(state||btoa('{}'))); if (d.from && d.from !== '/login.html') redirectTo = d.from.replace(/^\//,''); } catch {}
-    document.getElementById('btn-continue').href = redirectTo;
-    showState('success');
-    setTimeout(() => { window.location.href = redirectTo; }, 2200);
-
-  } catch (err) {
-    console.error('[Callback]', err);
-    document.getElementById('error-msg').textContent = err.message;
-    showState('error');
-  }
-});
 </script>
 </body>
 </html>
