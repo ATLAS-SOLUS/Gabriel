@@ -696,7 +696,11 @@
 
   // ── Init ─────────────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', async () => {
-    await Auth.guard('onboarding.html');
+    // Verifica se está logado via Google
+    if (!Auth.isGoogleConnected()) {
+      window.location.href = 'login.html';
+      return;
+    }
     await prefillName();
     renderDots();
     updateUI();

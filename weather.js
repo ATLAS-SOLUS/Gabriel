@@ -180,20 +180,35 @@ const Weather = (() => {
   function formatForecast(data) {
     const forecast = data.weather || [];
     if (forecast.length === 0) return 'Previsão indisponível.';
-
-    const days = ['Hoje', 'Amanhã', 'Depois de amanhã'];
-
-    return forecast.slice(0, 3).map((day, i) => {
+    const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const today = new Date();
+    return forecast.slice(0, 7).map((day, i) => {
       const max  = parseInt(day.maxtempC);
       const min  = parseInt(day.mintempC);
-      const desc = day.hourly?.[4]?.lang_pt?.[0]?.value
-        || day.hourly?.[4]?.weatherDesc?.[0]?.value
-        || '';
+      const desc = day.hourly?.[4]?.lang_pt?.[0]?.value || day.hourly?.[4]?.weatherDesc?.[0]?.value || '';
       const rain = Math.max(...(day.hourly || []).map(h => parseInt(h.chanceofrain || 0)));
       const emoji = getWeatherEmoji((max + min) / 2, desc, rain);
-
-      return `${emoji} **${days[i] || day.date}**: ${max}°/${min}° — ${desc}${rain > 20 ? ` ☔${rain}%` : ''}`;
+      const date = new Date(today); date.setDate(today.getDate() + i);
+      const label = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()];
+      return `${emoji} **${label}**: ${max}°/${min}°${rain > 20 ? ` ☔${rain}%` : ''} — ${desc}`;
     }).join('\n');
+  }
+
+  function formatForecastDashboard(data) {
+    const forecast = data.weather || [];
+    if (forecast.length === 0) return [];
+    const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const today = new Date();
+    return forecast.slice(0, 7).map((day, i) => {
+      const max  = parseInt(day.maxtempC);
+      const min  = parseInt(day.mintempC);
+      const desc = day.hourly?.[4]?.lang_pt?.[0]?.value || day.hourly?.[4]?.weatherDesc?.[0]?.value || '';
+      const rain = Math.max(...(day.hourly || []).map(h => parseInt(h.chanceofrain || 0)));
+      const emoji = getWeatherEmoji((max + min) / 2, desc, rain);
+      const date = new Date(today); date.setDate(today.getDate() + i);
+      const label = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()];
+      return { label, max, min, desc, rain, emoji };
+    });
   }
 
   // ── API principal ────────────────────────────────────────
@@ -319,7 +334,8 @@ const Weather = (() => {
     autoDetectCity,
     setDefaultCity,
     getDefaultCity,
-    getWeatherEmoji
+    getWeatherEmoji,
+    formatForecastDashboard
   };
 
 })();

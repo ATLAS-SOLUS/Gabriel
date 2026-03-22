@@ -7,8 +7,8 @@ const Groq = (() => {
 
   const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
   const MODEL   = 'llama-3.3-70b-versatile';
-  const MAX_TOKENS_CHAT    = 1024;
-  const MAX_TOKENS_ACTIONS = 2048;
+  const MAX_TOKENS_CHAT    = 2048;
+  const MAX_TOKENS_ACTIONS = 4096;
   const MAX_TOKENS_MEMORY  = 512;
 
   // ── Chave API ────────────────────────────────────────────
@@ -153,7 +153,10 @@ REGRAS:
 4. Para "mês atual" use ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}
 5. Ao executar múltiplas ações, liste todas no mesmo bloco JSON
 6. Após executar, confirme de forma amigável o que foi feito
-7. Para ações gmail_* e gcal_*, só use se Google estiver conectado. Caso contrário, oriente a conectar no Dashboard`;
+7. Para ações gmail_* e gcal_*, só use se Google estiver conectado. Caso contrário, oriente a conectar no Dashboard
+8. CONTEÚDO COMPLETO: Quando criar notas, músicas, poemas, letras, histórias ou qualquer texto criativo, SEMPRE salve o conteúdo COMPLETO na nota via create_note — nunca resuma ou corte
+9. PESQUISA: Quando o usuário pedir algo atual, notícias, preços, clima ou qualquer informação recente, use search_web para buscar dados reais antes de responder
+10. CLIMA: Para previsão do tempo, use get_weather com a cidade do usuário. Mostre temperatura, chuva e previsão para os próximos dias`;
   }
 
   // ── Chat principal ───────────────────────────────────────
@@ -267,48 +270,175 @@ Retorne APENAS o título, sem aspas, sem pontuação extra.`;
     }
   }
 
-  // ── Pesquisa web via DuckDuckGo ──────────────────────────
+  // ── Pesquisa web real (via Netlify proxy) ────────────────
 
   async function searchWeb(query) {
     try {
-      const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`;
-      const res = await fetch(url);
+      // Chama nosso proxy Netlify que usa Brave Search (ou DuckDuckGo fallback)
+      const res = await fetch('/.netlify/functions/web-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, count: 6 })
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-
-      const results = [];
-
-      if (data.AbstractText) {
-        results.push({ title: data.Heading, text: data.AbstractText, url: data.AbstractURL });
-      }
-
-      if (data.RelatedTopics) {
-        data.RelatedTopics.slice(0, 4).forEach(t => {
-          if (t.Text) results.push({ title: t.Text.split(' - ')[0], text: t.Text, url: t.FirstURL });
-        });
-      }
+      const results = data.results || [];
 
       if (results.length === 0) {
         return `Nenhum resultado encontrado para: "${query}"`;
       }
 
-      // Resume os resultados com a IA
-      const systemPrompt = `Você é Gabriel. Resuma os resultados de pesquisa em português de forma clara e útil.`;
-      const messages = [{
-        role: 'user',
-        content: `Pesquisa: "${query}"\n\nResultados:\n${results.map(r => `${r.title}: ${r.text}`).join('\n\n')}`
-      }];
+      // Passa os resultados para a IA resumir de forma inteligente
+      const systemPrompt = `Você é Gabriel, assistente pessoal. Analise os resultados de pesquisa e responda em português de forma clara, útil e completa. Cite as fontes quando relevante. Seja direto e informativo.`;
 
-      return await call(messages, systemPrompt, 512);
+      const content = `Pesquisa: "${query}"\n\nResultados encontrados:\n\n` +
+        results.map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? '\nFonte: ' + r.url : ''}`).join('\n\n');
+
+      const messages = [{ role: 'user', content }];
+      return await call(messages, systemPrompt, 1024);
 
     } catch (e) {
       console.error('[Groq] Erro pesquisa web:', e);
-      return `Não consegui buscar resultados para "${query}" agora.`;
+      // Fallback direto DuckDuckGo
+      try {
+        const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const results = [];
+        if (data.AbstractText) results.push(`${data.Heading}: ${data.AbstractText}`);
+        (data.RelatedTopics || []).slice(0, 3).forEach(t => { if (t.Text) results.push(t.Text); });
+        if (results.length === 0) return `Não consegui buscar "${query}" agora.`;
+        const messages = [{ role: 'user', content: `Pesquisa: "${query}"\n\n${results.join('\n\n')}` }];
+        return await call(messages, 'Resuma em português de forma clara e útil.', 512);
+      } catch(e2) {
+        return `Não consegui buscar "${query}" agora. Verifique sua conexão.`;
+      }
     }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ── SISTEMA MULTI-AGENTE ──────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+
+  // ── Agente de Pesquisa ───────────────────────────────────
+  async function agentSearch(task) {
+    const systemPrompt = `Você é o Agente de Pesquisa do Gabriel. Sua única função é buscar informações na web de forma precisa e abrangente.
+Receberá uma tarefa e deve:
+1. Identificar as melhores queries de busca
+2. Retornar os resultados de forma estruturada
+Responda APENAS em JSON: { "queries": ["query1","query2"], "summary": "resumo dos resultados", "sources": ["url1","url2"] }`;
+
+    try {
+      // Busca múltiplas queries em paralelo
+      const queriesRes = await call([{ role: 'user', content: `Tarefa: ${task}\n\nQuais são as 2 melhores queries para buscar isso?` }],
+        `Retorne APENAS JSON: {"queries": ["q1","q2"]}`, 100);
+      
+      let queries = [task];
+      try { queries = JSON.parse(queriesRes.replace(/```json|```/g, '').trim()).queries || [task]; } catch(e) {}
+
+      const results = await Promise.all(queries.slice(0, 2).map(q => searchWeb(q)));
+      return { agent: 'search', task, result: results.join('\n\n---\n\n') };
+    } catch(e) {
+      return { agent: 'search', task, result: await searchWeb(task) };
+    }
+  }
+
+  // ── Agente de Análise ────────────────────────────────────
+  async function agentAnalyze(task, context = '') {
+    const systemPrompt = `Você é o Agente de Análise do Gabriel. Analisa dados, gráficos, textos e informações de forma profunda e estruturada.
+Forneça análises detalhadas, padrões identificados e recomendações práticas em português.`;
+
+    const messages = [{ role: 'user', content: `${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa de análise: ${task}` }];
+    const result = await call(messages, systemPrompt, 2048);
+    return { agent: 'analyze', task, result };
+  }
+
+  // ── Agente de Programação ────────────────────────────────
+  async function agentCode(task, language = 'javascript') {
+    const systemPrompt = `Você é o Agente de Programação do Gabriel. Especialista em escrever código limpo, funcional e bem comentado.
+Linguagem preferida: ${language}. Sempre inclua comentários explicativos e exemplos de uso.
+Quando criar código completo, sinalize para salvar no Drive ou caderno.`;
+
+    const messages = [{ role: 'user', content: task }];
+    const result = await call(messages, systemPrompt, 4096);
+    return { agent: 'code', task, result };
+  }
+
+  // ── Agente do Drive ──────────────────────────────────────
+  async function agentDrive(task) {
+    const systemPrompt = `Você é o Agente do Google Drive do Gabriel. Especialista em organizar, criar e gerenciar arquivos no Drive.
+Responda indicando exatamente quais ações tomar: criar pasta, fazer upload, buscar arquivo, ou baixar.`;
+
+    let driveContext = '';
+    try {
+      if (window.Google?.isConnected()) {
+        const files = await window.Google.Drive.list('', 10);
+        driveContext = `Arquivos recentes no Drive:\n${files.map(f => `- ${f.name}`).join('\n')}`;
+      }
+    } catch(e) {}
+
+    const messages = [{ role: 'user', content: `${driveContext}\n\nTarefa: ${task}` }];
+    const result = await call(messages, systemPrompt, 1024);
+    return { agent: 'drive', task, result };
+  }
+
+  // ── Orquestrador principal ───────────────────────────────
+  async function runAgents(userMessage) {
+    // Detecta qual agente usar baseado na mensagem
+    const routerPrompt = `Analise a mensagem e decida quais agentes devem ser ativados.
+Agentes disponíveis: search (pesquisa web), analyze (análise de dados/textos), code (programação), drive (Google Drive).
+Retorne APENAS JSON: {"agents": ["agente1"], "tasks": {"agente1": "tarefa específica"}}
+Ative no máximo 2 agentes por vez. Se for conversa simples, retorne {"agents": [], "tasks": {}}`;
+
+    let agentPlan = { agents: [], tasks: {} };
+    try {
+      const raw = await call([{ role: 'user', content: `Mensagem: "${userMessage}"` }], routerPrompt, 200);
+      agentPlan = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } catch(e) { return null; }
+
+    if (!agentPlan.agents?.length) return null;
+
+    // Executa agentes em paralelo
+    const agentResults = await Promise.all(agentPlan.agents.map(agent => {
+      const task = agentPlan.tasks[agent] || userMessage;
+      switch(agent) {
+        case 'search':  return agentSearch(task);
+        case 'analyze': return agentAnalyze(task);
+        case 'code':    return agentCode(task);
+        case 'drive':   return agentDrive(task);
+        default:        return Promise.resolve(null);
+      }
+    }));
+
+    return agentResults.filter(Boolean);
+  }
+
+  // ── Chat com suporte a multi-agentes ─────────────────────
+  async function chatWithAgents(userMessage, conversationMessages = []) {
+    // Verifica se precisa de agentes especializados
+    const agentResults = await runAgents(userMessage);
+
+    let enrichedMessage = userMessage;
+    if (agentResults?.length) {
+      const agentContext = agentResults.map(r =>
+        `[${r.agent.toUpperCase()} AGENT RESULT]\n${r.result}`
+      ).join('\n\n');
+      enrichedMessage = `${userMessage}\n\n[CONTEXTO DOS AGENTES ESPECIALIZADOS]\n${agentContext}`;
+    }
+
+    return await chat(enrichedMessage, conversationMessages);
   }
 
   // ── API Pública ──────────────────────────────────────────
   return {
     chat,
+    chatWithAgents,
+    runAgents,
+    agentSearch,
+    agentAnalyze,
+    agentCode,
+    agentDrive,
     extractMemories,
     extractTasks,
     generateTitle,

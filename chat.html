@@ -438,7 +438,7 @@ async function sendMessage(text) {
   showTyping();
 
   try {
-    const { text: reply, actions } = await Groq.chat(content, currentMessages);
+    const { text: reply, actions } = await Groq.chatWithAgents(content, currentMessages);
     hideTyping();
 
     let actionResults = [];

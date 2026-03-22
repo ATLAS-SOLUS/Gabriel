@@ -693,22 +693,35 @@
 
     <!-- Clima -->
     <div class="section">
-      <div class="weather-card" id="weather-card" onclick="window.location.href='chat.html'">
-        <div class="weather-left">
-          <div class="weather-city" id="w-city">Carregando...</div>
-          <div class="weather-temp" id="w-temp">--°</div>
-          <div class="weather-desc" id="w-desc">...</div>
+      <div class="weather-card" id="weather-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="weather-left">
+            <div class="weather-city" id="w-city">Carregando...</div>
+            <div class="weather-temp" id="w-temp">--°</div>
+            <div class="weather-desc" id="w-desc">...</div>
+          </div>
+          <div class="weather-right">
+            <div class="weather-emoji" id="w-emoji">🌡️</div>
+            <div class="weather-detail">
+              <span class="material-icons-round">water_drop</span>
+              <span id="w-humidity">--%</span>
+            </div>
+            <div class="weather-detail">
+              <span class="material-icons-round">air</span>
+              <span id="w-wind">-- km/h</span>
+            </div>
+          </div>
         </div>
-        <div class="weather-right">
-          <div class="weather-emoji" id="w-emoji">🌡️</div>
-          <div class="weather-detail">
-            <span class="material-icons-round">water_drop</span>
-            <span id="w-humidity">--%</span>
-          </div>
-          <div class="weather-detail">
-            <span class="material-icons-round">air</span>
-            <span id="w-wind">-- km/h</span>
-          </div>
+        <!-- Previsão 7 dias -->
+        <div id="w-forecast" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.15)">
+          <div id="w-forecast-days" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch"></div>
+        </div>
+        <!-- Botão localização -->
+        <div id="w-location-btn" style="margin-top:10px;display:none">
+          <button onclick="requestWeatherLocation()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:8px;padding:6px 12px;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:4px">
+            <span class="material-icons-round" style="font-size:14px">my_location</span>
+            Usar minha localização
+          </button>
         </div>
       </div>
     </div>
@@ -935,10 +948,17 @@ async function loadWeather() {
   try {
     let city = await Weather.getDefaultCity();
 
-    // Se não tem cidade salva, tenta detectar automaticamente
+    // Se não tem cidade, mostra botão de localização
     if (!city) {
-      document.getElementById('w-city').textContent = 'Detectando...';
-      city = await Weather.autoDetectCity();
+      document.getElementById('w-city').textContent = 'Localização não definida';
+      document.getElementById('w-temp').textContent = '--°';
+      document.getElementById('w-desc').textContent = 'Toque para usar GPS';
+      document.getElementById('w-location-btn').style.display = 'block';
+      // Tenta detectar automaticamente em background
+      Weather.autoDetectCity().then(detected => {
+        if (detected) loadWeather();
+      });
+      return;
     }
 
     const data = await Weather.getForDashboard(city);
@@ -950,10 +970,46 @@ async function loadWeather() {
     document.getElementById('w-emoji').textContent    = data.icon;
     document.getElementById('w-humidity').textContent = `${data.humidity}%`;
     document.getElementById('w-wind').textContent     = `${data.windKmph} km/h`;
+
+    // Previsão 7 dias
+    try {
+      const rawData = await Weather.getParsed(city);
+      // Busca previsão direto da API
+      const forecastRes = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1&lang=pt`);
+      const forecastData = await forecastRes.json();
+      const days = Weather.formatForecastDashboard(forecastData);
+
+      if (days.length > 0) {
+        const container = document.getElementById('w-forecast-days');
+        container.innerHTML = days.map(d => `
+          <div style="flex-shrink:0;text-align:center;min-width:52px">
+            <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-bottom:4px">${d.label}</div>
+            <div style="font-size:18px;margin-bottom:4px">${d.emoji}</div>
+            <div style="font-size:12px;font-weight:600;color:white">${d.max}°</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6)">${d.min}°</div>
+            ${d.rain > 20 ? `<div style="font-size:10px;color:rgba(255,255,255,0.7)">☔${d.rain}%</div>` : ''}
+          </div>`).join('');
+        document.getElementById('w-forecast').style.display = 'block';
+      }
+    } catch(e) { console.warn('[Weather] Forecast:', e); }
+
   } catch (e) {
     document.getElementById('w-city').textContent = 'Clima indisponível';
     document.getElementById('w-temp').textContent = '--°';
     document.getElementById('w-desc').textContent = '';
+    document.getElementById('w-location-btn').style.display = 'block';
+  }
+}
+
+async function requestWeatherLocation() {
+  document.getElementById('w-city').textContent = 'Detectando GPS...';
+  document.getElementById('w-location-btn').style.display = 'none';
+  const city = await Weather.getLocationCity();
+  if (city) {
+    await loadWeather();
+  } else {
+    document.getElementById('w-city').textContent = 'GPS indisponível';
+    document.getElementById('w-location-btn').style.display = 'block';
   }
 }
 
