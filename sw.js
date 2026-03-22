@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const CACHE_NAME    = 'gabriel-v1';
+const CACHE_NAME    = 'gabriel-v3';
 const OFFLINE_URL   = 'index.html';
 
 const CACHE_ASSETS = [
@@ -25,6 +25,7 @@ const CACHE_ASSETS = [
   'memory.js',
   'notifications.js',
   'weather.js',
+  'google.js',
   'manifest.json',
   'icon-192.png',
   'icon-512.png'

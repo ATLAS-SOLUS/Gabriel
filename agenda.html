@@ -466,6 +466,7 @@
       from { opacity: 0; transform: scale(0.6); }
       to   { opacity: 1; transform: scale(1); }
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -476,6 +477,9 @@
     <div class="header-top">
       <h1 class="header-title">Agenda</h1>
       <div class="header-actions">
+        <button class="icon-btn" id="gcal-sync-btn" onclick="syncGoogleCalendar()" title="Sincronizar Google Agenda" style="display:none">
+          <span class="material-icons-round" id="gcal-sync-icon">sync</span>
+        </button>
         <button class="icon-btn" onclick="goToday()" title="Hoje">
           <span class="material-icons-round">today</span>
         </button>
@@ -599,6 +603,7 @@
 <script src="db.js"></script>
 <script src="auth.js"></script>
 <script src="notifications.js"></script>
+<script src="google.js"></script>
 
 <script>
 // ── Estado ────────────────────────────────────────────────
@@ -619,7 +624,59 @@ window.addEventListener('DOMContentLoaded', async () => {
   Notifications.startPolling();
   // Pré-preenche data de hoje no modal
   document.getElementById('ev-date').value = today.toISOString().split('T')[0];
+  // Mostra botão de sync se Google conectado
+  if (window.Google && Google.isConnected() && Google.isTokenValid()) {
+    document.getElementById('gcal-sync-btn').style.display = 'flex';
+  }
 });
+
+// ── Sincronizar Google Calendar ───────────────────────────
+async function syncGoogleCalendar() {
+  if (!window.Google || !Google.isConnected()) return;
+
+  const icon = document.getElementById('gcal-sync-icon');
+  icon.style.animation = 'spin 1s linear infinite';
+
+  try {
+    const gcalEvents = await Google.Calendar.list(30);
+    let imported = 0;
+
+    for (const ev of gcalEvents) {
+      if (!ev.start) continue;
+      const dateStr = ev.start.split('T')[0];
+      const timeStr = ev.start.includes('T') ? ev.start.split('T')[1].slice(0,5) : '';
+      // Verifica se já existe pelo título + data
+      const exists = allEvents.find(e => e.title === ev.title && e.date === dateStr);
+      if (!exists) {
+        await GabrielDB.Events.create({
+          title:       ev.title,
+          date:        dateStr,
+          time:        timeStr,
+          description: ev.description || '',
+          location:    ev.location || '',
+          reminder:    false,
+          gcal_id:     ev.id
+        });
+        imported++;
+      }
+    }
+
+    allEvents = await GabrielDB.Events.getAll();
+    renderCalendar();
+    renderEvents(selectedDay);
+
+    await Notifications.show(
+      'Google Agenda sincronizada 📅',
+      imported > 0 ? `${imported} evento(s) importado(s)` : 'Agenda já está atualizada',
+      { tag: 'gcal-sync' }
+    );
+  } catch (err) {
+    console.error('[Agenda] Erro ao sincronizar Google:', err);
+    await Notifications.show('Erro na sincronização', err.message, { tag: 'gcal-sync-err' });
+  } finally {
+    icon.style.animation = '';
+  }
+}
 
 // ── Calendário ────────────────────────────────────────────
 function renderCalendar() {

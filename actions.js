@@ -225,6 +225,83 @@ const Actions = (() => {
     return result('open_module', true, `Abrindo ${module}...`, { module });
   }
 
+  // ── GMAIL: listar e-mails ────────────────────────────────
+
+  async function execGmailList({ query = '', max = 5 }) {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gmail_list', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    try {
+      const emails = await window.Google.Gmail.list(max, query);
+      if (!emails.length) return result('gmail_list', true, 'Nenhum e-mail encontrado.', { emails: [] });
+      const summary = emails.map(e =>
+        `📧 **${e.subject}**\nDe: ${e.from}\n${e.date}${e.unread ? ' 🔵' : ''}\n${e.snippet}`
+      ).join('\n\n---\n\n');
+      return result('gmail_list', true, summary, { emails });
+    } catch (err) {
+      return result('gmail_list', false, `Erro ao buscar e-mails: ${err.message}`);
+    }
+  }
+
+  // ── GMAIL: enviar e-mail ─────────────────────────────────
+
+  async function execGmailSend({ to, subject, body }) {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gmail_send', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    if (!to || !subject || !body) {
+      return result('gmail_send', false, 'Informe destinatário, assunto e corpo do e-mail.');
+    }
+    try {
+      await window.Google.Gmail.send({ to, subject, body });
+      if (window.Notifications) {
+        await window.Notifications.show('E-mail enviado ✉️', `Para: ${to} — ${subject}`, { tag: 'gmail-sent' });
+      }
+      return result('gmail_send', true, `E-mail enviado para **${to}** com assunto "${subject}".`);
+    } catch (err) {
+      return result('gmail_send', false, `Erro ao enviar e-mail: ${err.message}`);
+    }
+  }
+
+  // ── GOOGLE CALENDAR: listar eventos ─────────────────────
+
+  async function execGcalList({ days = 7 }) {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gcal_list', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    try {
+      const events = await window.Google.Calendar.list(days);
+      if (!events.length) return result('gcal_list', true, 'Nenhum evento encontrado no Google Agenda.', { events: [] });
+      const summary = events.map(e => {
+        const start = e.start ? new Date(e.start).toLocaleString('pt-BR') : 'Data não definida';
+        return `📅 **${e.title}**\n${start}${e.location ? '\n📍 ' + e.location : ''}`;
+      }).join('\n\n');
+      return result('gcal_list', true, summary, { events });
+    } catch (err) {
+      return result('gcal_list', false, `Erro ao buscar agenda Google: ${err.message}`);
+    }
+  }
+
+  // ── GOOGLE CALENDAR: criar evento ────────────────────────
+
+  async function execGcalCreate({ title, start, end, description = '', location = '' }) {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gcal_create', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    if (!title || !start) {
+      return result('gcal_create', false, 'Informe título e data/hora do evento.');
+    }
+    try {
+      await window.Google.Calendar.create({ title, start, end, description, location });
+      if (window.Notifications) {
+        await window.Notifications.show('Evento criado no Google Agenda 📅', title, { tag: 'gcal-created' });
+      }
+      return result('gcal_create', true, `Evento **"${title}"** criado no Google Agenda com sucesso!`);
+    } catch (err) {
+      return result('gcal_create', false, `Erro ao criar evento no Google: ${err.message}`);
+    }
+  }
+
   // ── DISPATCHER PRINCIPAL ─────────────────────────────────
 
   const handlers = {
@@ -235,7 +312,11 @@ const Actions = (() => {
     create_task:    execCreateTask,
     search_web:     execSearchWeb,
     get_weather:    execGetWeather,
-    open_module:    execOpenModule
+    open_module:    execOpenModule,
+    gmail_list:     execGmailList,
+    gmail_send:     execGmailSend,
+    gcal_list:      execGcalList,
+    gcal_create:    execGcalCreate
   };
 
   // Executa lista de ações em sequência

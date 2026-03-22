@@ -403,6 +403,65 @@
     @supports (padding-top: env(safe-area-inset-top)) {
       .brand-area { padding-top: calc(64px + env(safe-area-inset-top)); }
     }
+
+    /* ── Banner PWA ────────────────────────────────────── */
+    .pwa-banner {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.10);
+      z-index: 999;
+      animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1) both;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .pwa-banner.show { display: flex; }
+    .pwa-banner-row { display: flex; align-items: center; gap: 14px; }
+    .pwa-app-icon {
+      width: 52px; height: 52px;
+      background: var(--accent);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-md);
+    }
+    .pwa-app-icon .material-icons-round { color: white; font-size: 26px; }
+    .pwa-banner-info { flex: 1; }
+    .pwa-banner-title { font-weight: 600; font-size: 15px; color: var(--text-primary); }
+    .pwa-banner-sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+    .pwa-banner-actions { display: flex; gap: 8px; }
+    .pwa-btn-install {
+      flex: 1; padding: 13px;
+      background: var(--accent); color: white;
+      border: none; border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 14px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pwa-btn-install .material-icons-round { font-size: 18px; }
+    .pwa-btn-dismiss {
+      padding: 13px 16px;
+      background: var(--accent-soft); color: var(--text-secondary);
+      border: none; border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* iOS install instructions */
+    .ios-instructions {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .ios-instructions .material-icons-round { color: var(--accent); font-size: 20px; flex-shrink: 0; margin-top: 1px; }
   </style>
 </head>
 <body>
@@ -546,10 +605,81 @@
 <script src="db.js"></script>
 <script src="auth.js"></script>
 
+<!-- Banner PWA Install -->
+<div class="pwa-banner" id="pwa-banner">
+  <div class="pwa-banner-row">
+    <div class="pwa-app-icon">
+      <span class="material-icons-round">auto_awesome</span>
+    </div>
+    <div class="pwa-banner-info">
+      <div class="pwa-banner-title">Instalar Gabriel</div>
+      <div class="pwa-banner-sub" id="pwa-banner-sub">Adicione à tela inicial para acesso rápido</div>
+    </div>
+  </div>
+  <div id="pwa-ios-hint" style="display:none">
+    <div class="ios-instructions">
+      <span class="material-icons-round">ios_share</span>
+      <span>Toque em <strong>Compartilhar</strong> e depois em <strong>"Adicionar à Tela de Início"</strong> para instalar o Gabriel.</span>
+    </div>
+  </div>
+  <div class="pwa-banner-actions" id="pwa-actions">
+    <button class="pwa-btn-install" id="pwa-btn-install" onclick="installPWA()">
+      <span class="material-icons-round">download</span>
+      Instalar agora
+    </button>
+    <button class="pwa-btn-dismiss" onclick="dismissPWA()">Agora não</button>
+  </div>
+</div>
+
 <script>
   // ── Registro do Service Worker ───────────────────────
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // ── PWA Install ──────────────────────────────────────
+  let deferredPrompt = null;
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('gabriel_pwa_dismissed');
+
+  if (!isStandalone && !dismissed) {
+    if (isIOS) {
+      // iOS: mostra instruções manuais
+      const banner = document.getElementById('pwa-banner');
+      document.getElementById('pwa-ios-hint').style.display = 'block';
+      document.getElementById('pwa-actions').style.display = 'none';
+      // Mostra botão apenas para fechar
+      const actions = document.getElementById('pwa-actions');
+      actions.style.display = 'flex';
+      document.getElementById('pwa-btn-install').style.display = 'none';
+      banner.classList.add('show');
+    } else {
+      // Android/Chrome: aguarda evento beforeinstallprompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('pwa-banner').classList.add('show');
+      });
+    }
+  }
+
+  async function installPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (outcome === 'accepted') {
+      document.getElementById('pwa-banner').classList.remove('show');
+      localStorage.setItem('gabriel_pwa_dismissed', '1');
+    }
+  }
+
+  function dismissPWA() {
+    document.getElementById('pwa-banner').classList.remove('show');
+    localStorage.setItem('gabriel_pwa_dismissed', '1');
   }
 
   // ── Guard: redireciona se já logado ──────────────────

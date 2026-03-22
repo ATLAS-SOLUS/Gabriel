@@ -1103,6 +1103,13 @@ function checkGoogleBanner() {
   const justConnected = localStorage.getItem('gabriel_google_just_connected');
   if (justConnected) {
     localStorage.removeItem('gabriel_google_just_connected');
+    // Dispara notificação de boas-vindas
+    const email = Google.getConnectedEmail();
+    if (email) {
+      Notifications.requestPermission().then(granted => {
+        if (granted) Notifications.notifyGoogleConnected(email);
+      });
+    }
   }
 
   // Verifica se já está conectado com token válido

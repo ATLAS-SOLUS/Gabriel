@@ -78,8 +78,25 @@ const Groq = (() => {
       ? events.slice(0, 3).map(e => `- ${e.title} em ${e.date} às ${e.time || 'horário não definido'}`).join('\n')
       : 'Nenhum evento próximo.';
 
+    // Verifica conexão Google
+    let googleCtx = '';
+    let googleActions = '';
+    try {
+      if (window.Google && window.Google.isConnected() && window.Google.isTokenValid()) {
+        const email = window.Google.getConnectedEmail();
+        googleCtx = `\nGOOGLE CONECTADO: ${email}
+Você tem acesso ao Gmail e Google Agenda do usuário. Pode ler e-mails, enviar e-mails e gerenciar eventos no Google Calendar.`;
+        googleActions = `
+- gmail_list: { "action": "gmail_list", "query": "...", "max": 5 }
+- gmail_send: { "action": "gmail_send", "to": "email@...", "subject": "...", "body": "..." }
+- gcal_list: { "action": "gcal_list", "days": 7 }
+- gcal_create: { "action": "gcal_create", "title": "...", "start": "YYYY-MM-DDTHH:MM", "end": "YYYY-MM-DDTHH:MM", "description": "...", "location": "..." }`;
+      }
+    } catch(e) {}
+
     return `Você é Gabriel, assistente pessoal inteligente e analítico de ${userName}.
 Data e hora atual: ${now.toLocaleString('pt-BR')}
+${googleCtx}
 
 PERSONALIDADE:
 - Inteligente, analítico e direto
@@ -98,7 +115,7 @@ PRÓXIMOS EVENTOS:
 ${eventsTxt}
 
 CAPACIDADES:
-Você pode criar pastas, eventos, gastos financeiros, notas, tarefas, buscar clima e pesquisar na web.
+Você pode criar pastas, eventos, gastos financeiros, notas, tarefas, buscar clima e pesquisar na web.${googleCtx ? ' Também pode ler e-mails, enviar e-mails e gerenciar o Google Agenda.' : ''}
 Quando o usuário pedir algo que envolva ação, responda normalmente E inclua no final um bloco JSON de ações.
 Formato do bloco de ações (apenas quando houver ações):
 <gabriel_actions>
@@ -115,7 +132,7 @@ AÇÕES DISPONÍVEIS:
 - create_task: { "action": "create_task", "title": "...", "dueDate": "YYYY-MM-DD", "folderName": "..." }
 - search_web: { "action": "search_web", "query": "..." }
 - get_weather: { "action": "get_weather", "city": "..." }
-- open_module: { "action": "open_module", "module": "dashboard|chat|folders|agenda|finance|notes" }
+- open_module: { "action": "open_module", "module": "dashboard|chat|folders|agenda|finance|notes" }${googleActions}
 
 REGRAS:
 1. Sempre responda em português
@@ -123,7 +140,8 @@ REGRAS:
 3. Amanhã = ${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}
 4. Para "mês atual" use ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}
 5. Ao executar múltiplas ações, liste todas no mesmo bloco JSON
-6. Após executar, confirme de forma amigável o que foi feito`;
+6. Após executar, confirme de forma amigável o que foi feito
+7. Para ações gmail_* e gcal_*, só use se Google estiver conectado. Caso contrário, oriente a conectar no Dashboard`;
   }
 
   // ── Chat principal ───────────────────────────────────────

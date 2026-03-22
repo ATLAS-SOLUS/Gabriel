@@ -223,6 +223,24 @@ const Notifications = (() => {
     });
   }
 
+  // ── Notificação: Google conectado ────────────────────────
+
+  async function notifyGoogleConnected(email) {
+    return await show('Google conectado! 🔗', `Gmail e Agenda sincronizados — ${email}`, {
+      tag: 'google-connected',
+      vibrate: [100, 50, 100]
+    });
+  }
+
+  // ── Notificação: resposta da IA ──────────────────────────
+
+  async function notifyAIResponse(preview) {
+    return await show('Gabriel respondeu ✨', preview, {
+      tag: 'gabriel-ai-response',
+      silent: true
+    });
+  }
+
   // ── Resumo diário ────────────────────────────────────────
 
   async function scheduleDailySummary(hour = 8, minute = 0) {
@@ -273,6 +291,8 @@ const Notifications = (() => {
     notifyAction,
     notifyMemory,
     notifyTask,
+    notifyGoogleConnected,
+    notifyAIResponse,
     scheduleDailySummary,
     getStatus,
     getScheduled
