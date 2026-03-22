@@ -18,9 +18,6 @@ const Google = (() => {
     'https://www.googleapis.com/auth/calendar.events',
     'https://www.googleapis.com/auth/drive',
     'https://www.googleapis.com/auth/drive.file',
-    'https://www.googleapis.com/auth/photoslibrary.readonly',
-    'https://www.googleapis.com/auth/photoslibrary.appendonly',
-    'https://www.googleapis.com/auth/keep',
   ].join(' ');
 
   const KEYS = {
