@@ -668,9 +668,14 @@
 
     <!-- Header -->
     <div class="header">
-      <div>
-        <div class="greeting-label" id="greeting-label">Bom dia</div>
-        <div class="greeting-name" id="greeting-name">...</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="user-avatar" style="width:40px;height:40px;border-radius:12px;background:#1A1A1A;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer" onclick="window.location.href='settings.html'">
+          <span class="material-icons-round" style="color:white;font-size:20px" id="avatar-icon">person</span>
+        </div>
+        <div>
+          <div class="greeting-label" id="greeting-label">Bom dia</div>
+          <div class="greeting-name" id="greeting-name">...</div>
+        </div>
       </div>
       <div class="header-actions">
         <button class="icon-btn" onclick="window.location.href='settings.html'" title="Configurações">
@@ -916,6 +921,13 @@ function loadGreeting() {
   const label   = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
   document.getElementById('greeting-label').textContent = label;
   document.getElementById('greeting-name').textContent  = name;
+
+  // Avatar Google
+  const picture = session?.picture || Google.getConnectedPicture?.();
+  if (picture) {
+    const avatar = document.getElementById('user-avatar');
+    avatar.innerHTML = `<img src="${picture}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span class=\\'material-icons-round\\' style=\\'color:white;font-size:20px\\'>person</span>'">`;
+  }
 }
 
 // ── Clima ─────────────────────────────────────────────────

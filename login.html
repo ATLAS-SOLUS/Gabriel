@@ -3,823 +3,245 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="theme-color" content="#1A1A1A">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Gabriel</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
-    /* ── Reset & Variables ─────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --white:      #FFFFFF;
-      --bg:         #F7F7F5;
-      --surface:    #FFFFFF;
-      --border:     #E8E8E4;
-      --border-focus: #1A1A1A;
-      --text-primary:   #1A1A1A;
-      --text-secondary: #767672;
-      --text-hint:      #ABABAB;
-      --accent:     #1A1A1A;
-      --accent-soft:#F0F0EE;
-      --danger:     #D94040;
-      --success:    #2E7D5E;
-      --radius-sm:  10px;
-      --radius-md:  16px;
-      --radius-lg:  24px;
-      --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md:  0 4px 16px rgba(0,0,0,0.08);
-      --font-sans:  'DM Sans', sans-serif;
-      --font-serif: 'DM Serif Display', serif;
-      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --bg: #F7F7F5; --surface: #FFFFFF; --border: #E8E8E4;
+      --text-primary: #1A1A1A; --text-secondary: #787874; --text-hint: #ABABAB;
+      --accent: #1A1A1A;
+      --font-sans: 'DM Sans', sans-serif; --font-serif: 'DM Serif Display', serif;
     }
+    html, body { height: 100%; background: var(--bg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg);
-      font-family: var(--font-sans);
-      -webkit-font-smoothing: antialiased;
-      color: var(--text-primary);
-    }
+    .app { height: 100%; display: flex; flex-direction: column; position: relative; }
 
-    /* ── App Shell ─────────────────────────────────────── */
-    .app {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
+    /* Decorations */
+    .deco { position: absolute; border-radius: 50%; pointer-events: none; }
+    .deco-1 { top: -100px; right: -80px; width: 320px; height: 320px; background: radial-gradient(circle, rgba(26,26,26,0.05) 0%, transparent 70%); }
+    .deco-2 { bottom: 25%; left: -100px; width: 240px; height: 240px; background: radial-gradient(circle, rgba(26,26,26,0.04) 0%, transparent 70%); }
 
-    /* ── Background decorativo ─────────────────────────── */
-    .bg-decoration {
-      position: absolute;
-      top: -80px;
-      right: -60px;
-      width: 280px;
-      height: 280px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #F0EFE9 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+    /* Brand */
+    .brand {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: calc(60px + env(safe-area-inset-top,0px)) 32px 32px;
+      animation: fadeDown 0.7s cubic-bezier(0.16,1,0.3,1) both;
     }
-    .bg-decoration-2 {
-      position: absolute;
-      bottom: 30%;
-      left: -80px;
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #EDF0EB 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ── Header / Brand ────────────────────────────────── */
-    .brand-area {
-      position: relative;
-      z-index: 1;
-      padding: 72px 32px 40px;
-      animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
     .brand-icon {
-      width: 52px;
-      height: 52px;
-      background: var(--accent);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 24px;
-      box-shadow: var(--shadow-md);
-    }
-
-    .brand-icon .material-icons-round {
-      color: white;
-      font-size: 26px;
-    }
-
-    .brand-title {
-      font-family: var(--font-serif);
-      font-size: 38px;
-      line-height: 1.1;
-      color: var(--text-primary);
-      letter-spacing: -0.5px;
-    }
-
-    .brand-subtitle {
-      margin-top: 8px;
-      font-size: 15px;
-      color: var(--text-secondary);
-      font-weight: 400;
-      letter-spacing: 0;
-    }
-
-    /* ── Card principal ────────────────────────────────── */
-    .card {
-      position: relative;
-      z-index: 1;
-      flex: 1;
-      background: var(--surface);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      padding: 32px 24px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      box-shadow: 0 -4px 24px rgba(0,0,0,0.06);
-      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-    }
-
-    /* ── Tab switcher ──────────────────────────────────── */
-    .tab-bar {
-      display: flex;
-      background: var(--bg);
-      border-radius: var(--radius-md);
-      padding: 4px;
-      margin-bottom: 32px;
-      gap: 4px;
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      background: transparent;
-      border-radius: var(--radius-sm);
-      font-family: var(--font-sans);
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: var(--transition);
-      letter-spacing: 0;
-    }
-
-    .tab-btn.active {
-      background: var(--surface);
-      color: var(--text-primary);
-      box-shadow: var(--shadow-sm);
-    }
-
-    /* ── Forms ─────────────────────────────────────────── */
-    .form { display: flex; flex-direction: column; gap: 16px; }
-
-    .form-panel {
-      display: none;
-      animation: fadeIn 0.25s ease both;
-    }
-    .form-panel.active { display: flex; flex-direction: column; gap: 16px; }
-
-    .field {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .field-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
-    .field-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .field-icon {
-      position: absolute;
-      left: 14px;
-      color: var(--text-hint);
-      font-size: 20px;
-      pointer-events: none;
-      transition: color var(--transition);
-    }
-
-    .field-input {
-      width: 100%;
-      padding: 14px 14px 14px 46px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-md);
-      font-family: var(--font-sans);
-      font-size: 15px;
-      color: var(--text-primary);
-      background: var(--bg);
-      outline: none;
-      transition: border-color var(--transition), background var(--transition);
-      -webkit-appearance: none;
-    }
-
-    .field-input::placeholder { color: var(--text-hint); }
-
-    .field-input:focus {
-      border-color: var(--border-focus);
-      background: var(--surface);
-    }
-
-    .field-input:focus + .field-icon,
-    .field-wrap:focus-within .field-icon {
-      color: var(--text-primary);
-    }
-
-    /* Toggle senha */
-    .toggle-pass {
-      position: absolute;
-      right: 14px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text-hint);
-      padding: 4px;
-      display: flex;
-      align-items: center;
-      transition: color var(--transition);
-    }
-    .toggle-pass:hover { color: var(--text-primary); }
-    .toggle-pass .material-icons-round { font-size: 20px; }
-
-    /* ── Botão principal ───────────────────────────────── */
-    .btn-primary {
-      width: 100%;
-      padding: 16px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: var(--radius-md);
-      font-family: var(--font-sans);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.2px;
-      transition: transform var(--transition), opacity var(--transition);
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-    .btn-primary:disabled { opacity: 0.5; pointer-events: none; }
-
-    .btn-spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: none;
-    }
-
-    .btn-primary.loading .btn-text { display: none; }
-    .btn-primary.loading .btn-spinner { display: block; }
-
-    /* ── Mensagem de erro/sucesso ──────────────────────── */
-    .msg {
-      display: none;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 12px 14px;
-      border-radius: var(--radius-sm);
-      font-size: 13.5px;
-      line-height: 1.4;
-      animation: fadeIn 0.2s ease both;
-    }
-    .msg.show { display: flex; }
-    .msg.error   { background: #FFF0F0; color: var(--danger); }
-    .msg.success { background: #F0FFF8; color: var(--success); }
-    .msg .material-icons-round { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-
-    /* ── Divisor ───────────────────────────────────────── */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: var(--text-hint);
-      font-size: 12px;
-      margin: 4px 0;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
-    /* ── Força da senha ────────────────────────────────── */
-    .password-strength {
-      display: none;
-      gap: 4px;
-      margin-top: -8px;
-    }
-    .password-strength.show { display: flex; }
-    .strength-bar {
-      flex: 1;
-      height: 3px;
-      background: var(--border);
-      border-radius: 99px;
-      transition: background 0.3s ease;
-    }
-    .strength-bar.weak   { background: var(--danger); }
-    .strength-bar.medium { background: #E8A838; }
-    .strength-bar.strong { background: var(--success); }
-
-    .strength-label {
-      font-size: 11px;
-      color: var(--text-hint);
-      text-align: right;
-      margin-top: 4px;
-    }
-
-    /* ── Checkbox termos ───────────────────────────────── */
-    .terms-check {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .terms-check input[type="checkbox"] {
-      width: 18px; height: 18px;
-      flex-shrink: 0;
-      margin-top: 2px;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-
-    .terms-check-text {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.4;
-    }
-
-    .terms-check-text a {
-      color: var(--text-primary);
-      font-weight: 500;
-      text-decoration: underline;
-      text-decoration-color: var(--border);
-    }
-
-    /* ── Footer ────────────────────────────────────────── */
-    .footer-note {
-      text-align: center;
-      font-size: 12px;
-      color: var(--text-hint);
-      margin-top: 24px;
-      padding-bottom: 8px;
-    }
-
-    /* ── Animations ────────────────────────────────────── */
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(40px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* ── Safe area (iPhone notch) ──────────────────────── */
-    @supports (padding-top: env(safe-area-inset-top)) {
-      .brand-area { padding-top: calc(64px + env(safe-area-inset-top)); }
-    }
-
-    /* ── Banner PWA ────────────────────────────────────── */
-    .pwa-banner {
-      display: none;
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
-      box-shadow: 0 -8px 32px rgba(0,0,0,0.10);
-      z-index: 999;
-      animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1) both;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .pwa-banner.show { display: flex; }
-    .pwa-banner-row { display: flex; align-items: center; gap: 14px; }
-    .pwa-app-icon {
-      width: 52px; height: 52px;
-      background: var(--accent);
-      border-radius: 14px;
+      width: 80px; height: 80px; background: var(--accent); border-radius: 24px;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      box-shadow: var(--shadow-md);
+      margin-bottom: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
     }
-    .pwa-app-icon .material-icons-round { color: white; font-size: 26px; }
-    .pwa-banner-info { flex: 1; }
-    .pwa-banner-title { font-weight: 600; font-size: 15px; color: var(--text-primary); }
-    .pwa-banner-sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
-    .pwa-banner-actions { display: flex; gap: 8px; }
-    .pwa-btn-install {
-      flex: 1; padding: 13px;
-      background: var(--accent); color: white;
-      border: none; border-radius: var(--radius-md);
-      font-family: var(--font-sans); font-size: 14px; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-      -webkit-tap-highlight-color: transparent;
+    .brand-icon svg { width: 44px; height: 44px; }
+    .brand-name { font-family: var(--font-serif); font-size: 48px; color: var(--text-primary); letter-spacing: -1px; margin-bottom: 10px; }
+    .brand-sub  { font-size: 16px; color: var(--text-secondary); text-align: center; line-height: 1.5; max-width: 260px; }
+
+    /* Card */
+    .card {
+      background: var(--surface); border-radius: 28px 28px 0 0;
+      padding: 32px 24px calc(32px + env(safe-area-inset-bottom,0px));
+      box-shadow: 0 -4px 32px rgba(0,0,0,0.07);
+      animation: slideUp 0.55s cubic-bezier(0.16,1,0.3,1) 0.1s both;
     }
-    .pwa-btn-install .material-icons-round { font-size: 18px; }
-    .pwa-btn-dismiss {
-      padding: 13px 16px;
-      background: var(--accent-soft); color: var(--text-secondary);
-      border: none; border-radius: var(--radius-md);
-      font-family: var(--font-sans); font-size: 13px; font-weight: 500;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
+
+    /* Google button */
+    .btn-google {
+      width: 100%; padding: 16px 20px;
+      background: var(--surface); color: var(--text-primary);
+      border: 1.5px solid var(--border); border-radius: 16px;
+      font-family: var(--font-sans); font-size: 15px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+      transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      -webkit-tap-highlight-color: transparent; position: relative;
     }
-    /* iOS install instructions */
-    .ios-instructions {
-      background: var(--bg);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      display: flex; gap: 10px; align-items: flex-start;
+    .btn-google:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-google.loading { pointer-events: none; opacity: 0.7; }
+    .google-logo { width: 22px; height: 22px; flex-shrink: 0; }
+    .btn-spinner { width: 20px; height: 20px; border: 2px solid rgba(26,26,26,0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    .btn-google.loading .btn-spinner { display: block; }
+    .btn-google.loading .btn-text, .btn-google.loading .google-logo { display: none; }
+
+    .divider { display: flex; align-items: center; gap: 12px; color: var(--text-hint); font-size: 12px; margin: 20px 0; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Services grid */
+    .services { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .service-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .service-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .service-label { font-size: 10.5px; color: var(--text-hint); text-align: center; }
+
+    .footer { text-align: center; font-size: 11.5px; color: var(--text-hint); line-height: 1.6; margin-top: 8px; }
+    .footer a { color: var(--text-secondary); }
+
+    /* PWA Banner */
+    .pwa-bar {
+      display: none; background: var(--accent); color: white;
+      padding: 12px 20px; border-radius: 14px; margin-bottom: 16px;
+      align-items: center; gap: 10px; cursor: pointer;
+      animation: fadeIn 0.3s ease both;
     }
-    .ios-instructions .material-icons-round { color: var(--accent); font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .pwa-bar.show { display: flex; }
+    .pwa-bar-text { flex: 1; font-size: 13.5px; font-weight: 500; }
+    .pwa-bar-btn  { font-size: 12px; background: rgba(255,255,255,0.15); padding: 5px 10px; border-radius: 8px; white-space: nowrap; }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp  { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes spin     { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-
 <div class="app">
-  <div class="bg-decoration"></div>
-  <div class="bg-decoration-2"></div>
+  <div class="deco deco-1"></div>
+  <div class="deco deco-2"></div>
 
   <!-- Brand -->
-  <div class="brand-area">
+  <div class="brand">
     <div class="brand-icon">
-      <span class="material-icons-round">auto_awesome</span>
+      <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M256 80 L278 234 L432 256 L278 278 L256 432 L234 278 L80 256 L234 234 Z" fill="white" opacity="0.95"/>
+        <path d="M390 72 L398 118 L444 126 L398 134 L390 180 L382 134 L336 126 L382 118 Z" fill="white" opacity="0.55"/>
+        <path d="M122 332 L128 364 L160 370 L128 376 L122 408 L116 376 L84 370 L116 364 Z" fill="white" opacity="0.35"/>
+      </svg>
     </div>
-    <h1 class="brand-title">Gabriel</h1>
-    <p class="brand-subtitle">Seu assistente pessoal inteligente</p>
+    <h1 class="brand-name">Gabriel</h1>
+    <p class="brand-sub">Seu assistente pessoal com IA e integração completa com o Google</p>
   </div>
 
-  <!-- Card -->
+  <!-- Card login -->
   <div class="card">
 
-    <!-- Tabs -->
-    <div class="tab-bar" role="tablist">
-      <button class="tab-btn active" id="tab-login" role="tab" onclick="switchTab('login')">Entrar</button>
-      <button class="tab-btn" id="tab-register" role="tab" onclick="switchTab('register')">Criar conta</button>
+    <!-- PWA Install bar -->
+    <div class="pwa-bar" id="pwa-bar" onclick="installPWA()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      <span class="pwa-bar-text">Instalar Gabriel no celular</span>
+      <span class="pwa-bar-btn">Instalar</span>
     </div>
 
-    <!-- Mensagem global -->
-    <div class="msg" id="msg" role="alert">
-      <span class="material-icons-round" id="msg-icon">error</span>
-      <span id="msg-text"></span>
+    <!-- Google login btn -->
+    <button class="btn-google" id="btn-google" onclick="doGoogleLogin()">
+      <svg class="google-logo" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      <span class="btn-text">Entrar com Google</span>
+      <div class="btn-spinner"></div>
+    </button>
+
+    <div class="divider">conecta com</div>
+
+    <!-- Services -->
+    <div class="services">
+      <div class="service-item">
+        <div class="service-icon" style="background:#E8F0FE">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        </div>
+        <span class="service-label">Gmail</span>
+      </div>
+      <div class="service-item">
+        <div class="service-icon" style="background:#E6F4EA">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#34A853" d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+        </div>
+        <span class="service-label">Agenda</span>
+      </div>
+      <div class="service-item">
+        <div class="service-icon" style="background:#FEF7E0">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#FBBC04" d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+        </div>
+        <span class="service-label">Drive</span>
+      </div>
+      <div class="service-item">
+        <div class="service-icon" style="background:#FDE8E8">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#EA4335" d="M21 3H3C2 3 1 4 1 5v14c0 1 1 2 2 2h5l3 3 3-3h7c1 0 2-1 2-2V5c0-1-1-2-2-2z"/></svg>
+        </div>
+        <span class="service-label">Keep</span>
+      </div>
+      <div class="service-item">
+        <div class="service-icon" style="background:#F3E8FD">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#A142F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+        </div>
+        <span class="service-label">Fotos</span>
+      </div>
+      <div class="service-item">
+        <div class="service-icon" style="background:#E8F5E9">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#34A853" d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/></svg>
+        </div>
+        <span class="service-label">Translate</span>
+      </div>
+      <div class="service-item">
+        <div class="service-icon" style="background:#E8F0FE">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <span class="service-label">Localização</span>
+      </div>
+      <div class="service-item">
+        <div class="service-icon" style="background:#F1F3F4">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#5F6368" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        </div>
+        <span class="service-label">Seguro</span>
+      </div>
     </div>
 
-    <!-- ── PAINEL LOGIN ── -->
-    <div class="form-panel active" id="panel-login">
-
-      <div class="field">
-        <label class="field-label" for="login-email">E-mail</label>
-        <div class="field-wrap">
-          <input class="field-input" type="email" id="login-email"
-            placeholder="seu@email.com" autocomplete="email"
-            inputmode="email" enterkeyhint="next">
-          <span class="material-icons-round field-icon">mail_outline</span>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="login-password">Senha</label>
-        <div class="field-wrap">
-          <input class="field-input" type="password" id="login-password"
-            placeholder="••••••••" autocomplete="current-password"
-            enterkeyhint="go" onkeydown="if(event.key==='Enter') doLogin()">
-          <span class="material-icons-round field-icon">lock_outline</span>
-          <button class="toggle-pass" type="button" onclick="togglePass('login-password', this)" tabindex="-1">
-            <span class="material-icons-round">visibility_off</span>
-          </button>
-        </div>
-      </div>
-
-      <button class="btn-primary" id="btn-login" onclick="doLogin()">
-        <span class="btn-text">Entrar</span>
-        <div class="btn-spinner"></div>
-      </button>
-
-    </div>
-
-    <!-- ── PAINEL CADASTRO ── -->
-    <div class="form-panel" id="panel-register">
-
-      <div class="field">
-        <label class="field-label" for="reg-name">Nome</label>
-        <div class="field-wrap">
-          <input class="field-input" type="text" id="reg-name"
-            placeholder="Como posso te chamar?" autocomplete="name"
-            enterkeyhint="next">
-          <span class="material-icons-round field-icon">person_outline</span>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="reg-email">E-mail</label>
-        <div class="field-wrap">
-          <input class="field-input" type="email" id="reg-email"
-            placeholder="seu@email.com" autocomplete="email"
-            inputmode="email" enterkeyhint="next">
-          <span class="material-icons-round field-icon">mail_outline</span>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="reg-password">Senha</label>
-        <div class="field-wrap">
-          <input class="field-input" type="password" id="reg-password"
-            placeholder="Mínimo 6 caracteres" autocomplete="new-password"
-            enterkeyhint="next" oninput="checkStrength(this.value)">
-          <span class="material-icons-round field-icon">lock_outline</span>
-          <button class="toggle-pass" type="button" onclick="togglePass('reg-password', this)" tabindex="-1">
-            <span class="material-icons-round">visibility_off</span>
-          </button>
-        </div>
-        <!-- Força da senha -->
-        <div class="password-strength" id="strength-bars">
-          <div class="strength-bar" id="bar-1"></div>
-          <div class="strength-bar" id="bar-2"></div>
-          <div class="strength-bar" id="bar-3"></div>
-          <div class="strength-bar" id="bar-4"></div>
-        </div>
-        <div class="strength-label" id="strength-label" style="display:none"></div>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="reg-confirm">Confirmar senha</label>
-        <div class="field-wrap">
-          <input class="field-input" type="password" id="reg-confirm"
-            placeholder="Repita a senha" autocomplete="new-password"
-            enterkeyhint="go" onkeydown="if(event.key==='Enter') doRegister()">
-          <span class="material-icons-round field-icon">lock_outline</span>
-        </div>
-      </div>
-
-      <label class="terms-check">
-        <input type="checkbox" id="terms-agree">
-        <span class="terms-check-text">
-          Li e aceito os <a href="terms.html" onclick="event.stopPropagation()">Termos de uso</a> do Gabriel
-        </span>
-      </label>
-
-      <button class="btn-primary" id="btn-register" onclick="doRegister()">
-        <span class="btn-text">Criar minha conta</span>
-        <div class="btn-spinner"></div>
-      </button>
-
-    </div>
-
-    <p class="footer-note">Todos os dados ficam armazenados localmente no seu dispositivo.</p>
+    <p class="footer">
+      Ao entrar você concorda com os <a href="termosservicos.html">Termos de uso</a>.<br>
+      Seus dados ficam no seu dispositivo e no Google Drive.
+    </p>
 
   </div>
 </div>
 
-<!-- Scripts motores -->
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
+<script src="google.js"></script>
 <script src="auth.js"></script>
-
-<!-- Banner PWA Install -->
-<div class="pwa-banner" id="pwa-banner">
-  <div class="pwa-banner-row">
-    <div class="pwa-app-icon">
-      <span class="material-icons-round">auto_awesome</span>
-    </div>
-    <div class="pwa-banner-info">
-      <div class="pwa-banner-title">Instalar Gabriel</div>
-      <div class="pwa-banner-sub" id="pwa-banner-sub">Adicione à tela inicial para acesso rápido</div>
-    </div>
-  </div>
-  <div id="pwa-ios-hint" style="display:none">
-    <div class="ios-instructions">
-      <span class="material-icons-round">ios_share</span>
-      <span>Toque em <strong>Compartilhar</strong> e depois em <strong>"Adicionar à Tela de Início"</strong> para instalar o Gabriel.</span>
-    </div>
-  </div>
-  <div class="pwa-banner-actions" id="pwa-actions">
-    <button class="pwa-btn-install" id="pwa-btn-install" onclick="installPWA()">
-      <span class="material-icons-round">download</span>
-      Instalar agora
-    </button>
-    <button class="pwa-btn-dismiss" onclick="dismissPWA()">Agora não</button>
-  </div>
-</div>
-
 <script>
-  // ── Registro do Service Worker ───────────────────────
+  // Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  // ── PWA Install ──────────────────────────────────────
+  // PWA Install
   let deferredPrompt = null;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true;
-  const dismissed = localStorage.getItem('gabriel_pwa_dismissed');
-
-  if (!isStandalone && !dismissed) {
-    if (isIOS) {
-      // iOS: mostra instruções manuais
-      const banner = document.getElementById('pwa-banner');
-      document.getElementById('pwa-ios-hint').style.display = 'block';
-      document.getElementById('pwa-actions').style.display = 'none';
-      // Mostra botão apenas para fechar
-      const actions = document.getElementById('pwa-actions');
-      actions.style.display = 'flex';
-      document.getElementById('pwa-btn-install').style.display = 'none';
-      banner.classList.add('show');
-    } else {
-      // Android/Chrome: aguarda evento beforeinstallprompt
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        document.getElementById('pwa-banner').classList.add('show');
-      });
-    }
+  if (!isStandalone) {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('pwa-bar').classList.add('show');
+    });
   }
 
   async function installPWA() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
     if (outcome === 'accepted') {
-      document.getElementById('pwa-banner').classList.remove('show');
-      localStorage.setItem('gabriel_pwa_dismissed', '1');
+      document.getElementById('pwa-bar').classList.remove('show');
+      deferredPrompt = null;
     }
   }
 
-  function dismissPWA() {
-    document.getElementById('pwa-banner').classList.remove('show');
-    localStorage.setItem('gabriel_pwa_dismissed', '1');
-  }
-
-  // ── Guard: redireciona se já logado ──────────────────
+  // Guard — se já conectado vai para dashboard
   window.addEventListener('DOMContentLoaded', async () => {
-    await Auth.guard('login.html');
+    if (Google.isConnected() && Google.isTokenValid()) {
+      window.location.replace('dashboard.html');
+    }
   });
 
-  // ── Tab switch ───────────────────────────────────────
-  function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById(`tab-${tab}`).classList.add('active');
-    document.getElementById(`panel-${tab}`).classList.add('active');
-    hideMsg();
-  }
-
-  // ── Mensagens ────────────────────────────────────────
-  function showMsg(text, type = 'error') {
-    const el   = document.getElementById('msg');
-    const icon = document.getElementById('msg-icon');
-    const txt  = document.getElementById('msg-text');
-    icon.textContent = type === 'error' ? 'error_outline' : 'check_circle_outline';
-    txt.textContent  = text;
-    el.className     = `msg show ${type}`;
-  }
-
-  function hideMsg() {
-    document.getElementById('msg').className = 'msg';
-  }
-
-  // ── Toggle senha ─────────────────────────────────────
-  function togglePass(fieldId, btn) {
-    const input = document.getElementById(fieldId);
-    const icon  = btn.querySelector('.material-icons-round');
-    if (input.type === 'password') {
-      input.type = 'text';
-      icon.textContent = 'visibility';
-    } else {
-      input.type = 'password';
-      icon.textContent = 'visibility_off';
-    }
-  }
-
-  // ── Força da senha ───────────────────────────────────
-  function checkStrength(value) {
-    const bars  = document.getElementById('strength-bars');
-    const label = document.getElementById('strength-label');
-
-    if (!value) {
-      bars.classList.remove('show');
-      label.style.display = 'none';
-      return;
-    }
-
-    bars.classList.add('show');
-    label.style.display = 'block';
-
-    let score = 0;
-    if (value.length >= 6)  score++;
-    if (value.length >= 10) score++;
-    if (/[A-Z]/.test(value) && /[0-9]/.test(value)) score++;
-    if (/[^A-Za-z0-9]/.test(value)) score++;
-
-    const levels = ['', 'weak', 'medium', 'strong', 'strong'];
-    const labels = ['', 'Fraca', 'Razoável', 'Boa', 'Forte'];
-    const level  = levels[score];
-
-    ['bar-1','bar-2','bar-3','bar-4'].forEach((id, i) => {
-      const bar = document.getElementById(id);
-      bar.className = 'strength-bar' + (i < score ? ` ${level}` : '');
-    });
-
-    label.textContent  = labels[score];
-    label.style.color  = level === 'weak' ? 'var(--danger)'
-      : level === 'medium' ? '#E8A838'
-      : 'var(--success)';
-  }
-
-  // ── Login ────────────────────────────────────────────
-  async function doLogin() {
-    hideMsg();
-    const email    = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
-    const btn      = document.getElementById('btn-login');
-
-    if (!email || !password) {
-      showMsg('Preencha e-mail e senha.');
-      return;
-    }
-
+  function doGoogleLogin() {
+    const btn = document.getElementById('btn-google');
     btn.classList.add('loading');
-    btn.disabled = true;
-
-    try {
-      await Auth.login(email, password);
-      showMsg('Bem-vindo de volta!', 'success');
-      setTimeout(async () => {
-        const user = await Auth.getCurrentUserFull();
-        if (!user?.termosAceitos)      window.location.href = 'terms.html';
-        else if (!user?.onboardingDone) window.location.href = 'onboarding.html';
-        else                            window.location.href = 'dashboard.html';
-      }, 700);
-    } catch (err) {
-      showMsg(err.message);
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    }
-  }
-
-  // ── Cadastro ─────────────────────────────────────────
-  async function doRegister() {
-    hideMsg();
-    const name     = document.getElementById('reg-name').value.trim();
-    const email    = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const confirm  = document.getElementById('reg-confirm').value;
-    const agreed   = document.getElementById('terms-agree').checked;
-    const btn      = document.getElementById('btn-register');
-
-    if (!name)     { showMsg('Informe seu nome.'); return; }
-    if (!email)    { showMsg('Informe seu e-mail.'); return; }
-    if (!password) { showMsg('Crie uma senha.'); return; }
-    if (password !== confirm) { showMsg('As senhas não coincidem.'); return; }
-    if (!agreed)   { showMsg('Aceite os termos para continuar.'); return; }
-
-    btn.classList.add('loading');
-    btn.disabled = true;
-
-    try {
-      await Auth.register(name, email, password);
-      await Auth.acceptTerms();
-      showMsg('Conta criada! Vamos começar 🎉', 'success');
-      setTimeout(() => { window.location.href = 'onboarding.html'; }, 900);
-    } catch (err) {
-      showMsg(err.message);
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    }
+    Google.connect();
   }
 </script>
-
 </body>
 </html>

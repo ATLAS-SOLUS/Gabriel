@@ -3,379 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#FFFFFF">
-  <title>Gabriel — Conectando Google</title>
+  <meta name="theme-color" content="#1A1A1A">
+  <title>Gabriel — Conectando</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #F7F7F5; --surface: #FFFFFF; --border: #E8E8E4;
-      --text-primary: #1A1A1A; --text-secondary: #787874; --text-hint: #B0B0AA;
-      --accent: #1A1A1A; --green: #2E7D5E; --red: #D94040;
-      --font-sans: 'DM Sans', sans-serif; --font-serif: 'DM Serif Display', serif;
-    }
-    html, body {
-      height: 100%; background: var(--bg);
-      font-family: var(--font-sans);
-      -webkit-font-smoothing: antialiased;
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .card {
-      background: var(--surface);
-      border-radius: 24px;
-      padding: 40px 32px;
-      width: 90%; max-width: 360px;
-      text-align: center;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.08);
-      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-
-    /* ── Estados ───────────────────────── */
+    html, body { height: 100%; background: #1A1A1A; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; display: flex; align-items: center; justify-content: center; }
+    .card { background: #FFFFFF; border-radius: 28px; padding: 40px 32px; width: 90%; max-width: 360px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
     .state { display: none; flex-direction: column; align-items: center; gap: 16px; }
     .state.show { display: flex; }
-
-    /* Loading */
-    .spinner-wrap {
-      width: 64px; height: 64px;
-      background: var(--accent);
-      border-radius: 20px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-    .spinner {
-      width: 28px; height: 28px;
-      border: 3px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    /* Success */
-    .success-icon {
-      width: 64px; height: 64px;
-      background: #2E7D5E;
-      border-radius: 20px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 20px rgba(46,125,94,0.25);
-      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-    .success-icon .material-icons-round { color: white; font-size: 32px; }
-
-    /* Error */
-    .error-icon {
-      width: 64px; height: 64px;
-      background: var(--red);
-      border-radius: 20px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 20px rgba(217,64,64,0.25);
-    }
-    .error-icon .material-icons-round { color: white; font-size: 32px; }
-
-    .state-title {
-      font-family: var(--font-serif);
-      font-size: 22px;
-      color: var(--text-primary);
-      letter-spacing: -0.2px;
-    }
-
-    .state-subtitle {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.55;
-      max-width: 260px;
-    }
-
-    /* Google user info */
-    .google-user {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--bg);
-      border-radius: 12px;
-      padding: 10px 14px;
-      width: 100%;
-    }
-    .google-avatar {
-      width: 36px; height: 36px;
-      background: var(--accent);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
+    .icon-box { width: 72px; height: 72px; border-radius: 22px; display: flex; align-items: center; justify-content: center; }
+    .icon-box.dark { background: #1A1A1A; }
+    .icon-box.green { background: #2E7D5E; box-shadow: 0 6px 24px rgba(46,125,94,0.3); animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .icon-box.red   { background: #D94040; box-shadow: 0 6px 24px rgba(217,64,64,0.3); }
+    .icon-box img { width: 44px; height: 44px; }
+    .icon-box .material-icons-round { color: white; font-size: 34px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.25); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .state-title { font-family: 'DM Serif Display', serif; font-size: 23px; color: #1A1A1A; }
+    .state-sub { font-size: 14px; color: #787874; line-height: 1.55; max-width: 260px; }
+    .google-user { display: flex; align-items: center; gap: 10px; background: #F7F7F5; border-radius: 14px; padding: 10px 14px; width: 100%; }
+    .google-avatar { width: 40px; height: 40px; background: #1A1A1A; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
     .google-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .google-avatar .material-icons-round { color: white; font-size: 18px; }
-    .google-user-info { text-align: left; flex: 1; }
-    .google-user-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
-    .google-user-email { font-size: 12px; color: var(--text-hint); margin-top: 1px; }
-
-    /* Progress steps */
-    .steps {
-      display: flex; flex-direction: column; gap: 8px;
-      width: 100%; text-align: left;
-    }
-    .step {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 13px; color: var(--text-hint);
-      transition: color 0.3s ease;
-    }
-    .step.done { color: var(--green); }
-    .step.active { color: var(--text-primary); }
-    .step-dot {
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: all 0.3s ease;
-    }
-    .step.done .step-dot { background: var(--green); border-color: var(--green); }
-    .step.active .step-dot { border-color: var(--text-primary); animation: pulse-ring 1s ease infinite; }
-    .step.done .step-dot::after { content: '✓'; font-size: 11px; color: white; font-weight: 700; }
-    .step.active .step-dot::after { content: ''; width: 8px; height: 8px; background: var(--text-primary); border-radius: 50%; }
-
-    /* Btn */
-    .btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--accent); color: white;
-      border: none; border-radius: 14px;
-      font-family: var(--font-sans); font-size: 15px; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: opacity 0.2s ease;
-      -webkit-tap-highlight-color: transparent;
-      text-decoration: none;
-    }
-    .btn:active { opacity: 0.85; }
+    .google-avatar .material-icons-round { color: white; font-size: 20px; }
+    .google-user-name  { font-size: 14px; font-weight: 600; color: #1A1A1A; text-align: left; }
+    .google-user-email { font-size: 12px; color: #B0B0AA; margin-top: 1px; text-align: left; }
+    .steps { display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; }
+    .step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #B0B0AA; transition: color 0.3s; }
+    .step.done   { color: #2E7D5E; }
+    .step.active { color: #1A1A1A; }
+    .step-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #E8E8E4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; }
+    .step.done   .step-dot { background: #2E7D5E; border-color: #2E7D5E; }
+    .step.active .step-dot { border-color: #1A1A1A; }
+    .step.done   .step-dot::after { content: '✓'; font-size: 12px; color: white; font-weight: 700; }
+    .step.active .step-dot::after { content: ''; width: 8px; height: 8px; background: #1A1A1A; border-radius: 50%; }
+    .btn { width: 100%; padding: 15px; background: #1A1A1A; color: white; border: none; border-radius: 16px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; -webkit-tap-highlight-color: transparent; }
     .btn .material-icons-round { font-size: 20px; }
-
-    .btn-secondary {
-      background: var(--bg); color: var(--text-primary);
-      font-size: 14px; margin-top: 4px;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes popIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
-    @keyframes pulse-ring { 0%, 100% { box-shadow: 0 0 0 0 rgba(26,26,26,0.3); } 50% { box-shadow: 0 0 0 4px rgba(26,26,26,0.1); } }
+    .btn-secondary { background: #F0F0EE; color: #787874; font-size: 14px; margin-top: 4px; }
+    .error-text { font-size: 13px; color: #D94040; text-align: center; }
+    @keyframes spin   { to { transform: rotate(360deg); } }
+    @keyframes popIn  { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
   </style>
 </head>
 <body>
-
 <div class="card">
-
-  <!-- Estado: Carregando -->
+  <!-- Loading -->
   <div class="state show" id="state-loading">
-    <div class="spinner-wrap"><div class="spinner"></div></div>
+    <div class="icon-box dark"><div class="spinner"></div></div>
     <div class="state-title">Conectando Google</div>
-    <div class="state-subtitle">Aguarde enquanto finalizamos a autenticação...</div>
+    <div class="state-sub">Finalizando autenticação...</div>
     <div class="steps" id="steps">
-      <div class="step active" id="step-1">
-        <div class="step-dot"></div>
-        <span>Recebendo autorização</span>
-      </div>
-      <div class="step" id="step-2">
-        <div class="step-dot"></div>
-        <span>Trocando tokens de acesso</span>
-      </div>
-      <div class="step" id="step-3">
-        <div class="step-dot"></div>
-        <span>Obtendo dados do perfil</span>
-      </div>
-      <div class="step" id="step-4">
-        <div class="step-dot"></div>
-        <span>Salvando conexão</span>
-      </div>
+      <div class="step active" id="step-1"><div class="step-dot"></div><span>Recebendo autorização</span></div>
+      <div class="step"        id="step-2"><div class="step-dot"></div><span>Trocando tokens de acesso</span></div>
+      <div class="step"        id="step-3"><div class="step-dot"></div><span>Obtendo perfil</span></div>
+      <div class="step"        id="step-4"><div class="step-dot"></div><span>Criando sua sessão</span></div>
+      <div class="step"        id="step-5"><div class="step-dot"></div><span>Sincronizando Drive</span></div>
     </div>
   </div>
-
-  <!-- Estado: Sucesso -->
+  <!-- Sucesso -->
   <div class="state" id="state-success">
-    <div class="success-icon">
-      <span class="material-icons-round">check</span>
-    </div>
-    <div class="state-title">Google conectado!</div>
+    <div class="icon-box green"><span class="material-icons-round">check</span></div>
+    <div class="state-title">Tudo pronto!</div>
     <div class="google-user" id="google-user-info">
-      <div class="google-avatar" id="google-avatar">
-        <span class="material-icons-round">person</span>
-      </div>
-      <div class="google-user-info">
-        <div class="google-user-name" id="google-user-name">...</div>
+      <div class="google-avatar" id="google-avatar"><span class="material-icons-round">person</span></div>
+      <div>
+        <div class="google-user-name"  id="google-user-name">...</div>
         <div class="google-user-email" id="google-user-email">...</div>
       </div>
     </div>
-    <div class="state-subtitle">Gmail e Google Agenda conectados com sucesso. Gabriel agora pode ler e-mails e sincronizar sua agenda.</div>
-    <a class="btn" id="btn-continue" href="dashboard.html">
-      <span class="material-icons-round">home</span>
-      Ir para o Dashboard
-    </a>
+    <div class="state-sub">Gmail, Agenda, Drive e Fotos conectados. Gabriel está pronto!</div>
+    <a class="btn" id="btn-continue" href="dashboard.html"><span class="material-icons-round">auto_awesome</span>Abrir Gabriel</a>
   </div>
-
-  <!-- Estado: Erro -->
+  <!-- Erro -->
   <div class="state" id="state-error">
-    <div class="error-icon">
-      <span class="material-icons-round">error_outline</span>
-    </div>
+    <div class="icon-box red"><span class="material-icons-round">error_outline</span></div>
     <div class="state-title">Erro na conexão</div>
-    <div class="state-subtitle" id="error-msg">Não foi possível completar a autenticação com o Google.</div>
-    <button class="btn" onclick="window.location.href='dashboard.html'">
-      <span class="material-icons-round">refresh</span>
-      Tentar novamente
-    </button>
-    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
-      Ir sem conectar
-    </button>
+    <div class="state-sub error-text" id="error-msg">Não foi possível completar a autenticação.</div>
+    <button class="btn" onclick="window.location.href='login.html'"><span class="material-icons-round">refresh</span>Tentar novamente</button>
   </div>
-
 </div>
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
 <script src="auth.js"></script>
 <script src="google.js"></script>
-
 <script>
 const REDIRECT_URI = 'https://atlasgabriel.netlify.app/auth/google/callback';
 
-// ── Helpers de UI ────────────────────────────────────────
 function showState(name) {
-  ['loading','success','error'].forEach(s => {
-    document.getElementById(`state-${s}`).classList.remove('show');
-  });
+  ['loading','success','error'].forEach(s => document.getElementById(`state-${s}`).classList.remove('show'));
   document.getElementById(`state-${name}`).classList.add('show');
 }
-
 function stepDone(n) {
   const el = document.getElementById(`step-${n}`);
-  el.classList.remove('active');
-  el.classList.add('done');
+  el.classList.remove('active'); el.classList.add('done');
   const next = document.getElementById(`step-${n+1}`);
   if (next) next.classList.add('active');
 }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function showError(msg) {
-  document.getElementById('error-msg').textContent = msg;
-  showState('error');
-}
-
-// ── Processamento do callback ────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const code   = params.get('code');
   const state  = params.get('state');
   const error  = params.get('error');
 
-  // Erro explícito do Google (ex: usuário cancelou)
   if (error) {
-    if (error === 'access_denied') {
-      showError('Você cancelou a autorização. Pode conectar depois nas configurações.');
-    } else {
-      showError(`Erro do Google: ${error}`);
-    }
-    return;
+    document.getElementById('error-msg').textContent = error === 'access_denied' ? 'Você cancelou a autorização.' : `Erro: ${error}`;
+    showState('error'); return;
   }
-
-  // Sem código
-  if (!code) {
-    showError('Código de autorização não encontrado. Tente novamente.');
-    return;
-  }
+  if (!code) { document.getElementById('error-msg').textContent = 'Código de autorização não encontrado.'; showState('error'); return; }
 
   try {
-    // Passo 1: Recebeu o code ✓
-    await delay(400);
-    stepDone(1);
+    await delay(350); stepDone(1);
 
-    // Passo 2: Troca code por tokens via Netlify Function
+    // Troca code por tokens
     const tokenRes = await fetch('/.netlify/functions/google-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, redirect_uri: REDIRECT_URI })
     });
-
-    if (!tokenRes.ok) {
-      const errData = await tokenRes.json().catch(() => ({}));
-      throw new Error(errData.error || `Erro HTTP ${tokenRes.status} ao trocar tokens`);
-    }
-
+    if (!tokenRes.ok) { const e = await tokenRes.json().catch(()=>{}); throw new Error(e?.error || `HTTP ${tokenRes.status}`); }
     const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) {
-      throw new Error('Token de acesso não recebido. Verifique as variáveis de ambiente no Netlify.');
-    }
+    if (!tokenData.access_token) throw new Error('Token não recebido.');
 
-    stepDone(2);
-    await delay(300);
+    stepDone(2); await delay(250);
 
-    // Passo 3: Busca info do usuário Google
-    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` }
-    });
+    // Busca perfil
+    const userInfo = await Google.getUserInfo(tokenData.access_token);
+    stepDone(3); await delay(250);
 
-    let userInfo = {};
-    if (userRes.ok) {
-      userInfo = await userRes.json();
-    }
-
-    stepDone(3);
-    await delay(300);
-
-    // Passo 4: Salva tokens localmente
-    const KEYS = {
-      access_token:  'gabriel_google_access_token',
-      refresh_token: 'gabriel_google_refresh_token',
-      token_expiry:  'gabriel_google_token_expiry',
-      connected:     'gabriel_google_connected',
-      user_email:    'gabriel_google_email',
-      user_name:     'gabriel_google_name',
-      user_picture:  'gabriel_google_picture'
-    };
-
-    localStorage.setItem(KEYS.access_token,  tokenData.access_token);
-    localStorage.setItem(KEYS.token_expiry,   Date.now() + ((tokenData.expires_in || 3600) * 1000));
-    localStorage.setItem(KEYS.connected,      'true');
-    if (tokenData.refresh_token) localStorage.setItem(KEYS.refresh_token, tokenData.refresh_token);
-    if (userInfo.email)   localStorage.setItem(KEYS.user_email,   userInfo.email);
-    if (userInfo.name)    localStorage.setItem(KEYS.user_name,    userInfo.name);
-    if (userInfo.picture) localStorage.setItem(KEYS.user_picture, userInfo.picture);
-
-    // Sinaliza dashboard para mostrar conexão Google
+    // Salva tokens
+    Google.saveTokens({ ...tokenData, email: userInfo.email, name: userInfo.name, picture: userInfo.picture, id: userInfo.sub });
     localStorage.setItem('gabriel_google_just_connected', '1');
 
-    stepDone(4);
-    await delay(400);
+    // Cria/atualiza sessão local
+    const email = userInfo.email || '';
+    const name  = userInfo.name  || 'Usuário';
+    const usersRaw = await GabrielDB.Settings.get('gabriel_users');
+    const usersList = usersRaw ? JSON.parse(usersRaw) : [];
+    let user = usersList.find(u => u.email === email);
+    if (!user) {
+      user = { id: Date.now().toString(36), name, email, createdAt: new Date().toISOString(), onboardingDone: true, termosAceitos: true, googleAuth: true };
+      usersList.push(user);
+    } else {
+      user.name = name; user.googleAuth = true;
+    }
+    await GabrielDB.Settings.set('gabriel_users', JSON.stringify(usersList));
+    localStorage.setItem('gabriel_session', JSON.stringify({ id: user.id, name, email, loggedAt: new Date().toISOString() }));
 
-    // Mostra tela de sucesso
-    document.getElementById('google-user-name').textContent  = userInfo.name  || 'Conta Google';
-    document.getElementById('google-user-email').textContent = userInfo.email || '';
+    stepDone(4); await delay(250);
 
+    // Cria pasta Gabriel no Drive (em background)
+    try { await Google.Drive.getOrCreateGabrielFolder(); } catch {}
+    stepDone(5); await delay(300);
+
+    // Mostra sucesso
+    document.getElementById('google-user-name').textContent  = name;
+    document.getElementById('google-user-email').textContent = email;
     if (userInfo.picture) {
-      const avatar = document.getElementById('google-avatar');
-      avatar.innerHTML = `<img src="${userInfo.picture}" alt="${userInfo.name}">`;
+      document.getElementById('google-avatar').innerHTML = `<img src="${userInfo.picture}" alt="${name}">`;
     }
 
-    // Atualiza destino com base no state
-    let redirectTo = '/dashboard.html';
-    try {
-      const decoded = JSON.parse(atob(state || btoa('{}')));
-      if (decoded.from) {
-        // Garante sempre path absoluto começando com /
-        redirectTo = decoded.from.startsWith('/') ? decoded.from : '/' + decoded.from;
-      }
-    } catch {}
-
+    let redirectTo = 'dashboard.html';
+    try { const d = JSON.parse(atob(state||btoa('{}'))); if (d.from && d.from !== '/login.html') redirectTo = d.from.replace(/^\//,''); } catch {}
     document.getElementById('btn-continue').href = redirectTo;
     showState('success');
-
-    // Auto-redireciona após 2.5s
-    setTimeout(() => { window.location.href = redirectTo; }, 2500);
+    setTimeout(() => { window.location.href = redirectTo; }, 2200);
 
   } catch (err) {
-    console.error('[Google Callback]', err);
-    showError(err.message || 'Erro inesperado. Tente novamente.');
+    console.error('[Callback]', err);
+    document.getElementById('error-msg').textContent = err.message;
+    showState('error');
   }
 });
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
-
 </body>
 </html>

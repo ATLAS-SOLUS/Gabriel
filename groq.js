@@ -89,12 +89,20 @@ const Groq = (() => {
       if (window.Google && window.Google.isConnected() && window.Google.isTokenValid()) {
         const email = window.Google.getConnectedEmail();
         googleCtx = `\nGOOGLE CONECTADO: ${email}
-Você tem acesso ao Gmail e Google Agenda do usuário. Pode ler e-mails, enviar e-mails e gerenciar eventos no Google Calendar.`;
+Você tem acesso completo ao Google do usuário: Gmail, Agenda, Drive, Fotos, Keep e Translate.`;
         googleActions = `
 - gmail_list: { "action": "gmail_list", "query": "...", "max": 5 }
 - gmail_send: { "action": "gmail_send", "to": "email@...", "subject": "...", "body": "..." }
 - gcal_list: { "action": "gcal_list", "days": 7 }
-- gcal_create: { "action": "gcal_create", "title": "...", "start": "YYYY-MM-DDTHH:MM", "end": "YYYY-MM-DDTHH:MM", "description": "...", "location": "..." }`;
+- gcal_create: { "action": "gcal_create", "title": "...", "start": "YYYY-MM-DDTHH:MM", "end": "YYYY-MM-DDTHH:MM", "description": "...", "location": "..." }
+- drive_list: { "action": "drive_list", "max": 10 }
+- drive_search: { "action": "drive_search", "query": "nome do arquivo" }
+- drive_upload: { "action": "drive_upload", "name": "arquivo.txt", "content": "...", "mimeType": "text/plain" }
+- photos_list: { "action": "photos_list", "max": 12 }
+- photos_albums: { "action": "photos_albums" }
+- keep_list: { "action": "keep_list" }
+- keep_create: { "action": "keep_create", "title": "...", "content": "...", "color": "#fff", "pinned": false }
+- translate: { "action": "translate", "text": "...", "targetLang": "pt", "sourceLang": null }`;
       }
     } catch(e) {}
 

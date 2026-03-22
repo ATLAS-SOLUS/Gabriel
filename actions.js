@@ -316,8 +316,100 @@ const Actions = (() => {
     gmail_list:     execGmailList,
     gmail_send:     execGmailSend,
     gcal_list:      execGcalList,
-    gcal_create:    execGcalCreate
+    gcal_create:    execGcalCreate,
+    drive_list:     execDriveList,
+    drive_upload:   execDriveUpload,
+    drive_search:   execDriveSearch,
+    photos_list:    execPhotosList,
+    photos_albums:  execPhotosAlbums,
+    keep_list:      execKeepList,
+    keep_create:    execKeepCreate,
+    translate:      execTranslate
   };
+
+  // ── GOOGLE DRIVE: listar arquivos ────────────────────────
+  async function execDriveList({ folder = '', max = 10 }) {
+    if (!window.Google?.isConnected()) return result('drive_list', false, 'Google não conectado.');
+    try {
+      const files = await window.Google.Drive.list('', max, folder || undefined);
+      if (!files.length) return result('drive_list', true, 'Nenhum arquivo encontrado.', { files: [] });
+      const summary = files.map(f => `📄 **${f.name}** (${f.mimeType?.split('/').pop() || 'arquivo'})`).join('\n');
+      return result('drive_list', true, summary, { files });
+    } catch(err) { return result('drive_list', false, `Erro Drive: ${err.message}`); }
+  }
+
+  async function execDriveSearch({ query }) {
+    if (!window.Google?.isConnected()) return result('drive_search', false, 'Google não conectado.');
+    try {
+      const files = await window.Google.Drive.search(query);
+      if (!files.length) return result('drive_search', true, `Nenhum arquivo encontrado para "${query}".`);
+      const summary = files.map(f => `📄 **${f.name}**`).join('\n');
+      return result('drive_search', true, summary, { files });
+    } catch(err) { return result('drive_search', false, `Erro Drive: ${err.message}`); }
+  }
+
+  async function execDriveUpload({ name, content, mimeType = 'text/plain' }) {
+    if (!window.Google?.isConnected()) return result('drive_upload', false, 'Google não conectado.');
+    try {
+      const blob = new Blob([content], { type: mimeType });
+      const file = new File([blob], name, { type: mimeType });
+      const folderId = await window.Google.Drive.getOrCreateGabrielFolder();
+      const saved = await window.Google.Drive.upload(file, folderId);
+      return result('drive_upload', true, `Arquivo **"${name}"** salvo no Google Drive ✓`, { file: saved });
+    } catch(err) { return result('drive_upload', false, `Erro upload: ${err.message}`); }
+  }
+
+  // ── GOOGLE PHOTOS ────────────────────────────────────────
+  async function execPhotosList({ max = 12 }) {
+    if (!window.Google?.isConnected()) return result('photos_list', false, 'Google não conectado.');
+    try {
+      const photos = await window.Google.Photos.list(max);
+      if (!photos.length) return result('photos_list', true, 'Nenhuma foto encontrada.', { photos: [] });
+      const summary = `📸 ${photos.length} foto(s) encontrada(s).\n` +
+        photos.slice(0, 5).map(p => `• ${p.filename} — ${p.createdTime ? new Date(p.createdTime).toLocaleDateString('pt-BR') : ''}`).join('\n');
+      return result('photos_list', true, summary, { photos });
+    } catch(err) { return result('photos_list', false, `Erro Fotos: ${err.message}`); }
+  }
+
+  async function execPhotosAlbums() {
+    if (!window.Google?.isConnected()) return result('photos_albums', false, 'Google não conectado.');
+    try {
+      const albums = await window.Google.Photos.getAlbums();
+      if (!albums.length) return result('photos_albums', true, 'Nenhum álbum encontrado.', { albums: [] });
+      const summary = albums.map(a => `📁 **${a.title}** (${a.mediaItemsCount || '?'} itens)`).join('\n');
+      return result('photos_albums', true, summary, { albums });
+    } catch(err) { return result('photos_albums', false, `Erro Álbuns: ${err.message}`); }
+  }
+
+  // ── GOOGLE KEEP ──────────────────────────────────────────
+  async function execKeepList() {
+    if (!window.Google?.isConnected()) return result('keep_list', false, 'Google não conectado.');
+    try {
+      const notes = await window.Google.Keep.list();
+      if (!notes.length) return result('keep_list', true, 'Nenhuma nota encontrada.', { notes: [] });
+      const summary = notes.slice(0, 8).map(n => `📝 **${n.title || '(sem título)'}**${n.content ? ': ' + n.content.slice(0, 60) : ''}`).join('\n');
+      return result('keep_list', true, summary, { notes });
+    } catch(err) { return result('keep_list', false, `Erro Keep: ${err.message}`); }
+  }
+
+  async function execKeepCreate({ title, content, color, pinned, labels }) {
+    if (!window.Google?.isConnected()) return result('keep_create', false, 'Google não conectado.');
+    try {
+      const note = await window.Google.Keep.create({ title, content, color, pinned, labels });
+      if (window.Notifications) await window.Notifications.show('Nota criada 📝', title || content?.slice(0, 40), { tag: 'keep-created' });
+      return result('keep_create', true, `Nota **"${title || content?.slice(0, 30)}"** criada no Keep ✓`, { note });
+    } catch(err) { return result('keep_create', false, `Erro Keep: ${err.message}`); }
+  }
+
+  // ── GOOGLE TRANSLATE ─────────────────────────────────────
+  async function execTranslate({ text, targetLang = 'pt', sourceLang }) {
+    if (!window.Google?.isConnected()) return result('translate', false, 'Google não conectado.');
+    if (!text) return result('translate', false, 'Informe o texto para traduzir.');
+    try {
+      const translated = await window.Google.Translate.translate(text, targetLang, sourceLang);
+      return result('translate', true, `**Tradução (${targetLang}):** ${translated}`, { original: text, translated, targetLang });
+    } catch(err) { return result('translate', false, `Erro Translate: ${err.message}`); }
+  }
 
   // Executa lista de ações em sequência
   async function execute(actions = []) {
