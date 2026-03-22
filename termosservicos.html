@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FFFFFF">
+  <title>Termos de Uso — Gabriel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:             #F7F7F5;
+      --surface:        #FFFFFF;
+      --border:         #E8E8E4;
+      --text-primary:   #1A1A1A;
+      --text-secondary: #5A5A56;
+      --text-hint:      #ABABAA;
+      --accent:         #1A1A1A;
+      --accent-soft:    #F0F0EE;
+      --font-sans:      'DM Sans', sans-serif;
+      --font-serif:     'DM Serif Display', serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); font-family: var(--font-sans); color: var(--text-primary); -webkit-font-smoothing: antialiased; line-height: 1.7; }
+
+    .nav { position: sticky; top: 0; background: rgba(247,247,245,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
+    .nav-brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); }
+    .nav-brand-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+    .nav-brand-icon .material-icons-round { color: white; font-size: 17px; }
+    .nav-brand-name { font-family: var(--font-serif); font-size: 18px; letter-spacing: -0.2px; }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-link { font-size: 13.5px; color: var(--text-secondary); text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
+    .nav-link:hover { color: var(--text-primary); }
+
+    .hero { background: var(--accent); padding: 64px 24px 56px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%); width: 500px; height: 500px; background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%); border-radius: 50%; pointer-events: none; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 99px; padding: 5px 14px; font-size: 12px; color: rgba(255,255,255,0.8); font-weight: 500; letter-spacing: 0.3px; margin-bottom: 20px; }
+    .hero-badge .material-icons-round { font-size: 14px; }
+    .hero-title { font-family: var(--font-serif); font-size: clamp(28px, 6vw, 42px); color: white; letter-spacing: -0.5px; margin-bottom: 12px; line-height: 1.15; }
+    .hero-sub { font-size: 15px; color: rgba(255,255,255,0.65); max-width: 480px; margin: 0 auto; line-height: 1.6; }
+    .hero-date { margin-top: 24px; font-size: 12.5px; color: rgba(255,255,255,0.4); }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin: 40px 0 0; }
+    .toc-title { font-size: 12px; font-weight: 600; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
+    .toc-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .toc-list a { font-size: 14px; color: var(--text-secondary); text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: color 0.2s ease; }
+    .toc-list a:hover { color: var(--text-primary); }
+    .toc-list a::before { content: ''; width: 4px; height: 4px; background: var(--text-hint); border-radius: 50%; flex-shrink: 0; }
+
+    .content { padding: 48px 0 80px; }
+    .section { margin-bottom: 48px; }
+    .section-anchor { display: block; position: relative; top: -80px; visibility: hidden; }
+    .section-num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--accent); color: white; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 12px; }
+    .section-title { font-family: var(--font-serif); font-size: 22px; color: var(--text-primary); letter-spacing: -0.2px; margin-bottom: 14px; line-height: 1.25; }
+    .section-body { font-size: 15px; color: var(--text-secondary); line-height: 1.75; }
+    .section-body p { margin-bottom: 14px; }
+    .section-body p:last-child { margin-bottom: 0; }
+    .section-body ul { margin: 12px 0 14px 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .section-body ul li { display: flex; align-items: flex-start; gap: 10px; font-size: 14.5px; color: var(--text-secondary); }
+    .section-body ul li::before { content: ''; width: 6px; height: 6px; background: var(--text-hint); border-radius: 50%; flex-shrink: 0; margin-top: 8px; }
+    .section-body strong { color: var(--text-primary); font-weight: 600; }
+    .section-body a { color: var(--text-primary); font-weight: 600; }
+
+    .highlight-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin: 16px 0; display: flex; gap: 14px; align-items: flex-start; }
+    .highlight-card .material-icons-round { font-size: 20px; color: var(--text-secondary); flex-shrink: 0; margin-top: 1px; }
+    .highlight-card-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+    .highlight-card-text strong { color: var(--text-primary); font-weight: 600; }
+
+    .divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+    .contact-card { background: var(--accent); border-radius: 20px; padding: 32px; text-align: center; margin-bottom: 48px; }
+    .contact-card h3 { font-family: var(--font-serif); font-size: 22px; color: white; margin-bottom: 8px; }
+    .contact-card p { font-size: 14px; color: rgba(255,255,255,0.65); margin-bottom: 20px; line-height: 1.6; }
+    .contact-email { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 10px 20px; font-size: 14px; color: white; font-weight: 500; text-decoration: none; transition: background 0.2s ease; }
+    .contact-email:hover { background: rgba(255,255,255,0.2); }
+    .contact-email .material-icons-round { font-size: 18px; }
+
+    .footer { border-top: 1px solid var(--border); padding: 32px 24px; text-align: center; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; flex-wrap: wrap; }
+    .footer-link { font-size: 13px; color: var(--text-hint); text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
+    .footer-link:hover { color: var(--text-primary); }
+    .footer-copy { font-size: 12px; color: var(--text-hint); }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero { padding: 48px 20px 40px; }
+      .container { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-brand-icon"><span class="material-icons-round">auto_awesome</span></div>
+    <span class="nav-brand-name">Gabriel</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="privacy.html">Privacidade</a>
+    <a class="nav-link" href="terms.html">Termos</a>
+    <a class="nav-link" href="login.html">Entrar</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">
+    <span class="material-icons-round">gavel</span>
+    Documento Legal
+  </div>
+  <h1 class="hero-title">Termos de Uso</h1>
+  <p class="hero-sub">Condições de uso do assistente pessoal Gabriel e seus serviços integrados.</p>
+  <div class="hero-date">Última atualização: 21 de março de 2026</div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <div class="toc-title">Índice</div>
+    <ul class="toc-list">
+      <li><a href="#t1">1. Aceitação dos termos</a></li>
+      <li><a href="#t2">2. Descrição do serviço</a></li>
+      <li><a href="#t3">3. Integração com serviços Google</a></li>
+      <li><a href="#t4">4. Conta e responsabilidades do usuário</a></li>
+      <li><a href="#t5">5. Uso aceitável</a></li>
+      <li><a href="#t6">6. Serviços de terceiros</a></li>
+      <li><a href="#t7">7. Limitação de responsabilidade</a></li>
+      <li><a href="#t8">8. Disponibilidade do serviço</a></li>
+      <li><a href="#t9">9. Propriedade intelectual</a></li>
+      <li><a href="#t10">10. Rescisão</a></li>
+      <li><a href="#t11">11. Alterações nos termos</a></li>
+      <li><a href="#t12">12. Contato</a></li>
+    </ul>
+  </div>
+
+  <div class="content">
+
+    <div class="section">
+      <span class="section-anchor" id="t1"></span>
+      <div class="section-num">1</div>
+      <h2 class="section-title">Aceitação dos termos</h2>
+      <div class="section-body">
+        <p>Ao acessar ou usar o Gabriel em <strong>https://atlasgabriel.netlify.app</strong>, você concorda com estes Termos de Uso. Se não concordar com qualquer parte destes termos, não use o aplicativo.</p>
+        <p>Estes termos constituem um acordo legal entre você e o desenvolvedor do Gabriel. Ao criar uma conta, você declara ter lido, compreendido e aceito estes termos integralmente.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t2"></span>
+      <div class="section-num">2</div>
+      <h2 class="section-title">Descrição do serviço</h2>
+      <div class="section-body">
+        <p>O <strong>Gabriel</strong> é um assistente pessoal inteligente que funciona como Progressive Web App (PWA). O aplicativo oferece as seguintes funcionalidades:</p>
+        <ul>
+          <li>Assistente de IA conversacional via API Groq (modelo LLaMA)</li>
+          <li>Agenda pessoal com lembretes e notificações push</li>
+          <li>Controle financeiro pessoal</li>
+          <li>Caderno de notas e organização em pastas</li>
+          <li>Integração opcional com Gmail e Google Agenda</li>
+          <li>Previsão do tempo via serviço wttr.in</li>
+          <li>Memória automática de contexto das conversas</li>
+        </ul>
+        <div class="highlight-card">
+          <span class="material-icons-round">devices</span>
+          <div class="highlight-card-text">
+            <strong>Dados locais:</strong> Todos os dados são armazenados no seu dispositivo. O Gabriel não possui servidores de armazenamento de dados de usuários.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t3"></span>
+      <div class="section-num">3</div>
+      <h2 class="section-title">Integração com serviços Google</h2>
+      <div class="section-body">
+        <p>A integração com Gmail e Google Agenda é <strong>completamente opcional</strong>. Ao autorizar o acesso, você concorda que o Gabriel poderá:</p>
+        <ul>
+          <li>Ler e-mails da sua caixa de entrada para exibição e resumo no app</li>
+          <li>Enviar e-mails em seu nome quando explicitamente solicitado</li>
+          <li>Marcar e-mails como lidos quando você solicitar</li>
+          <li>Ler eventos do Google Agenda para exibição no painel</li>
+          <li>Criar eventos no Google Agenda quando você solicitar via chat</li>
+        </ul>
+        <p>O uso dos dados obtidos pelas APIs do Google está em conformidade com a <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado.</p>
+        <p>Você pode revogar o acesso a qualquer momento em <a href="https://myaccount.google.com/permissions" target="_blank">myaccount.google.com/permissions</a>.</p>
+        <div class="highlight-card">
+          <span class="material-icons-round">security</span>
+          <div class="highlight-card-text">
+            <strong>Uso Limitado:</strong> O Gabriel não usa dados do Google para publicidade, treinamento de IA, ou qualquer finalidade além das explicitamente listadas e autorizadas pelo usuário.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t4"></span>
+      <div class="section-num">4</div>
+      <h2 class="section-title">Conta e responsabilidades do usuário</h2>
+      <div class="section-body">
+        <p>Ao criar uma conta no Gabriel, você é responsável por:</p>
+        <ul>
+          <li>Manter a confidencialidade da sua senha</li>
+          <li>Todas as atividades realizadas com sua conta</li>
+          <li>Fornecer informações verdadeiras no cadastro</li>
+          <li>Manter sua chave de API Groq segura e confidencial</li>
+          <li>Fazer backup dos seus dados, já que ficam armazenados localmente</li>
+        </ul>
+        <p>Você deve notificar imediatamente sobre qualquer uso não autorizado da sua conta.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t5"></span>
+      <div class="section-num">5</div>
+      <h2 class="section-title">Uso aceitável</h2>
+      <div class="section-body">
+        <p>Você concorda em <strong>não usar</strong> o Gabriel para:</p>
+        <ul>
+          <li>Atividades ilegais ou que violem direitos de terceiros</li>
+          <li>Enviar spam ou e-mails em massa não solicitados via integração Gmail</li>
+          <li>Tentar contornar medidas de segurança do aplicativo</li>
+          <li>Usar a IA para gerar conteúdo prejudicial, enganoso ou ilegal</li>
+          <li>Compartilhar sua chave de API Groq com terceiros</li>
+          <li>Qualquer uso que viole os Termos de Serviço da Groq ou do Google</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t6"></span>
+      <div class="section-num">6</div>
+      <h2 class="section-title">Serviços de terceiros</h2>
+      <div class="section-body">
+        <p>O Gabriel integra com serviços de terceiros. Ao usar o aplicativo, você também concorda com os termos desses serviços:</p>
+        <ul>
+          <li><strong>Groq:</strong> Processamento das conversas de IA — <a href="https://groq.com/terms-of-use/" target="_blank">Termos de Uso da Groq</a></li>
+          <li><strong>Google:</strong> Gmail e Google Agenda — <a href="https://policies.google.com/terms" target="_blank">Termos de Serviço do Google</a></li>
+          <li><strong>Netlify:</strong> Hospedagem do aplicativo — <a href="https://www.netlify.com/legal/terms-of-use/" target="_blank">Termos de Uso da Netlify</a></li>
+          <li><strong>wttr.in:</strong> Serviço de previsão do tempo (uso público, sem autenticação)</li>
+        </ul>
+        <p>O Gabriel não se responsabiliza por interrupções, alterações ou descontinuação desses serviços de terceiros.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t7"></span>
+      <div class="section-num">7</div>
+      <h2 class="section-title">Limitação de responsabilidade</h2>
+      <div class="section-body">
+        <p>O Gabriel é fornecido <strong>"no estado em que se encontra"</strong>, sem garantias de qualquer tipo. Na máxima extensão permitida pela lei:</p>
+        <ul>
+          <li>Não garantimos disponibilidade ininterrupta do serviço</li>
+          <li>Não nos responsabilizamos por perda de dados armazenados localmente</li>
+          <li>Não somos responsáveis por ações tomadas com base nas respostas da IA</li>
+          <li>Não garantimos a precisão das informações geradas pelo assistente</li>
+          <li>Não nos responsabilizamos por danos causados por uso inadequado da integração Gmail</li>
+        </ul>
+        <div class="highlight-card">
+          <span class="material-icons-round">warning_amber</span>
+          <div class="highlight-card-text">
+            <strong>Importante:</strong> As respostas do assistente são geradas por IA e podem conter erros. Sempre verifique informações críticas antes de agir com base nelas.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t8"></span>
+      <div class="section-num">8</div>
+      <h2 class="section-title">Disponibilidade do serviço</h2>
+      <div class="section-body">
+        <p>O Gabriel pode ser temporariamente indisponível por manutenção, atualizações ou problemas técnicos. Como PWA, o aplicativo funciona parcialmente offline após o primeiro acesso, mas a integração com IA e Google requer conexão com a internet.</p>
+        <p>Reservamos o direito de modificar, suspender ou descontinuar o serviço a qualquer momento, com aviso prévio quando possível.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t9"></span>
+      <div class="section-num">9</div>
+      <h2 class="section-title">Propriedade intelectual</h2>
+      <div class="section-body">
+        <p>O código, design e funcionalidades do Gabriel são de propriedade do desenvolvedor. Os dados inseridos pelo usuário (conversas, notas, tarefas, eventos) pertencem exclusivamente ao usuário.</p>
+        <p>Você mantém todos os direitos sobre o conteúdo que cria no Gabriel.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t10"></span>
+      <div class="section-num">10</div>
+      <h2 class="section-title">Rescisão</h2>
+      <div class="section-body">
+        <p>Você pode parar de usar o Gabriel a qualquer momento. Para encerrar sua conta e excluir todos os dados:</p>
+        <ul>
+          <li>Limpe os dados do site no seu navegador</li>
+          <li>Revogue o acesso Google em myaccount.google.com/permissions</li>
+          <li>Desinstale o PWA do seu dispositivo</li>
+        </ul>
+        <p>Podemos suspender ou encerrar o acesso em caso de violação destes termos.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t11"></span>
+      <div class="section-num">11</div>
+      <h2 class="section-title">Alterações nos termos</h2>
+      <div class="section-body">
+        <p>Podemos atualizar estes Termos de Uso periodicamente. A data de "Última atualização" será modificada quando isso ocorrer. O uso continuado do Gabriel após alterações constitui aceitação dos novos termos.</p>
+        <p>Para mudanças significativas, notificaremos os usuários dentro do aplicativo.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <span class="section-anchor" id="t12"></span>
+      <div class="section-num">12</div>
+      <h2 class="section-title">Contato</h2>
+      <div class="section-body">
+        <p>Para dúvidas sobre estes Termos de Uso, entre em contato:</p>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <h3>Entre em contato</h3>
+      <p>Respondemos dúvidas sobre os termos em até 5 dias úteis.</p>
+      <a class="contact-email" href="mailto:contato@atlasgabriel.netlify.app">
+        <span class="material-icons-round">mail</span>
+        contato@atlasgabriel.netlify.app
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a class="footer-link" href="privacy.html">Política de Privacidade</a>
+    <a class="footer-link" href="terms.html">Termos de Uso</a>
+    <a class="footer-link" href="login.html">Entrar no Gabriel</a>
+  </div>
+  <div class="footer-copy">© 2026 Gabriel · Todos os direitos reservados · atlasgabriel.netlify.app</div>
+</footer>
+
+</body>
+</html>

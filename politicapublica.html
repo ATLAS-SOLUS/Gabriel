@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FFFFFF">
+  <title>Política de Privacidade — Gabriel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:             #F7F7F5;
+      --surface:        #FFFFFF;
+      --border:         #E8E8E4;
+      --text-primary:   #1A1A1A;
+      --text-secondary: #5A5A56;
+      --text-hint:      #ABABAA;
+      --accent:         #1A1A1A;
+      --accent-soft:    #F0F0EE;
+      --font-sans:      'DM Sans', sans-serif;
+      --font-serif:     'DM Serif Display', serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.7;
+    }
+
+    /* ── Nav ─────────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0;
+      background: rgba(247,247,245,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none; color: var(--text-primary);
+    }
+
+    .nav-brand-icon {
+      width: 32px; height: 32px;
+      background: var(--accent); border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-brand-icon .material-icons-round { color: white; font-size: 17px; }
+
+    .nav-brand-name {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    .nav-links { display: flex; gap: 20px; }
+    .nav-link {
+      font-size: 13.5px; color: var(--text-secondary);
+      text-decoration: none; font-weight: 500;
+      transition: color 0.2s ease;
+    }
+    .nav-link:hover { color: var(--text-primary); }
+
+    /* ── Hero ────────────────────────────────────────── */
+    .hero {
+      background: var(--accent);
+      padding: 64px 24px 56px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -80px; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 12px; color: rgba(255,255,255,0.8);
+      font-weight: 500; letter-spacing: 0.3px;
+      margin-bottom: 20px;
+    }
+    .hero-badge .material-icons-round { font-size: 14px; }
+
+    .hero-title {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 6vw, 42px);
+      color: white;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      line-height: 1.15;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: rgba(255,255,255,0.65);
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .hero-date {
+      margin-top: 24px;
+      font-size: 12.5px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* ── Layout ──────────────────────────────────────── */
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── TOC ─────────────────────────────────────────── */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 40px 0 0;
+    }
+
+    .toc-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-hint);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    .toc-list a {
+      font-size: 14px; color: var(--text-secondary);
+      text-decoration: none; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      transition: color 0.2s ease;
+    }
+    .toc-list a:hover { color: var(--text-primary); }
+    .toc-list a::before {
+      content: '';
+      width: 4px; height: 4px;
+      background: var(--text-hint);
+      border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* ── Conteúdo ────────────────────────────────────── */
+    .content { padding: 48px 0 80px; }
+
+    .section {
+      margin-bottom: 48px;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .section-anchor {
+      display: block;
+      position: relative;
+      top: -80px;
+      visibility: hidden;
+    }
+
+    .section-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px;
+      background: var(--accent); color: white;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+      margin-bottom: 14px;
+      line-height: 1.25;
+    }
+
+    .section-body {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.75;
+    }
+
+    .section-body p { margin-bottom: 14px; }
+    .section-body p:last-child { margin-bottom: 0; }
+
+    .section-body ul {
+      margin: 12px 0 14px 0;
+      padding-left: 0;
+      list-style: none;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    .section-body ul li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 14.5px; color: var(--text-secondary);
+    }
+
+    .section-body ul li::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--text-hint);
+      border-radius: 50%; flex-shrink: 0;
+      margin-top: 8px;
+    }
+
+    /* Cards de destaque */
+    .highlight-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin: 16px 0;
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+
+    .highlight-card .material-icons-round {
+      font-size: 20px; color: var(--text-secondary); flex-shrink: 0; margin-top: 1px;
+    }
+
+    .highlight-card-text {
+      font-size: 14px; color: var(--text-secondary); line-height: 1.6;
+    }
+    .highlight-card-text strong { color: var(--text-primary); font-weight: 600; }
+
+    /* Google data table */
+    .data-table {
+      width: 100%; border-collapse: collapse; margin: 16px 0;
+      font-size: 14px;
+    }
+    .data-table th {
+      text-align: left; padding: 10px 14px;
+      background: var(--accent-soft);
+      color: var(--text-primary); font-weight: 600;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .data-table th:first-child { border-radius: 10px 0 0 0; }
+    .data-table th:last-child { border-radius: 0 10px 0 0; }
+    .data-table td {
+      padding: 11px 14px; border-bottom: 1px solid var(--border);
+      color: var(--text-secondary); vertical-align: top; line-height: 1.5;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table td:first-child { font-weight: 500; color: var(--text-primary); width: 35%; }
+
+    /* ── Divider ─────────────────────────────────────── */
+    .divider {
+      height: 1px; background: var(--border);
+      margin: 40px 0;
+    }
+
+    /* ── Contact card ────────────────────────────────── */
+    .contact-card {
+      background: var(--accent);
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .contact-card h3 {
+      font-family: var(--font-serif);
+      font-size: 22px; color: white;
+      margin-bottom: 8px;
+    }
+
+    .contact-card p {
+      font-size: 14px; color: rgba(255,255,255,0.65);
+      margin-bottom: 20px; line-height: 1.6;
+    }
+
+    .contact-email {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 14px; color: white; font-weight: 500;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+    .contact-email:hover { background: rgba(255,255,255,0.2); }
+    .contact-email .material-icons-round { font-size: 18px; }
+
+    /* ── Footer ──────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex; justify-content: center; gap: 24px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+
+    .footer-link {
+      font-size: 13px; color: var(--text-hint);
+      text-decoration: none; font-weight: 500;
+      transition: color 0.2s ease;
+    }
+    .footer-link:hover { color: var(--text-primary); }
+
+    .footer-copy {
+      font-size: 12px; color: var(--text-hint);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero { padding: 48px 20px 40px; }
+      .container { padding: 0 16px; }
+      .data-table { font-size: 13px; }
+      .data-table td:first-child { width: 40%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-brand-icon">
+      <span class="material-icons-round">auto_awesome</span>
+    </div>
+    <span class="nav-brand-name">Gabriel</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="privacy.html">Privacidade</a>
+    <a class="nav-link" href="terms.html">Termos</a>
+    <a class="nav-link" href="login.html">Entrar</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">
+    <span class="material-icons-round">shield</span>
+    Documento Legal
+  </div>
+  <h1 class="hero-title">Política de Privacidade</h1>
+  <p class="hero-sub">Como o Gabriel coleta, usa e protege suas informações pessoais e dados do Google.</p>
+  <div class="hero-date">Última atualização: 21 de março de 2026</div>
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Índice</div>
+    <ul class="toc-list">
+      <li><a href="#s1">1. Quem somos</a></li>
+      <li><a href="#s2">2. Dados que coletamos</a></li>
+      <li><a href="#s3">3. Uso dos dados do Google (Gmail e Agenda)</a></li>
+      <li><a href="#s4">4. Como usamos seus dados</a></li>
+      <li><a href="#s5">5. Armazenamento e segurança</a></li>
+      <li><a href="#s6">6. Compartilhamento de dados</a></li>
+      <li><a href="#s7">7. Seus direitos (LGPD)</a></li>
+      <li><a href="#s8">8. Retenção de dados</a></li>
+      <li><a href="#s9">9. Alterações nesta política</a></li>
+      <li><a href="#s10">10. Contato</a></li>
+    </ul>
+  </div>
+
+  <!-- Conteúdo -->
+  <div class="content">
+
+    <!-- 1 -->
+    <div class="section">
+      <span class="section-anchor" id="s1"></span>
+      <div class="section-num">1</div>
+      <h2 class="section-title">Quem somos</h2>
+      <div class="section-body">
+        <p>O <strong>Gabriel</strong> é um assistente pessoal inteligente desenvolvido e operado de forma individual. O aplicativo está disponível em <strong>https://atlasgabriel.netlify.app</strong> e funciona como uma Progressive Web App (PWA) instalável em dispositivos móveis.</p>
+        <p>Esta Política de Privacidade descreve como tratamos os dados dos usuários do Gabriel, incluindo os dados obtidos através da integração com serviços do Google (Gmail e Google Agenda), em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018) e com as Políticas de Dados do Google.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 2 -->
+    <div class="section">
+      <span class="section-anchor" id="s2"></span>
+      <div class="section-num">2</div>
+      <h2 class="section-title">Dados que coletamos</h2>
+      <div class="section-body">
+        <p>O Gabriel coleta apenas os dados estritamente necessários para o funcionamento do assistente pessoal. Todos os dados são armazenados localmente no dispositivo do usuário (IndexedDB do navegador), exceto quando há integração ativa com serviços do Google.</p>
+
+        <div class="highlight-card">
+          <span class="material-icons-round">devices</span>
+          <div class="highlight-card-text">
+            <strong>Armazenamento 100% local:</strong> Conversas, memórias, tarefas, eventos, notas e gastos financeiros ficam salvos exclusivamente no seu dispositivo. Nenhum dado pessoal é enviado para servidores do Gabriel.
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tipo de dado</th>
+              <th>Onde fica</th>
+              <th>Finalidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Nome e e-mail</td>
+              <td>Dispositivo local</td>
+              <td>Identificação e personalização</td>
+            </tr>
+            <tr>
+              <td>Histórico de conversas</td>
+              <td>Dispositivo local</td>
+              <td>Contexto para o assistente</td>
+            </tr>
+            <tr>
+              <td>Memórias extraídas</td>
+              <td>Dispositivo local</td>
+              <td>Personalização das respostas</td>
+            </tr>
+            <tr>
+              <td>Eventos e agenda</td>
+              <td>Dispositivo local</td>
+              <td>Lembretes e notificações</td>
+            </tr>
+            <tr>
+              <td>Registros financeiros</td>
+              <td>Dispositivo local</td>
+              <td>Controle pessoal de gastos</td>
+            </tr>
+            <tr>
+              <td>Chave API Groq</td>
+              <td>Dispositivo local (criptografada)</td>
+              <td>Acesso ao modelo de IA</td>
+            </tr>
+            <tr>
+              <td>Tokens Google OAuth</td>
+              <td>Dispositivo local</td>
+              <td>Acesso a Gmail e Agenda</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 3 — Seção crítica para Google -->
+    <div class="section">
+      <span class="section-anchor" id="s3"></span>
+      <div class="section-num">3</div>
+      <h2 class="section-title">Uso dos dados do Google (Gmail e Agenda)</h2>
+      <div class="section-body">
+
+        <div class="highlight-card">
+          <span class="material-icons-round">security</span>
+          <div class="highlight-card-text">
+            <strong>Conformidade com a Política de Dados do Usuário do Google:</strong> O uso de dados obtidos pelas APIs do Google segue estritamente os <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color:var(--text-primary);font-weight:600">Serviços de API do Google — Política de Dados do Usuário</a>, incluindo os requisitos de Uso Limitado.
+          </div>
+        </div>
+
+        <p><strong>Escopos solicitados e sua finalidade:</strong></p>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Escopo Google</th>
+              <th>Para que é usado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>gmail.readonly</td>
+              <td>Leitura de e-mails para exibição e resumo pelo assistente</td>
+            </tr>
+            <tr>
+              <td>gmail.send</td>
+              <td>Envio de e-mails a pedido do usuário via chat</td>
+            </tr>
+            <tr>
+              <td>gmail.modify</td>
+              <td>Marcar e-mails como lidos quando o usuário solicitar</td>
+            </tr>
+            <tr>
+              <td>calendar.readonly</td>
+              <td>Exibição de eventos do Google Agenda no dashboard</td>
+            </tr>
+            <tr>
+              <td>calendar.events</td>
+              <td>Criação de eventos no Google Agenda a pedido do usuário</td>
+            </tr>
+            <tr>
+              <td>userinfo.email / profile</td>
+              <td>Identificação da conta Google conectada</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p><strong>O Gabriel não irá, em nenhuma circunstância:</strong></p>
+        <ul>
+          <li>Usar dados do Gmail ou Google Agenda para publicidade ou criação de perfil para fins comerciais</li>
+          <li>Transferir dados do Google para terceiros, exceto quando necessário para fornecer o serviço ao próprio usuário</li>
+          <li>Usar dados do Google para desenvolver, melhorar ou treinar modelos de inteligência artificial ou machine learning</li>
+          <li>Armazenar conteúdo de e-mails em servidores externos — os dados ficam apenas no dispositivo do usuário</li>
+          <li>Vender dados de usuários ou dados obtidos via APIs do Google</li>
+          <li>Permitir que humanos leiam os dados do Google sem consentimento explícito do usuário, exceto em caso de requisito legal</li>
+        </ul>
+
+        <p>O acesso aos dados do Google é feito diretamente do dispositivo do usuário para as APIs do Google, sem passar por servidores intermediários do Gabriel, exceto a Netlify Function responsável pela troca inicial do código OAuth por tokens de acesso — que não armazena nenhum dado.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 4 -->
+    <div class="section">
+      <span class="section-anchor" id="s4"></span>
+      <div class="section-num">4</div>
+      <h2 class="section-title">Como usamos seus dados</h2>
+      <div class="section-body">
+        <p>Os dados coletados são utilizados exclusivamente para:</p>
+        <ul>
+          <li>Personalizar as respostas do assistente com base no histórico e preferências do usuário</li>
+          <li>Criar e gerenciar eventos, tarefas, notas e registros financeiros conforme solicitado</li>
+          <li>Exibir informações relevantes no painel (dashboard) como clima, agenda e tarefas</li>
+          <li>Enviar notificações push de lembretes quando solicitado pelo usuário</li>
+          <li>Integrar com Gmail e Google Agenda exclusivamente a pedido do usuário</li>
+        </ul>
+        <p>As mensagens enviadas ao assistente são processadas pela <strong>API Groq</strong> utilizando a chave fornecida pelo próprio usuário. O Gabriel não tem acesso a essas mensagens — elas são enviadas diretamente do dispositivo do usuário para os servidores da Groq.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 5 -->
+    <div class="section">
+      <span class="section-anchor" id="s5"></span>
+      <div class="section-num">5</div>
+      <h2 class="section-title">Armazenamento e segurança</h2>
+      <div class="section-body">
+        <p>Todos os dados do Gabriel são armazenados localmente no dispositivo do usuário usando o <strong>IndexedDB</strong> do navegador. Isso significa que:</p>
+        <ul>
+          <li>Nenhum dado pessoal é enviado ou armazenado em servidores do Gabriel</li>
+          <li>Os dados existem apenas enquanto o usuário mantiver o aplicativo instalado</li>
+          <li>A senha do usuário é armazenada como hash SHA-256 — nunca em texto puro</li>
+          <li>Tokens de acesso do Google são armazenados no localStorage do dispositivo</li>
+          <li>O usuário pode apagar todos os dados a qualquer momento limpando os dados do site no navegador</li>
+        </ul>
+        <div class="highlight-card">
+          <span class="material-icons-round">warning_amber</span>
+          <div class="highlight-card-text">
+            <strong>Atenção:</strong> Como os dados ficam no dispositivo, limpar os dados do navegador ou desinstalar o app resultará na perda permanente de todos os dados locais do Gabriel. Recomendamos exportar informações importantes regularmente.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 6 -->
+    <div class="section">
+      <span class="section-anchor" id="s6"></span>
+      <div class="section-num">6</div>
+      <h2 class="section-title">Compartilhamento de dados</h2>
+      <div class="section-body">
+        <p>O Gabriel <strong>não compartilha, vende, aluga ou transfere</strong> dados pessoais dos usuários para terceiros, exceto nas seguintes situações estritamente necessárias:</p>
+        <ul>
+          <li><strong>API Groq:</strong> As mensagens de chat são enviadas à API Groq para processamento pela IA. Consulte a <a href="https://groq.com/privacy-policy/" target="_blank" style="color:var(--text-primary);font-weight:600">Política de Privacidade da Groq</a>.</li>
+          <li><strong>APIs do Google:</strong> Quando o usuário conecta sua conta Google, os dados são enviados às APIs do Google conforme os escopos autorizados. Consulte a <a href="https://policies.google.com/privacy" target="_blank" style="color:var(--text-primary);font-weight:600">Política de Privacidade do Google</a>.</li>
+          <li><strong>Netlify:</strong> O app está hospedado na Netlify. O acesso ao app passa pela infraestrutura da Netlify. Consulte a <a href="https://www.netlify.com/privacy/" target="_blank" style="color:var(--text-primary);font-weight:600">Política de Privacidade da Netlify</a>.</li>
+          <li><strong>Exigência legal:</strong> Podemos divulgar informações se exigido por lei ou ordem judicial.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 7 -->
+    <div class="section">
+      <span class="section-anchor" id="s7"></span>
+      <div class="section-num">7</div>
+      <h2 class="section-title">Seus direitos (LGPD)</h2>
+      <div class="section-body">
+        <p>De acordo com a Lei Geral de Proteção de Dados (LGPD), você tem os seguintes direitos:</p>
+        <ul>
+          <li><strong>Acesso:</strong> Saber quais dados temos sobre você</li>
+          <li><strong>Correção:</strong> Corrigir dados incompletos ou incorretos</li>
+          <li><strong>Exclusão:</strong> Solicitar a exclusão dos seus dados</li>
+          <li><strong>Portabilidade:</strong> Receber seus dados em formato estruturado</li>
+          <li><strong>Revogação:</strong> Revogar o consentimento a qualquer momento</li>
+          <li><strong>Oposição:</strong> Opor-se ao tratamento de dados</li>
+        </ul>
+        <p>Como os dados ficam no seu próprio dispositivo, você tem controle total. Para revogar o acesso do Google, acesse <a href="https://myaccount.google.com/permissions" target="_blank" style="color:var(--text-primary);font-weight:600">myaccount.google.com/permissions</a> e remova o acesso do Gabriel.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 8 -->
+    <div class="section">
+      <span class="section-anchor" id="s8"></span>
+      <div class="section-num">8</div>
+      <h2 class="section-title">Retenção de dados</h2>
+      <div class="section-body">
+        <p>Os dados são retidos pelo tempo em que o usuário mantiver o aplicativo ativo no dispositivo. Não há retenção em servidores externos. O usuário pode excluir todos os dados a qualquer momento:</p>
+        <ul>
+          <li>Limpando os dados do site no navegador (Configurações → Privacidade → Dados do site)</li>
+          <li>Desinstalando o aplicativo PWA do dispositivo</li>
+          <li>Usando a função de logout que limpa os dados de sessão</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 9 -->
+    <div class="section">
+      <span class="section-anchor" id="s9"></span>
+      <div class="section-num">9</div>
+      <h2 class="section-title">Alterações nesta política</h2>
+      <div class="section-body">
+        <p>Esta Política de Privacidade pode ser atualizada periodicamente. Quando isso ocorrer, a data de "Última atualização" no topo desta página será alterada. Recomendamos revisar esta página regularmente.</p>
+        <p>Mudanças significativas serão comunicadas diretamente no aplicativo antes de entrarem em vigor.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 10 -->
+    <div class="section">
+      <span class="section-anchor" id="s10"></span>
+      <div class="section-num">10</div>
+      <h2 class="section-title">Contato</h2>
+      <div class="section-body">
+        <p>Para dúvidas, solicitações relacionadas à privacidade ou exercício dos seus direitos como titular de dados, entre em contato:</p>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <h3>Fale com o responsável</h3>
+      <p>Responderemos em até 15 dias úteis conforme exigido pela LGPD.</p>
+      <a class="contact-email" href="mailto:contato@atlasgabriel.netlify.app">
+        <span class="material-icons-round">mail</span>
+        contato@atlasgabriel.netlify.app
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a class="footer-link" href="privacy.html">Política de Privacidade</a>
+    <a class="footer-link" href="terms.html">Termos de Uso</a>
+    <a class="footer-link" href="login.html">Entrar no Gabriel</a>
+  </div>
+  <div class="footer-copy">© 2026 Gabriel · Todos os direitos reservados · atlasgabriel.netlify.app</div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1A1A1A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="description" content="Gabriel — Seu assistente pessoal inteligente">
+  <title>Gabriel</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; background: #1A1A1A;
+      font-family: 'DM Serif Display', serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    .splash {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px; animation: fadeIn 0.6s ease both;
+    }
+
+    .splash-icon {
+      width: 80px; height: 80px;
+      background: white; border-radius: 24px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 40px rgba(255,255,255,0.1);
+      animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+    }
+    .splash-icon .material-icons-round { font-size: 38px; color: #1A1A1A; }
+
+    .splash-name {
+      font-size: 36px; color: white;
+      letter-spacing: -0.5px;
+      animation: fadeIn 0.5s ease 0.4s both;
+      opacity: 0;
+    }
+
+    .splash-loader {
+      display: flex; gap: 6px; margin-top: 8px;
+      animation: fadeIn 0.4s ease 0.6s both;
+      opacity: 0;
+    }
+
+    .loader-dot {
+      width: 6px; height: 6px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 50%;
+      animation: bounce 1.2s ease infinite;
+    }
+    .loader-dot:nth-child(2) { animation-delay: 0.18s; }
+    .loader-dot:nth-child(3) { animation-delay: 0.36s; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+  </style>
+</head>
+<body>
+
+<div class="splash">
+  <div class="splash-icon">
+    <span class="material-icons-round">auto_awesome</span>
+  </div>
+  <div class="splash-name">Gabriel</div>
+  <div class="splash-loader">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script>
+  // Registra Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // Verifica callback OAuth do Google
+  const isCallback = window.location.pathname.includes('/auth/google/callback') ||
+                     window.location.search.includes('code=');
+
+  if (isCallback) {
+    // Redireciona para página de callback
+    window.location.href = 'auth-callback.html' + window.location.search;
+  } else {
+    // Roteamento principal após splash
+    window.addEventListener('DOMContentLoaded', async () => {
+      await new Promise(r => setTimeout(r, 900));
+
+      try {
+        const session = Auth.getSession();
+        if (!session) {
+          window.location.replace('login.html');
+          return;
+        }
+
+        const user = await Auth.getCurrentUserFull();
+        if (!user) {
+          window.location.replace('login.html');
+          return;
+        }
+
+        if (!user.termosAceitos) {
+          window.location.replace('terms.html');
+          return;
+        }
+
+        if (!user.onboardingDone) {
+          window.location.replace('onboarding.html');
+          return;
+        }
+
+        window.location.replace('dashboard.html');
+
+      } catch (e) {
+        window.location.replace('login.html');
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
