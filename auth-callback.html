@@ -337,6 +337,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (userInfo.name)    localStorage.setItem(KEYS.user_name,    userInfo.name);
     if (userInfo.picture) localStorage.setItem(KEYS.user_picture, userInfo.picture);
 
+    // Sinaliza dashboard para mostrar conexão Google
+    localStorage.setItem('gabriel_google_just_connected', '1');
+
     stepDone(4);
     await delay(400);
 
@@ -350,11 +353,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Atualiza destino com base no state
-    let redirectTo = 'dashboard.html';
+    let redirectTo = '/dashboard.html';
     try {
-      const decoded = JSON.parse(atob(state));
+      const decoded = JSON.parse(atob(state || btoa('{}')));
       if (decoded.from) {
-        redirectTo = decoded.from.replace(/^\//, '') || 'dashboard.html';
+        // Garante sempre path absoluto começando com /
+        redirectTo = decoded.from.startsWith('/') ? decoded.from : '/' + decoded.from;
       }
     } catch {}
 
