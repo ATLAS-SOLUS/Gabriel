@@ -201,9 +201,20 @@ const Actions = (() => {
 
   // 🌤️ Clima
   async function execGetWeather(params) {
-    const { city } = params;
-    const weatherResult = await Weather.get(city);
-    return result('get_weather', true, weatherResult, { city });
+    let { city } = params;
+    // Se não veio cidade, usa a salva do usuário
+    if (!city) {
+      city = await Weather.getDefaultCity();
+    }
+    // Se ainda não tem, tenta detectar
+    if (!city) {
+      city = await Weather.autoDetectCity();
+    }
+    const weatherResult = await Weather.get(city || '');
+    // Também busca previsão dos próximos dias
+    const forecastResult = await Weather.getForecast(city || '');
+    const fullResult = weatherResult + '\n\n📅 Próximos dias:\n' + forecastResult;
+    return result('get_weather', true, fullResult, { city });
   }
 
   // 🖥️ Abrir módulo
