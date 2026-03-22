@@ -15,10 +15,9 @@
     .state { display: none; flex-direction: column; align-items: center; gap: 16px; }
     .state.show { display: flex; }
     .icon-box { width: 72px; height: 72px; border-radius: 22px; display: flex; align-items: center; justify-content: center; }
-    .icon-box.dark { background: #1A1A1A; }
+    .icon-box.dark  { background: #1A1A1A; }
     .icon-box.green { background: #2E7D5E; box-shadow: 0 6px 24px rgba(46,125,94,0.3); animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
     .icon-box.red   { background: #D94040; box-shadow: 0 6px 24px rgba(217,64,64,0.3); }
-    .icon-box img { width: 44px; height: 44px; }
     .icon-box .material-icons-round { color: white; font-size: 34px; }
     .spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.25); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     .state-title { font-family: 'DM Serif Display', serif; font-size: 23px; color: #1A1A1A; }
@@ -37,51 +36,60 @@
     .step.done   .step-dot { background: #2E7D5E; border-color: #2E7D5E; }
     .step.active .step-dot { border-color: #1A1A1A; }
     .step.done   .step-dot::after { content: '✓'; font-size: 12px; color: white; font-weight: 700; }
-    .step.active .step-dot::after { content: ''; width: 8px; height: 8px; background: #1A1A1A; border-radius: 50%; }
+    .step.active .step-dot::after { content: ''; width: 8px; height: 8px; background: #1A1A1A; border-radius: 50%; display: block; }
     .btn { width: 100%; padding: 15px; background: #1A1A1A; color: white; border: none; border-radius: 16px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; -webkit-tap-highlight-color: transparent; }
     .btn .material-icons-round { font-size: 20px; }
     .btn-secondary { background: #F0F0EE; color: #787874; font-size: 14px; margin-top: 4px; }
-    .error-text { font-size: 13px; color: #D94040; text-align: center; }
-    @keyframes spin   { to { transform: rotate(360deg); } }
-    @keyframes popIn  { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
   </style>
 </head>
 <body>
 <div class="card">
+
   <!-- Loading -->
   <div class="state show" id="state-loading">
     <div class="icon-box dark"><div class="spinner"></div></div>
     <div class="state-title">Conectando Google</div>
     <div class="state-sub">Finalizando autenticação...</div>
-    <div class="steps" id="steps">
+    <div class="steps">
       <div class="step active" id="step-1"><div class="step-dot"></div><span>Recebendo autorização</span></div>
-      <div class="step"        id="step-2"><div class="step-dot"></div><span>Trocando tokens de acesso</span></div>
+      <div class="step"        id="step-2"><div class="step-dot"></div><span>Trocando tokens</span></div>
       <div class="step"        id="step-3"><div class="step-dot"></div><span>Obtendo perfil</span></div>
-      <div class="step"        id="step-4"><div class="step-dot"></div><span>Criando sua sessão</span></div>
+      <div class="step"        id="step-4"><div class="step-dot"></div><span>Criando sessão</span></div>
       <div class="step"        id="step-5"><div class="step-dot"></div><span>Sincronizando Drive</span></div>
     </div>
   </div>
+
   <!-- Sucesso -->
   <div class="state" id="state-success">
     <div class="icon-box green"><span class="material-icons-round">check</span></div>
     <div class="state-title">Tudo pronto!</div>
-    <div class="google-user" id="google-user-info">
-      <div class="google-avatar" id="google-avatar"><span class="material-icons-round">person</span></div>
+    <div class="google-user">
+      <div class="google-avatar" id="google-avatar">
+        <span class="material-icons-round">person</span>
+      </div>
       <div>
         <div class="google-user-name"  id="google-user-name">...</div>
         <div class="google-user-email" id="google-user-email">...</div>
       </div>
     </div>
-    <div class="state-sub">Gmail, Agenda, Drive e Fotos conectados. Gabriel está pronto!</div>
-    <a class="btn" id="btn-continue" href="dashboard.html"><span class="material-icons-round">auto_awesome</span>Abrir Gabriel</a>
+    <div class="state-sub">Gmail, Agenda e Drive conectados. Gabriel está pronto!</div>
+    <a class="btn" id="btn-continue" href="dashboard.html">
+      <span class="material-icons-round">auto_awesome</span>Abrir Gabriel
+    </a>
   </div>
+
   <!-- Erro -->
   <div class="state" id="state-error">
     <div class="icon-box red"><span class="material-icons-round">error_outline</span></div>
     <div class="state-title">Erro na conexão</div>
-    <div class="state-sub error-text" id="error-msg">Não foi possível completar a autenticação.</div>
-    <button class="btn" onclick="window.location.href='login.html'"><span class="material-icons-round">refresh</span>Tentar novamente</button>
+    <div class="state-sub" id="error-msg" style="color:#D94040">Não foi possível completar a autenticação.</div>
+    <button class="btn" onclick="window.location.href='login.html'">
+      <span class="material-icons-round">refresh</span>Tentar novamente
+    </button>
   </div>
+
 </div>
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
@@ -89,114 +97,179 @@
 <script src="google.js"></script>
 <script src="auth.js"></script>
 <script>
+
 const REDIRECT_URI = 'https://atlasgabriel.netlify.app/auth/google/callback';
 
-function showState(name) {
-  ['loading','success','error'].forEach(s => document.getElementById(`state-${s}`).classList.remove('show'));
-  document.getElementById(`state-${name}`).classList.add('show');
+function showState(id) {
+  ['loading', 'success', 'error'].forEach(s => {
+    document.getElementById('state-' + s).classList.remove('show');
+  });
+  document.getElementById('state-' + id).classList.add('show');
 }
+
 function stepDone(n) {
-  const el = document.getElementById(`step-${n}`);
-  el.classList.remove('active'); el.classList.add('done');
-  const next = document.getElementById(`step-${n+1}`);
+  var el   = document.getElementById('step-' + n);
+  var next = document.getElementById('step-' + (n + 1));
+  el.classList.remove('active');
+  el.classList.add('done');
   if (next) next.classList.add('active');
 }
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-window.addEventListener('DOMContentLoaded', async () => {
-  const params = new URLSearchParams(window.location.search);
-  const code   = params.get('code');
-  const state  = params.get('state');
-  const error  = params.get('error');
+function delay(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg || 'Erro inesperado.';
+  showState('error');
+}
+
+window.addEventListener('DOMContentLoaded', async function() {
+  var params = new URLSearchParams(window.location.search);
+  var code   = params.get('code');
+  var state  = params.get('state');
+  var error  = params.get('error');
 
   if (error) {
-    document.getElementById('error-msg').textContent = error === 'access_denied' ? 'Você cancelou a autorização.' : `Erro: ${error}`;
-    showState('error'); return;
+    showError(error === 'access_denied' ? 'Você cancelou a autorização.' : 'Erro: ' + error);
+    return;
   }
-  if (!code) { document.getElementById('error-msg').textContent = 'Código de autorização não encontrado.'; showState('error'); return; }
+
+  if (!code) {
+    showError('Código de autorização não encontrado. Tente novamente.');
+    return;
+  }
 
   try {
-    await delay(350); stepDone(1);
+    // Passo 1 — code recebido
+    await delay(350);
+    stepDone(1);
 
-    // Troca code por tokens
-    const tokenRes = await fetch('/.netlify/functions/google-auth', {
+    // Passo 2 — troca code por tokens
+    var tokenRes = await fetch('/.netlify/functions/google-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, redirect_uri: REDIRECT_URI })
-    });
-    if (!tokenRes.ok) { const e = await tokenRes.json().catch(()=>{}); throw new Error(e?.error || `HTTP ${tokenRes.status}`); }
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) throw new Error('Token não recebido.');
-
-    stepDone(2); await delay(250);
-
-    // Busca perfil Google
-    const userInfo = await Google.getUserInfo(tokenData.access_token);
-    stepDone(3); await delay(250);
-
-    // Salva tokens via Google.js
-    Google.saveTokens({
-      ...tokenData,
-      email:   userInfo.email,
-      name:    userInfo.name,
-      picture: userInfo.picture,
-      id:      userInfo.sub
+      body: JSON.stringify({ code: code, redirect_uri: REDIRECT_URI })
     });
 
-    // Cria sessão local
-    const email = userInfo.email || '';
-    const name  = userInfo.name  || 'Usuário';
+    if (!tokenRes.ok) {
+      var errData = {};
+      try { errData = await tokenRes.json(); } catch(e) {}
+      throw new Error(errData.error || 'Erro HTTP ' + tokenRes.status);
+    }
+
+    var tokenData = await tokenRes.json();
+    if (!tokenData.access_token) throw new Error('Token de acesso não recebido.');
+
+    stepDone(2);
+    await delay(250);
+
+    // Passo 3 — busca perfil do Google
+    var userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
+    });
+
+    var userInfo = {};
+    if (userRes.ok) {
+      userInfo = await userRes.json();
+    }
+
+    stepDone(3);
+    await delay(250);
+
+    // Passo 4 — salva tokens e cria sessão
+    var KEYS = {
+      access_token:  'gabriel_google_access_token',
+      refresh_token: 'gabriel_google_refresh_token',
+      token_expiry:  'gabriel_google_token_expiry',
+      connected:     'gabriel_google_connected',
+      user_email:    'gabriel_google_email',
+      user_name:     'gabriel_google_name',
+      user_picture:  'gabriel_google_picture',
+      user_id:       'gabriel_google_user_id'
+    };
+
+    localStorage.setItem(KEYS.access_token, tokenData.access_token);
+    localStorage.setItem(KEYS.token_expiry,  Date.now() + ((tokenData.expires_in || 3600) * 1000));
+    localStorage.setItem(KEYS.connected,     'true');
+    if (tokenData.refresh_token) localStorage.setItem(KEYS.refresh_token, tokenData.refresh_token);
+    if (userInfo.email)   localStorage.setItem(KEYS.user_email,   userInfo.email);
+    if (userInfo.name)    localStorage.setItem(KEYS.user_name,    userInfo.name);
+    if (userInfo.picture) localStorage.setItem(KEYS.user_picture, userInfo.picture);
+    if (userInfo.sub)     localStorage.setItem(KEYS.user_id,      userInfo.sub);
+
+    var email = userInfo.email || '';
+    var name  = userInfo.name  || 'Usuário';
+
     localStorage.setItem('gabriel_session', JSON.stringify({
-      id: userInfo.sub || email, name, email,
-      picture: userInfo.picture || '',
+      id:       userInfo.sub || email,
+      name:     name,
+      email:    email,
+      picture:  userInfo.picture || '',
       provider: 'google',
       loggedAt: new Date().toISOString()
     }));
+
     localStorage.setItem('gabriel_google_just_connected', '1');
 
-    // Salva/atualiza perfil no DB
+    // Salva perfil no IndexedDB
     try {
       await GabrielDB.Profile.save({
-        name, email,
-        userId: userInfo.sub || email,
-        picture: userInfo.picture || '',
-        provider: 'google',
+        name:           name,
+        email:          email,
+        userId:         userInfo.sub || email,
+        picture:        userInfo.picture || '',
+        provider:       'google',
         onboardingDone: true,
-        createdAt: new Date()
+        createdAt:      new Date()
       });
-    } catch(e) { console.warn('[Callback] Perfil DB:', e); }
+    } catch(e) {
+      console.warn('[Callback] Perfil DB:', e);
+    }
 
-    stepDone(4); await delay(250);
+    stepDone(4);
+    await delay(250);
 
-    // Cria pasta Gabriel no Drive em background
-    try { await Google.Drive.getOrCreateGabrielFolder(); } catch(e) { console.warn('[Callback] Drive:', e); }
-    stepDone(5); await delay(300);
+    // Passo 5 — cria pasta no Drive (background)
+    try {
+      if (window.Google && Google.Drive) {
+        await Google.Drive.getOrCreateGabrielFolder();
+      }
+    } catch(e) {
+      console.warn('[Callback] Drive:', e);
+    }
+
+    stepDone(5);
+    await delay(350);
 
     // Mostra tela de sucesso
     document.getElementById('google-user-name').textContent  = name;
     document.getElementById('google-user-email').textContent = email;
+
     if (userInfo.picture) {
-      document.getElementById('google-avatar').innerHTML = `<img src="${userInfo.picture}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      var avatar = document.getElementById('google-avatar');
+      avatar.innerHTML = '<img src="' + userInfo.picture + '" alt="' + name + '">';
     }
 
-    let redirectTo = 'dashboard.html';
+    // Destino do redirect
+    var redirectTo = 'dashboard.html';
     try {
-      const d = JSON.parse(atob(state || btoa('{}')));
-      if (d.from && !d.from.includes('login.html')) {
-        redirectTo = d.from.replace(/^\//, '');
+      var decoded = JSON.parse(atob(state || btoa('{}')));
+      if (decoded.from && !decoded.from.includes('login.html') && !decoded.from.includes('callback')) {
+        redirectTo = decoded.from.replace(/^\//, '');
       }
-    } catch {}
+    } catch(e) {}
 
     document.getElementById('btn-continue').href = redirectTo;
     showState('success');
-    setTimeout(() => { window.location.href = redirectTo; }, 2200);
+    setTimeout(function() { window.location.href = redirectTo; }, 2500);
 
-  } catch (err) {
-    console.error('[Callback]', err);
-    document.getElementById('error-msg').textContent = err.message || 'Erro inesperado.';
-    showState('error');
+  } catch(err) {
+    console.error('[Callback] Erro:', err);
+    showError(err.message || 'Erro inesperado. Tente novamente.');
   }
 });
+
 </script>
 </body>
 </html>
