@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1A1A1A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Gabriel — Configurações</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F7F7F5; --surface: #FFFFFF; --border: #E8E8E4;
+      --text-primary: #1A1A1A; --text-secondary: #787874; --text-hint: #B0B0AA;
+      --accent: #1A1A1A; --accent-soft: #F0F0EE;
+      --green: #2E7D5E; --green-soft: #EAF4EF;
+      --red: #D94040; --red-soft: #FFF0F0;
+      --yellow: #E8A838; --yellow-soft: #FFF8E7;
+      --font-sans: 'DM Sans', sans-serif; --font-serif: 'DM Serif Display', serif;
+      --radius-sm: 10px; --radius-md: 16px; --radius-lg: 24px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    html, body { height: 100%; background: var(--bg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; color: var(--text-primary); }
+    .app { min-height: 100%; display: flex; flex-direction: column; }
+
+    /* Header */
+    .header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(247,247,245,0.92);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: calc(52px + env(safe-area-inset-top,0px)) 16px 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .back-btn {
+      width: 38px; height: 38px; background: var(--accent-soft);
+      border: none; border-radius: 12px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; color: var(--text-primary);
+      flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+    }
+    .back-btn .material-icons-round { font-size: 22px; }
+    .header-title { font-family: var(--font-serif); font-size: 24px; letter-spacing: -0.3px; }
+
+    /* Content */
+    .content { flex: 1; padding: 20px 16px calc(32px + env(safe-area-inset-bottom,0px)); display: flex; flex-direction: column; gap: 24px; }
+
+    /* Section */
+    .section-label { font-size: 11px; font-weight: 600; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-left: 4px; }
+
+    /* Card group */
+    .card { background: var(--surface); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); }
+
+    /* Row */
+    .row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .row:last-child { border-bottom: none; }
+    .row:active { background: var(--bg); }
+    .row.no-tap { cursor: default; }
+    .row.no-tap:active { background: transparent; }
+
+    .row-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .row-icon .material-icons-round { font-size: 18px; }
+    .row-icon.dark { background: var(--accent); color: white; }
+    .row-icon.green { background: var(--green-soft); color: var(--green); }
+    .row-icon.yellow { background: var(--yellow-soft); color: var(--yellow); }
+    .row-icon.red { background: var(--red-soft); color: var(--red); }
+    .row-icon.blue { background: #EEF2FF; color: #3B5BDB; }
+    .row-icon.purple { background: #F3EEFF; color: #7B3FE4; }
+
+    .row-info { flex: 1; min-width: 0; }
+    .row-title { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+    .row-sub { font-size: 12.5px; color: var(--text-hint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-end { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .row-end .material-icons-round { font-size: 18px; color: var(--text-hint); }
+
+    /* Badge */
+    .badge { padding: 3px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; }
+    .badge.green { background: var(--green-soft); color: var(--green); }
+    .badge.red   { background: var(--red-soft);   color: var(--red); }
+    .badge.yellow{ background: var(--yellow-soft); color: var(--yellow); }
+
+    /* Profile card */
+    .profile-card {
+      background: var(--accent);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex; align-items: center; gap: 14px;
+      box-shadow: var(--shadow-md);
+    }
+    .profile-avatar {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .profile-avatar .material-icons-round { color: white; font-size: 28px; }
+    .profile-name { font-size: 18px; font-weight: 600; color: white; }
+    .profile-email { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    .profile-edit { margin-left: auto; width: 36px; height: 36px; background: rgba(255,255,255,0.1); border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+    .profile-edit .material-icons-round { color: white; font-size: 18px; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 24px 20px calc(24px + env(safe-area-inset-bottom,0px));
+      width: 100%; max-width: 480px;
+      animation: slideUp 0.32s cubic-bezier(0.16,1,0.3,1) both;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .modal-title { font-family: var(--font-serif); font-size: 22px; }
+    .modal-sub { font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
+    .modal-input {
+      width: 100%; padding: 14px 16px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 15px; color: var(--text-primary);
+      background: var(--bg); outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-input::placeholder { color: var(--text-hint); }
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-confirm { flex: 1; padding: 14px; background: var(--accent); color: white; border: none; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .btn-cancel  { padding: 14px 18px; background: var(--accent-soft); color: var(--text-secondary); border: none; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 15px; font-weight: 500; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom,0px)); left: 50%; transform: translateX(-50%) translateY(80px); background: var(--accent); color: white; padding: 12px 20px; border-radius: 99px; font-size: 14px; font-weight: 500; white-space: nowrap; z-index: 300; opacity: 0; transition: all 0.35s cubic-bezier(0.16,1,0.3,1); pointer-events: none; box-shadow: var(--shadow-md); }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(60px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <button class="back-btn" onclick="history.back()">
+      <span class="material-icons-round">arrow_back</span>
+    </button>
+    <h1 class="header-title">Configurações</h1>
+  </div>
+
+  <div class="content">
+
+    <!-- Perfil -->
+    <div>
+      <div class="section-label">Minha conta</div>
+      <div class="profile-card" id="profile-card">
+        <div class="profile-avatar">
+          <span class="material-icons-round">person</span>
+        </div>
+        <div>
+          <div class="profile-name" id="profile-name">...</div>
+          <div class="profile-email" id="profile-email">...</div>
+        </div>
+        <button class="profile-edit" onclick="openEditName()">
+          <span class="material-icons-round">edit</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Integrações -->
+    <div>
+      <div class="section-label">Integrações</div>
+      <div class="card">
+
+        <!-- Google -->
+        <div class="row no-tap" id="row-google">
+          <div class="row-icon green">
+            <span class="material-icons-round">account_circle</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Google</div>
+            <div class="row-sub" id="google-sub">Verificando...</div>
+          </div>
+          <div class="row-end" id="google-end"></div>
+        </div>
+
+        <!-- Groq API -->
+        <div class="row" onclick="openGroqModal()">
+          <div class="row-icon dark">
+            <span class="material-icons-round">key</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Chave API Groq</div>
+            <div class="row-sub" id="groq-sub">Verificando...</div>
+          </div>
+          <div class="row-end">
+            <span id="groq-badge"></span>
+            <span class="material-icons-round">chevron_right</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Localização & Clima -->
+    <div>
+      <div class="section-label">Localização & Clima</div>
+      <div class="card">
+        <div class="row" onclick="requestLocation()">
+          <div class="row-icon blue">
+            <span class="material-icons-round">location_on</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Localização automática</div>
+            <div class="row-sub" id="location-sub">Toque para permitir GPS</div>
+          </div>
+          <div class="row-end" id="location-end">
+            <span class="material-icons-round">chevron_right</span>
+          </div>
+        </div>
+        <div class="row" onclick="openCityModal()">
+          <div class="row-icon blue">
+            <span class="material-icons-round">wb_sunny</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Cidade do clima</div>
+            <div class="row-sub" id="city-sub">Nenhuma definida</div>
+          </div>
+          <div class="row-end">
+            <span class="material-icons-round">chevron_right</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notificações -->
+    <div>
+      <div class="section-label">Notificações</div>
+      <div class="card">
+        <div class="row" onclick="requestNotifPermission()">
+          <div class="row-icon purple">
+            <span class="material-icons-round">notifications</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Notificações</div>
+            <div class="row-sub" id="notif-sub">Verificando...</div>
+          </div>
+          <div class="row-end" id="notif-end">
+            <span class="material-icons-round">chevron_right</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instalar PWA -->
+    <div>
+      <div class="section-label">Aplicativo</div>
+      <div class="card">
+        <div class="row" id="row-pwa" onclick="installPWA()">
+          <div class="row-icon dark">
+            <span class="material-icons-round">install_mobile</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Instalar Gabriel</div>
+            <div class="row-sub" id="pwa-sub">Adicione à tela inicial</div>
+          </div>
+          <div class="row-end">
+            <span class="material-icons-round">chevron_right</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados & Conta -->
+    <div>
+      <div class="section-label">Dados</div>
+      <div class="card">
+        <div class="row" onclick="clearMemories()">
+          <div class="row-icon yellow">
+            <span class="material-icons-round">psychology</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Limpar memórias</div>
+            <div class="row-sub" id="mem-sub">...</div>
+          </div>
+          <div class="row-end">
+            <span class="material-icons-round">chevron_right</span>
+          </div>
+        </div>
+        <div class="row" onclick="confirmLogout()">
+          <div class="row-icon red">
+            <span class="material-icons-round">logout</span>
+          </div>
+          <div class="row-info">
+            <div class="row-title">Sair da conta</div>
+            <div class="row-sub">Encerrar sessão</div>
+          </div>
+          <div class="row-end">
+            <span class="material-icons-round">chevron_right</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:12px;color:var(--text-hint);padding-bottom:8px">
+      Gabriel v1.0 — Todos os dados ficam no seu dispositivo
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Groq API Key -->
+<div class="modal-overlay" id="modal-groq">
+  <div class="modal">
+    <div class="modal-title">Chave API Groq</div>
+    <div class="modal-sub">Acesse <strong>console.groq.com</strong>, crie uma chave gratuita e cole abaixo. Sem isso, o Gabriel não consegue responder.</div>
+    <input class="modal-input" id="groq-key-input" type="password" placeholder="gsk_..." autocomplete="off" spellcheck="false">
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="checkbox" id="show-key" onchange="toggleKeyVisibility()">
+      <label for="show-key" style="font-size:13px;color:var(--text-secondary);cursor:pointer">Mostrar chave</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-groq')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveGroqKey()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cidade -->
+<div class="modal-overlay" id="modal-city">
+  <div class="modal">
+    <div class="modal-title">Cidade do clima</div>
+    <div class="modal-sub">Digite o nome da sua cidade para personalizar a previsão do tempo.</div>
+    <input class="modal-input" id="city-input" type="text" placeholder="Ex: São Paulo" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-city')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveCity()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar nome -->
+<div class="modal-overlay" id="modal-name">
+  <div class="modal">
+    <div class="modal-title">Editar nome</div>
+    <input class="modal-input" id="name-input" type="text" placeholder="Seu nome" autocomplete="name">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-name')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveName()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script src="google.js"></script>
+<script src="notifications.js"></script>
+<script src="weather.js"></script>
+
+<script>
+let deferredInstallPrompt = null;
+
+// ── Init ────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await Auth.guard('settings.html');
+  await loadProfile();
+  loadGoogleStatus();
+  await loadGroqStatus();
+  await loadLocationStatus();
+  loadNotifStatus();
+  checkPWA();
+  await loadMemStats();
+});
+
+// PWA install prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('pwa-sub').textContent = 'Toque para instalar agora';
+});
+
+// ── Perfil ──────────────────────────────────────────────────
+async function loadProfile() {
+  const session = Auth.getSession();
+  if (!session) return;
+  document.getElementById('profile-name').textContent  = session.name  || 'Usuário';
+  document.getElementById('profile-email').textContent = session.email || '';
+}
+
+function openEditName() {
+  const session = Auth.getSession();
+  document.getElementById('name-input').value = session?.name || '';
+  openModal('modal-name');
+}
+
+async function saveName() {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name || name.length < 2) { showToast('Nome muito curto'); return; }
+  await Auth.updateUser({ name });
+  document.getElementById('profile-name').textContent = name;
+  closeModal('modal-name');
+  showToast('Nome atualizado ✓');
+}
+
+// ── Google ──────────────────────────────────────────────────
+function loadGoogleStatus() {
+  const sub = document.getElementById('google-sub');
+  const end = document.getElementById('google-end');
+
+  if (Google.isConnected() && Google.isTokenValid()) {
+    sub.textContent = Google.getConnectedEmail();
+    end.innerHTML = `
+      <span class="badge green">Conectado</span>
+      <button onclick="disconnectGoogle()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:12px;font-family:inherit;padding:4px 6px;border-radius:6px;margin-left:4px">Desconectar</button>`;
+  } else {
+    sub.textContent = 'Gmail e Agenda desconectados';
+    end.innerHTML = `<button onclick="Google.connect()" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:7px 12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Conectar</button>`;
+  }
+}
+
+function disconnectGoogle() {
+  Google.disconnect();
+  loadGoogleStatus();
+  showToast('Google desconectado');
+}
+
+// ── Groq API ────────────────────────────────────────────────
+async function loadGroqStatus() {
+  const key = await GabrielDB.Settings.get('groq_api_key');
+  const sub   = document.getElementById('groq-sub');
+  const badge = document.getElementById('groq-badge');
+  const hadError = localStorage.getItem('gabriel_groq_key_error');
+
+  if (hadError) {
+    sub.textContent = 'Chave inválida ou expirada';
+    badge.outerHTML = `<span id="groq-badge" class="badge red">Erro</span>`;
+  } else if (key) {
+    sub.textContent = 'gsk_••••••••••••••••••••';
+    badge.outerHTML = `<span id="groq-badge" class="badge green">Ativa</span>`;
+  } else {
+    sub.textContent = 'Nenhuma chave configurada';
+    badge.outerHTML = `<span id="groq-badge" class="badge red">Necessária</span>`;
+  }
+}
+
+function openGroqModal() {
+  document.getElementById('groq-key-input').value = '';
+  openModal('modal-groq');
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('groq-key-input');
+  input.type = document.getElementById('show-key').checked ? 'text' : 'password';
+}
+
+async function saveGroqKey() {
+  const key = document.getElementById('groq-key-input').value.trim();
+  if (!key || !key.startsWith('gsk_')) {
+    showToast('Chave inválida — deve começar com gsk_');
+    return;
+  }
+  await GabrielDB.Settings.set('groq_api_key', key);
+  localStorage.removeItem('gabriel_groq_key_error');
+  closeModal('modal-groq');
+  await loadGroqStatus();
+  showToast('Chave salva com sucesso ✓');
+}
+
+// ── Localização ─────────────────────────────────────────────
+async function loadLocationStatus() {
+  const city = await Weather.getDefaultCity();
+  const sub  = document.getElementById('location-sub');
+  const end  = document.getElementById('location-end');
+
+  if (city) {
+    document.getElementById('city-sub').textContent = city;
+  }
+
+  if (!navigator.geolocation) {
+    sub.textContent = 'GPS não suportado neste dispositivo';
+    end.innerHTML = '';
+    return;
+  }
+
+  navigator.permissions?.query({ name: 'geolocation' }).then(perm => {
+    if (perm.state === 'granted') {
+      sub.textContent = 'GPS ativado ✓';
+      end.innerHTML = '<span class="badge green">Ativo</span>';
+    } else if (perm.state === 'denied') {
+      sub.textContent = 'Permissão negada — ative nas configurações do browser';
+      end.innerHTML = '<span class="badge red">Bloqueado</span>';
+    }
+  });
+}
+
+async function requestLocation() {
+  const sub = document.getElementById('location-sub');
+  const end = document.getElementById('location-end');
+  sub.textContent = 'Detectando...';
+  try {
+    const city = await Weather.getLocationCity();
+    if (city) {
+      sub.textContent = `GPS ativado — ${city}`;
+      end.innerHTML = '<span class="badge green">Ativo</span>';
+      document.getElementById('city-sub').textContent = city;
+      showToast(`Localização detectada: ${city} ✓`);
+    } else {
+      sub.textContent = 'Não foi possível detectar — defina a cidade manualmente';
+    }
+  } catch(e) {
+    sub.textContent = 'Permissão negada';
+    end.innerHTML = '<span class="badge red">Bloqueado</span>';
+  }
+}
+
+function openCityModal() {
+  GabrielDB.Settings.get('weather_city').then(city => {
+    document.getElementById('city-input').value = city || '';
+  });
+  openModal('modal-city');
+}
+
+async function saveCity() {
+  const city = document.getElementById('city-input').value.trim();
+  if (!city) { showToast('Informe uma cidade'); return; }
+  await Weather.setDefaultCity(city);
+  document.getElementById('city-sub').textContent = city;
+  closeModal('modal-city');
+  showToast(`Cidade salva: ${city} ✓`);
+}
+
+// ── Notificações ─────────────────────────────────────────────
+function loadNotifStatus() {
+  const sub = document.getElementById('notif-sub');
+  const end = document.getElementById('notif-end');
+
+  if (!('Notification' in window)) {
+    sub.textContent = 'Não suportado neste navegador';
+    end.innerHTML = '';
+    return;
+  }
+
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    sub.textContent = 'Notificações ativadas';
+    end.innerHTML = '<span class="badge green">Ativas</span>';
+  } else if (perm === 'denied') {
+    sub.textContent = 'Bloqueadas — ative nas configurações do sistema';
+    end.innerHTML = '<span class="badge red">Bloqueadas</span>';
+  } else {
+    sub.textContent = 'Toque para ativar notificações';
+    end.innerHTML = '<span class="material-icons-round" style="color:var(--text-hint);font-size:18px">chevron_right</span>';
+  }
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') { showToast('Notificações já estão ativas ✓'); return; }
+  const granted = await Notifications.requestPermission();
+  loadNotifStatus();
+  showToast(granted ? 'Notificações ativadas ✓' : 'Permissão negada');
+}
+
+// ── PWA ──────────────────────────────────────────────────────
+function checkPWA() {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const sub = document.getElementById('pwa-sub');
+  if (isStandalone) {
+    sub.textContent = 'Gabriel já está instalado ✓';
+    document.getElementById('row-pwa').style.pointerEvents = 'none';
+    document.getElementById('row-pwa').querySelector('.row-icon').classList.replace('dark', 'green');
+  } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    sub.textContent = 'No iOS: Compartilhar → Adicionar à Tela de Início';
+  } else {
+    sub.textContent = 'Toque para instalar como app';
+  }
+}
+
+async function installPWA() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if (outcome === 'accepted') {
+    deferredInstallPrompt = null;
+    showToast('Gabriel instalado! 🎉');
+    checkPWA();
+  }
+}
+
+// ── Memórias ─────────────────────────────────────────────────
+async function loadMemStats() {
+  const all = await GabrielDB.Memories.getAll();
+  document.getElementById('mem-sub').textContent = `${all.length} memória(s) salva(s)`;
+}
+
+async function clearMemories() {
+  if (!confirm('Apagar todas as memórias do Gabriel? Esta ação não pode ser desfeita.')) return;
+  const all = await GabrielDB.Memories.getAll();
+  for (const m of all) await GabrielDB.Memories.delete(m.id);
+  await loadMemStats();
+  showToast('Memórias apagadas');
+}
+
+// ── Logout ───────────────────────────────────────────────────
+function confirmLogout() {
+  if (!confirm('Sair da conta?')) return;
+  Auth.logout();
+}
+
+// ── Modal helpers ────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+
+// ── Toast ────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

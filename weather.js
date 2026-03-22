@@ -260,6 +260,44 @@ const Weather = (() => {
     }
   }
 
+  // ── Geolocalização GPS real ──────────────────────────────
+
+  async function getLocationCity() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(''); return; }
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          // Salva coordenadas no DB para uso no wttr.in
+          await GabrielDB.Settings.set('weather_coords', JSON.stringify({ latitude, longitude }));
+          // Reverse geocode via nominatim
+          try {
+            const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const data = await res.json();
+            const city = data.address?.city || data.address?.town || data.address?.village || '';
+            if (city) await setDefaultCity(city);
+            resolve(city);
+          } catch {
+            resolve(`${latitude},${longitude}`);
+          }
+        },
+        () => resolve(''),
+        { timeout: 8000, maximumAge: 300000 }
+      );
+    });
+  }
+
+  // ── Auto-detectar cidade (GPS > IP) ─────────────────────
+
+  async function autoDetectCity() {
+    // Tenta GPS primeiro
+    const gpsCity = await getLocationCity();
+    if (gpsCity) return gpsCity;
+    // Fallback para IP
+    return await detectCity();
+  }
+
   // ── Salvar cidade padrão ─────────────────────────────────
 
   async function setDefaultCity(city) {
@@ -277,6 +315,8 @@ const Weather = (() => {
     getParsed,
     getForDashboard,
     detectCity,
+    getLocationCity,
+    autoDetectCity,
     setDefaultCity,
     getDefaultCity,
     getWeatherEmoji

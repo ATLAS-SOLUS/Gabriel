@@ -673,6 +673,9 @@
         <div class="greeting-name" id="greeting-name">...</div>
       </div>
       <div class="header-actions">
+        <button class="icon-btn" onclick="window.location.href='settings.html'" title="Configurações">
+          <span class="material-icons-round">settings</span>
+        </button>
         <button class="icon-btn" onclick="window.location.href='notes.html'" title="Caderno">
           <span class="material-icons-round">edit_note</span>
         </button>
@@ -918,16 +921,23 @@ function loadGreeting() {
 // ── Clima ─────────────────────────────────────────────────
 async function loadWeather() {
   try {
-    const city   = await Weather.getDefaultCity();
-    const data   = await Weather.getForDashboard(city);
+    let city = await Weather.getDefaultCity();
+
+    // Se não tem cidade salva, tenta detectar automaticamente
+    if (!city) {
+      document.getElementById('w-city').textContent = 'Detectando...';
+      city = await Weather.autoDetectCity();
+    }
+
+    const data = await Weather.getForDashboard(city);
     if (!data) return;
 
-    document.getElementById('w-city').textContent    = data.city;
-    document.getElementById('w-temp').textContent    = `${data.temp}°`;
-    document.getElementById('w-desc').textContent    = data.description;
-    document.getElementById('w-emoji').textContent   = data.icon;
+    document.getElementById('w-city').textContent     = data.city;
+    document.getElementById('w-temp').textContent     = `${data.temp}°`;
+    document.getElementById('w-desc').textContent     = data.description;
+    document.getElementById('w-emoji').textContent    = data.icon;
     document.getElementById('w-humidity').textContent = `${data.humidity}%`;
-    document.getElementById('w-wind').textContent    = `${data.windKmph} km/h`;
+    document.getElementById('w-wind').textContent     = `${data.windKmph} km/h`;
   } catch (e) {
     document.getElementById('w-city').textContent = 'Clima indisponível';
     document.getElementById('w-temp').textContent = '--°';

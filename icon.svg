@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="110" fill="#1A1A1A"/>
+  <!-- Sparkle center large -->
+  <path d="M256 120 L272 240 L392 256 L272 272 L256 392 L240 272 L120 256 L240 240 Z" fill="white" opacity="0.95"/>
+  <!-- Sparkle small top-right -->
+  <path d="M360 96 L366 130 L400 136 L366 142 L360 176 L354 142 L320 136 L354 130 Z" fill="white" opacity="0.6"/>
+  <!-- Sparkle tiny bottom-left -->
+  <path d="M148 336 L152 358 L174 362 L152 366 L148 388 L144 366 L122 362 L144 358 Z" fill="white" opacity="0.4"/>
+</svg>

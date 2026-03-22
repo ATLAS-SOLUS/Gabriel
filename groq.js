@@ -49,7 +49,11 @@ const Groq = (() => {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `Erro Groq: ${response.status}`);
+      const errMsg = err?.error?.message || `Erro Groq: ${response.status}`;
+      if (response.status === 401 || response.status === 403 || errMsg.includes('invalid_api_key') || errMsg.includes('rate_limit')) {
+        localStorage.setItem('gabriel_groq_key_error', '1');
+      }
+      throw new Error(errMsg);
     }
 
     const data = await response.json();
