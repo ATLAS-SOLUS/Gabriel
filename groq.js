@@ -1,3 +1,4 @@
+
 // ============================================================
 // groq.js — Motor da API Groq (IA + Tool Calling)
 // Gabriel PWA

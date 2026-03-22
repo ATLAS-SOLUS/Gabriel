@@ -161,6 +161,30 @@
     @keyframes typing-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
     @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     @keyframes pulse-mic { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+    /* ── Agent Panel ──────────────────────────────────────── */
+    .agent-panel { background: var(--bubble-gabriel); border-radius: var(--radius-bubble); border-bottom-left-radius: 5px; box-shadow: var(--shadow-sm); overflow: hidden; min-width: 240px; max-width: 88%; animation: msgIn 0.28s cubic-bezier(0.16,1,0.3,1) both; }
+    .agent-panel-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 8px; border-bottom: 1px solid var(--border); }
+    .agent-panel-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; flex: 1; }
+    .agent-pulse { width: 7px; height: 7px; background: #4CAF50; border-radius: 50%; animation: agent-pulse 1.2s ease infinite; flex-shrink: 0; }
+    .agent-pulse.done { background: var(--text-hint); animation: none; }
+    .agent-pulse.error { background: #D94040; animation: none; }
+    .agent-steps { padding: 6px 0 4px; }
+    .agent-step { display: flex; align-items: flex-start; gap: 9px; padding: 5px 14px; animation: stepIn 0.2s cubic-bezier(0.16,1,0.3,1) both; }
+    .agent-step-icon { width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .agent-step-icon .material-icons-round { font-size: 12px; }
+    .agent-step-icon.running { background: #EFF6FF; color: #3B82F6; }
+    .agent-step-icon.done    { background: #F0FFF8; color: #2E7D5E; }
+    .agent-step-icon.error   { background: #FFF0F0; color: #D94040; }
+    .agent-step-icon.info    { background: var(--accent-soft); color: var(--text-secondary); }
+    .agent-step-body { flex: 1; min-width: 0; }
+    .agent-step-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+    .agent-step-sub  { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+    .agent-spinner { width: 12px; height: 12px; border: 1.5px solid #BFDBFE; border-top-color: #3B82F6; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; margin-top: 4px; }
+    .agent-summary { padding: 7px 14px 10px; font-size: 11.5px; color: var(--text-hint); border-top: 1px solid var(--border); margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+    @keyframes agent-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes stepIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes spin { to{transform:rotate(360deg)} }
   </style>
 </head>
 <body>
@@ -410,6 +434,77 @@ function toggleMic() {
   }
 }
 
+// ── Agent Panel ao vivo ──────────────────────────────────────
+
+let agentPanelRow = null;
+let agentStartTime = 0;
+
+function createAgentPanel() {
+  const area = document.getElementById('messages-area');
+  const row = document.createElement('div');
+  row.className = 'msg-row gabriel';
+  row.id = 'agent-panel-row';
+  row.innerHTML = `
+    <div class="agent-panel" id="agent-panel">
+      <div class="agent-panel-header">
+        <div class="agent-pulse" id="agent-pulse"></div>
+        <span class="agent-panel-title" id="agent-panel-title">Gabriel pensando...</span>
+      </div>
+      <div class="agent-steps" id="agent-steps"></div>
+    </div>`;
+  area.appendChild(row);
+  scrollToBottom();
+  agentStartTime = Date.now();
+  return row;
+}
+
+function addAgentStep(type, text, status, sub) {
+  const steps = document.getElementById('agent-steps');
+  if (!steps) return null;
+  const iconMap = { running:'more_horiz', done:'check', error:'close', info:'info' };
+  const step = document.createElement('div');
+  step.className = 'agent-step';
+  step.innerHTML = `
+    <div class="agent-step-icon ${status || 'running'}">
+      <span class="material-icons-round">${iconMap[status] || 'more_horiz'}</span>
+    </div>
+    <div class="agent-step-body">
+      <div class="agent-step-text">${text}</div>
+      ${sub ? `<div class="agent-step-sub">${sub}</div>` : ''}
+    </div>
+    ${(!status || status === 'running') ? '<div class="agent-spinner"></div>' : ''}`;
+  steps.appendChild(step);
+  scrollToBottom();
+  return step;
+}
+
+function updateAgentStep(el, status, text, sub) {
+  if (!el) return;
+  const iconMap = { running:'more_horiz', done:'check', error:'close', info:'info' };
+  const icon = el.querySelector('.agent-step-icon');
+  const txt  = el.querySelector('.agent-step-text');
+  const spinner = el.querySelector('.agent-spinner');
+  if (icon) { icon.className = `agent-step-icon ${status}`; icon.querySelector('.material-icons-round').textContent = iconMap[status] || 'check'; }
+  if (txt && text) txt.textContent = text;
+  if (sub) { let s = el.querySelector('.agent-step-sub'); if (!s) { s = document.createElement('div'); s.className = 'agent-step-sub'; el.querySelector('.agent-step-body').appendChild(s); } s.textContent = sub; }
+  if (spinner) spinner.remove();
+  scrollToBottom();
+}
+
+function finishAgentPanel() {
+  const pulse = document.getElementById('agent-pulse');
+  const title = document.getElementById('agent-panel-title');
+  const elapsed = ((Date.now() - agentStartTime) / 1000).toFixed(1);
+  if (pulse) pulse.classList.add('done');
+  if (title) title.textContent = `Concluído em ${elapsed}s`;
+  scrollToBottom();
+}
+
+function removeAgentPanel() {
+  document.getElementById('agent-panel-row')?.remove();
+  agentPanelRow = null;
+}
+
 // ── Enviar mensagem ──────────────────────────────────────────
 async function sendMessage(text) {
   const input   = document.getElementById('msg-input');
@@ -417,11 +512,9 @@ async function sendMessage(text) {
   if (!content || isThinking) return;
 
   if (isRecording && recognition) recognition.stop();
-
   input.value = '';
   input.style.height = 'auto';
   updateSendBtn();
-
   document.getElementById('welcome-state')?.remove();
 
   if (!currentConvId) {
@@ -435,21 +528,73 @@ async function sendMessage(text) {
   await GabrielDB.Conversations.addMessage(currentConvId, { role: 'user', content });
 
   setThinking(true);
-  showTyping();
+  createAgentPanel();
 
   try {
-    const { text: reply, actions } = await Groq.chatWithAgents(content, currentMessages);
-    hideTyping();
+    // Fase 1 — Análise
+    const routeStep = addAgentStep('route', 'Analisando mensagem...', 'running');
+    await new Promise(r => setTimeout(r, 250));
 
+    const needsSearch   = /pesquis|busca|notícia|atual|hoje|preço|clima|quem é|o que é|quando foi|como funciona|lançamento|novidade/i.test(content);
+    const needsCode     = /código|programa|script|função|desenvolv|implementa|crie um app|cria um/i.test(content);
+    const needsDrive    = /drive|arquivo|pasta|documento|salv.*drive|upload/i.test(content);
+    const needsAnalysis = /analis|compara|relatório|gráfico|dado/i.test(content);
+
+    const agents = [];
+    if (needsSearch)   agents.push('🔍 Pesquisa');
+    if (needsCode)     agents.push('💻 Código');
+    if (needsDrive)    agents.push('📁 Drive');
+    if (needsAnalysis) agents.push('📊 Análise');
+
+    updateAgentStep(routeStep, 'done',
+      agents.length ? `${agents.length} agente(s) ativado(s)` : 'Resposta direta',
+      agents.join(' · ')
+    );
+
+    // Fase 2 — Agentes
+    let agentContext = '';
+
+    if (needsSearch) {
+      const s = addAgentStep('search', 'Buscando na internet...', 'running', content.slice(0, 55) + '...');
+      try {
+        const r = await Groq.agentSearch(content);
+        agentContext += '\n\n[PESQUISA]\n' + r.result;
+        updateAgentStep(s, 'done', 'Pesquisa concluída', 'Resultados obtidos');
+      } catch(e) { updateAgentStep(s, 'error', 'Erro na pesquisa'); }
+    }
+
+    if (needsDrive && window.Google?.isConnected()) {
+      const s = addAgentStep('drive', 'Verificando Google Drive...', 'running');
+      try {
+        const r = await Groq.agentDrive(content);
+        agentContext += '\n\n[DRIVE]\n' + r.result;
+        updateAgentStep(s, 'done', 'Drive verificado');
+      } catch(e) { updateAgentStep(s, 'error', 'Erro no Drive'); }
+    }
+
+    if (needsCode)     { const s = addAgentStep('code',    'Agente de código ativado...', 'running');   await new Promise(r=>setTimeout(r,100)); updateAgentStep(s,'info','Agente de código pronto'); }
+    if (needsAnalysis) { const s = addAgentStep('analyze', 'Analisando dados...',          'running');   await new Promise(r=>setTimeout(r,100)); updateAgentStep(s,'info','Análise pronta'); }
+
+    // Fase 3 — Resposta
+    const replyStep = addAgentStep('reply', 'Gerando resposta...', 'running');
+    const enriched  = agentContext ? content + '\n\n[CONTEXTO]\n' + agentContext : content;
+    const { text: reply, actions } = await Groq.chat(enriched, currentMessages);
+    updateAgentStep(replyStep, 'done', 'Resposta gerada');
+
+    // Fase 4 — Ações
     let actionResults = [];
     if (actions && actions.length > 0) {
+      const aStep = addAgentStep('actions', `Executando ${actions.length} ação(ões)...`, 'running', actions.map(a=>a.action).join(', '));
       actionResults = await Actions.execute(actions);
-      // ✅ Sinaliza para o dashboard recarregar ao voltar
-      localStorage.setItem('gabriel_data_updated', JSON.stringify({
-        types: actions.map(a => a.action),
-        ts: Date.now()
-      }));
+      const ok = actionResults.filter(r=>r.success).length;
+      const err = actionResults.filter(r=>!r.success).length;
+      updateAgentStep(aStep, err ? 'error' : 'done', `${ok} executada(s)${err ? ', ' + err + ' com erro' : ''}`, actions.map(a=>a.action).join(' · '));
+      localStorage.setItem('gabriel_data_updated', JSON.stringify({ types: actions.map(a=>a.action), ts: Date.now() }));
     }
+
+    finishAgentPanel();
+    await new Promise(r => setTimeout(r, 500));
+    removeAgentPanel();
 
     addBubble('gabriel', reply, actionResults);
     currentMessages.push({ role: 'assistant', content: reply });
@@ -461,27 +606,24 @@ async function sendMessage(text) {
       loadDrawer();
     }
 
-    Memory.scheduleExtraction(content, reply, currentConvId).then(async (saved) => {
+    Memory.scheduleExtraction(content, reply, currentConvId).then(async saved => {
       if (saved && saved.length > 0) markMemoryBadge(saved);
     });
 
   } catch (err) {
-    hideTyping();
+    removeAgentPanel();
     const isKeyError = err.message?.includes('Chave Groq') || err.message?.includes('não configurada') || localStorage.getItem('gabriel_groq_key_error');
     if (isKeyError) {
       const div = document.createElement('div');
       div.className = 'msg-row gabriel';
-      div.innerHTML = `
-        <div class="bubble" style="display:flex;flex-direction:column;gap:10px">
-          <span>🔑 Chave API não configurada ou expirada. Configure nas Configurações.</span>
-          <button onclick="window.location.href='settings.html'" style="padding:10px 14px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;justify-content:center">
-            <span class="material-icons-round" style="font-size:16px">settings</span>
-            Ir para Configurações
-          </button>
-        </div>
+      div.innerHTML = `<div class="bubble" style="display:flex;flex-direction:column;gap:10px">
+        <span>🔑 Chave API não configurada ou expirada.</span>
+        <button onclick="window.location.href='settings.html'" style="padding:10px 14px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;justify-content:center">
+          <span class="material-icons-round" style="font-size:16px">settings</span>Ir para Configurações
+        </button></div>
         <div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
       document.getElementById('messages-area').appendChild(div);
-      document.getElementById('messages-area').scrollTop = 999999;
+      scrollToBottom();
     } else {
       addBubble('gabriel', `Ops, algo deu errado: ${err.message}`);
     }
