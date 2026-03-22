@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -108,7 +109,7 @@
     .suggestion-chip .material-icons-round { font-size: 18px; color: var(--text-hint); flex-shrink: 0; }
 
     /* Input bar */
-    .input-bar { background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); padding: 10px 12px calc(10px + env(safe-area-inset-bottom,0px)); display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0; margin-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom,0px)); }
+    .input-bar { background: var(--nav-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); padding: 10px 12px calc(10px + env(safe-area-inset-bottom,0px)); display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0; }
     .input-wrap { flex: 1; background: var(--bg); border-radius: 22px; border: 1.5px solid var(--border); display: flex; align-items: flex-end; padding: 6px 8px 6px 14px; transition: border-color var(--transition); min-height: 46px; gap: 2px; }
     .input-wrap:focus-within { border-color: var(--accent); }
     .msg-input { flex: 1; border: none; background: transparent; font-family: var(--font-sans); font-size: 15px; color: var(--text-primary); resize: none; outline: none; line-height: 1.45; max-height: 120px; min-height: 28px; overflow-y: auto; padding: 5px 0; -webkit-appearance: none; align-self: center; }
@@ -162,44 +163,54 @@
     @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     @keyframes pulse-mic { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-    /* ── Agent Panel ──────────────────────────────────────── */
-    .agent-panel { background: var(--bubble-gabriel); border-radius: var(--radius-bubble); border-bottom-left-radius: 5px; box-shadow: var(--shadow-sm); overflow: hidden; min-width: 240px; max-width: 88%; animation: msgIn 0.28s cubic-bezier(0.16,1,0.3,1) both; }
-    .agent-panel-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 8px; border-bottom: 1px solid var(--border); }
-    .agent-panel-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; flex: 1; }
-    .agent-pulse { width: 7px; height: 7px; background: #4CAF50; border-radius: 50%; animation: agent-pulse 1.2s ease infinite; flex-shrink: 0; }
-    .agent-pulse.done { background: var(--text-hint); animation: none; }
-    .agent-pulse.error { background: #D94040; animation: none; }
-    .agent-steps { padding: 6px 0 4px; }
-    .agent-step { display: flex; align-items: flex-start; gap: 9px; padding: 5px 14px; animation: stepIn 0.2s cubic-bezier(0.16,1,0.3,1) both; }
-    .agent-step-icon { width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-    .agent-step-icon .material-icons-round { font-size: 12px; }
-    .agent-step-icon.running { background: #EFF6FF; color: #3B82F6; }
-    .agent-step-icon.done    { background: #F0FFF8; color: #2E7D5E; }
-    .agent-step-icon.error   { background: #FFF0F0; color: #D94040; }
-    .agent-step-icon.info    { background: var(--accent-soft); color: var(--text-secondary); }
-    .agent-step-body { flex: 1; min-width: 0; }
-    .agent-step-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
-    .agent-step-sub  { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
-    .agent-spinner { width: 12px; height: 12px; border: 1.5px solid #BFDBFE; border-top-color: #3B82F6; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; margin-top: 4px; }
-    .agent-summary { padding: 7px 14px 10px; font-size: 11.5px; color: var(--text-hint); border-top: 1px solid var(--border); margin-top: 4px; display: flex; align-items: center; gap: 5px; }
-    @keyframes agent-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    @keyframes stepIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
-    @keyframes spin { to{transform:rotate(360deg)} }
-
-    /* ── TTS / Voz ───────────────────────────────────────── */
-    .tts-btn { background: none; border: none; cursor: pointer; color: var(--text-hint); padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-family: inherit; transition: color 0.15s ease, background 0.15s ease; -webkit-tap-highlight-color: transparent; margin-top: 6px; }
-    .tts-btn:hover, .tts-btn.speaking { color: var(--accent); background: var(--accent-soft); }
-    .tts-btn .material-icons-round { font-size: 15px; }
-    .tts-bar { position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 60px); left: 50%; transform: translateX(-50%); background: var(--accent); color: white; border-radius: 99px; padding: 10px 18px; display: none; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 50; white-space: nowrap; }
-    .tts-bar.show { display: flex; }
-    .tts-bar-wave { display: flex; gap: 3px; align-items: center; }
-    .tts-bar-wave span { width: 3px; border-radius: 99px; background: white; animation: wave 1s ease infinite; }
-    .tts-bar-wave span:nth-child(1) { height: 8px; animation-delay: 0s; }
-    .tts-bar-wave span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
-    .tts-bar-wave span:nth-child(3) { height: 10px; animation-delay: 0.3s; }
-    .tts-bar-wave span:nth-child(4) { height: 16px; animation-delay: 0.1s; }
-    .tts-bar-wave span:nth-child(5) { height: 8px; animation-delay: 0.25s; }
-    @keyframes wave { 0%,100%{transform:scaleY(0.5)} 50%{transform:scaleY(1)} }
+    /* ── Code blocks ─────────────────────────────────────── */
+    .code-block { margin: 10px 0 4px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); }
+    .code-block-header { display:flex; align-items:center; justify-content:space-between; padding:7px 12px; background:#1e1e2e; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .code-lang { font-size:11px; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.5px; font-family:'Courier New',monospace; }
+    .code-actions { display:flex; gap:6px; }
+    .code-action-btn { background:rgba(255,255,255,0.08); border:none; color:rgba(255,255,255,0.6); border-radius:6px; padding:4px 8px; font-size:11px; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:4px; }
+    .code-action-btn .material-icons-round { font-size:13px; }
+    .code-block pre { margin:0!important; border-radius:0!important; padding:14px!important; background:#1e1e2e!important; overflow-x:auto; font-size:13px!important; line-height:1.55!important; }
+    .code-block code { background:none!important; padding:0!important; font-size:13px!important; }
+    /* ── TTS ───────────────────────────────────────────────── */
+    .tts-btn { background:none; border:none; cursor:pointer; color:var(--text-hint); padding:4px 6px; border-radius:8px; display:inline-flex; align-items:center; gap:4px; font-size:11px; font-family:inherit; -webkit-tap-highlight-color:transparent; margin-top:4px; }
+    .tts-btn.speaking { color:var(--accent); background:var(--accent-soft); }
+    .tts-btn .material-icons-round { font-size:15px; }
+    .tts-bar { position:fixed; bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 64px); left:50%; transform:translateX(-50%); background:var(--accent); color:white; border-radius:99px; padding:10px 18px; display:none; align-items:center; gap:10px; font-size:13px; font-weight:500; box-shadow:0 4px 20px rgba(0,0,0,0.2); z-index:50; white-space:nowrap; }
+    .tts-bar.show { display:flex; }
+    .tts-wave { display:flex; gap:3px; align-items:center; }
+    .tts-wave span { width:3px; border-radius:99px; background:white; animation:twave 1s ease infinite; }
+    .tts-wave span:nth-child(1){height:8px;animation-delay:0s}
+    .tts-wave span:nth-child(2){height:14px;animation-delay:.15s}
+    .tts-wave span:nth-child(3){height:10px;animation-delay:.3s}
+    .tts-wave span:nth-child(4){height:16px;animation-delay:.1s}
+    .tts-wave span:nth-child(5){height:8px;animation-delay:.25s}
+    @keyframes twave{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+    /* ── Agent Panel ───────────────────────────────────────── */
+    .agent-panel { background:var(--bubble-gabriel); border-radius:var(--radius-bubble); border-bottom-left-radius:5px; box-shadow:var(--shadow-sm); overflow:hidden; min-width:240px; max-width:88%; animation:msgIn .28s cubic-bezier(.16,1,.3,1) both; }
+    .agent-panel-header { display:flex; align-items:center; gap:8px; padding:10px 14px 8px; border-bottom:1px solid var(--border); }
+    .agent-panel-title { font-size:11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.6px; flex:1; }
+    .agent-pulse { width:7px; height:7px; background:#4CAF50; border-radius:50%; animation:apulse 1.2s ease infinite; flex-shrink:0; }
+    .agent-pulse.done { background:var(--text-hint); animation:none; }
+    .agent-steps { padding:6px 0 4px; }
+    .agent-step { display:flex; align-items:flex-start; gap:9px; padding:5px 14px; animation:stepin .2s cubic-bezier(.16,1,.3,1) both; }
+    .agent-step-icon { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+    .agent-step-icon .material-icons-round { font-size:12px; }
+    .agent-step-icon.running { background:#EFF6FF; color:#3B82F6; }
+    .agent-step-icon.done    { background:#F0FFF8; color:#2E7D5E; }
+    .agent-step-icon.error   { background:#FFF0F0; color:#D94040; }
+    .agent-step-icon.info    { background:var(--accent-soft); color:var(--text-secondary); }
+    .agent-step-body { flex:1; min-width:0; }
+    .agent-step-text { font-size:13px; color:var(--text-primary); line-height:1.4; }
+    .agent-step-sub  { font-size:11px; color:var(--text-hint); margin-top:1px; }
+    .agent-spinner { width:12px; height:12px; border:1.5px solid #BFDBFE; border-top-color:#3B82F6; border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; margin-top:4px; }
+    .agent-summary { padding:7px 14px 10px; font-size:11.5px; color:var(--text-hint); border-top:1px solid var(--border); margin-top:4px; display:flex; align-items:center; gap:5px; }
+    @keyframes apulse{0%,100%{opacity:1}50%{opacity:.4}}
+    @keyframes stepin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* ── Upload preview ────────────────────────────────────── */
+    .file-preview-bar { display:none; background:var(--surface); border-top:1px solid var(--border); padding:8px 14px; align-items:center; gap:8px; }
+    .file-preview-bar.show { display:flex; }
   </style>
 </head>
 <body>
@@ -235,9 +246,6 @@
     <button class="header-menu-btn" onclick="window.location.href='dashboard.html'">
       <span class="material-icons-round">home</span>
     </button>
-    <button class="header-menu-btn" onclick="window.location.href='settings.html'">
-      <span class="material-icons-round">settings</span>
-    </button>
   </div>
 
   <div class="messages-area" id="messages-area">
@@ -268,20 +276,17 @@
     <span>Ouvindo... Fale agora</span>
   </div>
 
-  <!-- Input -->
-  <input type="file" id="file-upload-input" style="display:none" accept="image/*,application/pdf,.txt,.doc,.docx,.xls,.xlsx" onchange="handleFileUpload(this)">
-  
-  <!-- Preview arquivo selecionado -->
-  <div id="file-preview-bar" style="display:none;background:var(--surface);border-top:1px solid var(--border);padding:8px 14px;display:none;align-items:center;gap:8px">
-    <span class="material-icons-round" style="font-size:18px;color:var(--text-secondary)" id="file-preview-icon">attach_file</span>
-    <span style="font-size:13px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="file-preview-name"></span>
-    <button onclick="cancelFileUpload()" style="background:none;border:none;cursor:pointer;color:var(--text-hint);padding:2px">
-      <span class="material-icons-round" style="font-size:18px">close</span>
-    </button>
+  <!-- File input hidden -->
+  <input type="file" id="file-upload" style="display:none" accept="image/*,application/pdf,.txt,.doc,.docx" onchange="handleFileUpload(this)">
+  <!-- File preview -->
+  <div class="file-preview-bar" id="file-preview-bar">
+    <span class="material-icons-round" id="file-preview-icon" style="color:var(--text-secondary);font-size:20px">attach_file</span>
+    <span id="file-preview-name" style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button onclick="cancelFile()" style="background:none;border:none;cursor:pointer;color:var(--text-hint)"><span class="material-icons-round" style="font-size:18px">close</span></button>
   </div>
-
+  <!-- Input -->
   <div class="input-bar">
-    <button class="mic-btn" onclick="document.getElementById('file-upload-input').click()" title="Anexar arquivo" id="attach-btn">
+    <button class="mic-btn" onclick="document.getElementById('file-upload').click()" title="Anexar">
       <span class="material-icons-round">attach_file</span>
     </button>
     <div class="input-wrap" id="input-wrap">
@@ -303,6 +308,12 @@
     </button>
   </div>
 
+  <!-- TTS bar -->
+  <div class="tts-bar" id="tts-bar">
+    <div class="tts-wave"><span></span><span></span><span></span><span></span><span></span></div>
+    <span>Gabriel falando...</span>
+    <button onclick="stopTTS()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:99px;padding:4px 10px;font-family:inherit;font-size:12px;cursor:pointer">Parar</button>
+  </div>
   <nav class="bottom-nav" id="bottom-nav">
     <div class="nav-item" onclick="window.location.href='dashboard.html'">
       <div class="nav-icon-wrap"><span class="material-icons-round">home</span></div>
@@ -326,16 +337,6 @@
     </div>
   </nav>
 </div>
-
-
-  <!-- TTS Bar -->
-  <div class="tts-bar" id="tts-bar">
-    <div class="tts-bar-wave">
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
-    <span id="tts-bar-text">Gabriel falando...</span>
-    <button onclick="stopTTS()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:99px;padding:4px 10px;font-family:inherit;font-size:12px;cursor:pointer">Parar</button>
-  </div>
 
 <div class="tooltip" id="tooltip"></div>
 
@@ -474,77 +475,6 @@ function toggleMic() {
   }
 }
 
-// ── Agent Panel ao vivo ──────────────────────────────────────
-
-let agentPanelRow = null;
-let agentStartTime = 0;
-
-function createAgentPanel() {
-  const area = document.getElementById('messages-area');
-  const row = document.createElement('div');
-  row.className = 'msg-row gabriel';
-  row.id = 'agent-panel-row';
-  row.innerHTML = `
-    <div class="agent-panel" id="agent-panel">
-      <div class="agent-panel-header">
-        <div class="agent-pulse" id="agent-pulse"></div>
-        <span class="agent-panel-title" id="agent-panel-title">Gabriel pensando...</span>
-      </div>
-      <div class="agent-steps" id="agent-steps"></div>
-    </div>`;
-  area.appendChild(row);
-  scrollToBottom();
-  agentStartTime = Date.now();
-  return row;
-}
-
-function addAgentStep(type, text, status, sub) {
-  const steps = document.getElementById('agent-steps');
-  if (!steps) return null;
-  const iconMap = { running:'more_horiz', done:'check', error:'close', info:'info' };
-  const step = document.createElement('div');
-  step.className = 'agent-step';
-  step.innerHTML = `
-    <div class="agent-step-icon ${status || 'running'}">
-      <span class="material-icons-round">${iconMap[status] || 'more_horiz'}</span>
-    </div>
-    <div class="agent-step-body">
-      <div class="agent-step-text">${text}</div>
-      ${sub ? `<div class="agent-step-sub">${sub}</div>` : ''}
-    </div>
-    ${(!status || status === 'running') ? '<div class="agent-spinner"></div>' : ''}`;
-  steps.appendChild(step);
-  scrollToBottom();
-  return step;
-}
-
-function updateAgentStep(el, status, text, sub) {
-  if (!el) return;
-  const iconMap = { running:'more_horiz', done:'check', error:'close', info:'info' };
-  const icon = el.querySelector('.agent-step-icon');
-  const txt  = el.querySelector('.agent-step-text');
-  const spinner = el.querySelector('.agent-spinner');
-  if (icon) { icon.className = `agent-step-icon ${status}`; icon.querySelector('.material-icons-round').textContent = iconMap[status] || 'check'; }
-  if (txt && text) txt.textContent = text;
-  if (sub) { let s = el.querySelector('.agent-step-sub'); if (!s) { s = document.createElement('div'); s.className = 'agent-step-sub'; el.querySelector('.agent-step-body').appendChild(s); } s.textContent = sub; }
-  if (spinner) spinner.remove();
-  scrollToBottom();
-}
-
-function finishAgentPanel() {
-  const pulse = document.getElementById('agent-pulse');
-  const title = document.getElementById('agent-panel-title');
-  const elapsed = ((Date.now() - agentStartTime) / 1000).toFixed(1);
-  if (pulse) pulse.classList.add('done');
-  if (title) title.textContent = `Concluído em ${elapsed}s`;
-  scrollToBottom();
-}
-
-function removeAgentPanel() {
-  document.getElementById('agent-panel-row')?.remove();
-  agentPanelRow = null;
-}
-
 // ── Enviar mensagem ──────────────────────────────────────────
 async function sendMessage(text) {
   const input   = document.getElementById('msg-input');
@@ -552,9 +482,11 @@ async function sendMessage(text) {
   if (!content || isThinking) return;
 
   if (isRecording && recognition) recognition.stop();
+
   input.value = '';
   input.style.height = 'auto';
   updateSendBtn();
+
   document.getElementById('welcome-state')?.remove();
 
   if (!currentConvId) {
@@ -563,113 +495,26 @@ async function sendMessage(text) {
     loadDrawer();
   }
 
-  // Handle file attachment
-  let fileContext = '';
-  if (pendingFile) {
-    const fname = pendingFile.name;
-    const ftype = pendingFile.type;
-    addBubble('user', content + `\n📎 ${fname}`);
-    fileContext = `\n\n[ARQUIVO ANEXADO: ${fname} (${ftype})]\nO usuário enviou um arquivo. Analise e responda sobre ele.`;
-    
-    // Upload para Drive se Google conectado
-    if (window.Google?.isConnected()) {
-      try {
-        const folderId = await Google.Drive.getOrCreateGabrielFolder();
-        await Google.Drive.upload(pendingFile, folderId);
-        fileContext += `\nArquivo "${fname}" salvo no Google Drive com sucesso.`;
-      } catch(e) { console.warn('[Upload] Drive:', e); }
-    }
-    cancelFileUpload();
-  } else {
-    addBubble('user', content);
-  }
-
-  const enrichedUserContent = content + fileContext;
-  currentMessages.push({ role: 'user', content: enrichedUserContent });
-  await GabrielDB.Conversations.addMessage(currentConvId, { role: 'user', content: enrichedUserContent });
+  addBubble('user', content);
+  currentMessages.push({ role: 'user', content });
+  await GabrielDB.Conversations.addMessage(currentConvId, { role: 'user', content });
 
   setThinking(true);
-  createAgentPanel();
+  showTyping();
 
   try {
-    // Fase 1 — Análise
-    const routeStep = addAgentStep('route', 'Analisando mensagem...', 'running');
-    await new Promise(r => setTimeout(r, 250));
+    const { text: reply, actions } = await Groq.chat(content, currentMessages);
+    hideTyping();
 
-    const needsSearch   = /pesquis|busca|notícia|atual|hoje|preço|clima|quem é|o que é|quando foi|como funciona|lançamento|novidade|pesquise|me fale sobre|me diga|informe/i.test(content);
-    const needsCode     = /código|programa|script|função|desenvolv|implementa|crie um app|crie um sistema/i.test(content);
-    const needsDrive    = /drive|meu arquivo|minha foto|pasta|documento|salv.*drive|upload|baixar|abrir arquivo|ver arquivo|mostrar arquivo/i.test(content);
-    const needsAnalysis = /analis|compara|relatório|gráfico|dado/i.test(content);
-
-    const agents = [];
-    if (needsSearch)   agents.push('🔍 Pesquisa');
-    if (needsCode)     agents.push('💻 Código');
-    if (needsDrive)    agents.push('📁 Drive');
-    if (needsAnalysis) agents.push('📊 Análise');
-
-    updateAgentStep(routeStep, 'done',
-      agents.length ? `${agents.length} agente(s) ativado(s)` : 'Resposta direta',
-      agents.join(' · ')
-    );
-
-    // Fase 2 — Agentes
-    let agentContext = '';
-
-    if (needsSearch) {
-      const s = addAgentStep('search', 'Buscando na internet...', 'running', content.slice(0, 55) + '...');
-      try {
-        const r = await Groq.agentSearch(content);
-        agentContext += '\n\n[PESQUISA]\n' + r.result;
-        updateAgentStep(s, 'done', 'Pesquisa concluída', 'Resultados obtidos');
-      } catch(e) { updateAgentStep(s, 'error', 'Erro na pesquisa'); }
-    }
-
-    if (needsDrive && window.Google?.isConnected()) {
-      const s = addAgentStep('drive', 'Acessando Google Drive...', 'running');
-      try {
-        // Busca arquivos relevantes
-        const query = content.match(/["']([^"']+)["']|(?:arquivo|foto|documento|pasta)\s+(\w+)/i)?.[1] || '';
-        let driveFiles = [];
-        if (query) {
-          driveFiles = await Google.Drive.search(query);
-        } else {
-          driveFiles = await Google.Drive.list('', 8);
-        }
-        agentContext += '\n\n[DRIVE]\nArquivos encontrados:\n' + 
-          driveFiles.map(f => `- ${f.name} (${f.mimeType?.split('/').pop() || 'arquivo'})`).join('\n');
-        
-        // Exibe arquivos visualmente no chat
-        if (driveFiles.length > 0 && (content.includes('mostr') || content.includes('exib') || content.includes('ver') || content.includes('abr') || content.includes('baixar'))) {
-          setTimeout(() => driveFiles.slice(0,3).forEach(f => showDriveFile(f)), 200);
-        }
-        
-        updateAgentStep(s, 'done', `${driveFiles.length} arquivo(s) encontrado(s)`);
-      } catch(e) { updateAgentStep(s, 'error', 'Erro no Drive: ' + (e.message||'').slice(0,30)); }
-    }
-
-    if (needsCode)     { const s = addAgentStep('code',    'Agente de código ativado...', 'running');   await new Promise(r=>setTimeout(r,100)); updateAgentStep(s,'info','Agente de código pronto'); }
-    if (needsAnalysis) { const s = addAgentStep('analyze', 'Analisando dados...',          'running');   await new Promise(r=>setTimeout(r,100)); updateAgentStep(s,'info','Análise pronta'); }
-
-    // Fase 3 — Resposta
-    const replyStep = addAgentStep('reply', 'Gerando resposta...', 'running');
-    const enriched  = agentContext ? content + '\n\n[CONTEXTO]\n' + agentContext : content;
-    const { text: reply, actions } = await Groq.chat(enriched, currentMessages);
-    updateAgentStep(replyStep, 'done', 'Resposta gerada');
-
-    // Fase 4 — Ações
     let actionResults = [];
     if (actions && actions.length > 0) {
-      const aStep = addAgentStep('actions', `Executando ${actions.length} ação(ões)...`, 'running', actions.map(a=>a.action).join(', '));
       actionResults = await Actions.execute(actions);
-      const ok = actionResults.filter(r=>r.success).length;
-      const err = actionResults.filter(r=>!r.success).length;
-      updateAgentStep(aStep, err ? 'error' : 'done', `${ok} executada(s)${err ? ', ' + err + ' com erro' : ''}`, actions.map(a=>a.action).join(' · '));
-      localStorage.setItem('gabriel_data_updated', JSON.stringify({ types: actions.map(a=>a.action), ts: Date.now() }));
+      // ✅ Sinaliza para o dashboard recarregar ao voltar
+      localStorage.setItem('gabriel_data_updated', JSON.stringify({
+        types: actions.map(a => a.action),
+        ts: Date.now()
+      }));
     }
-
-    finishAgentPanel();
-    await new Promise(r => setTimeout(r, 500));
-    removeAgentPanel();
 
     addBubble('gabriel', reply, actionResults);
     currentMessages.push({ role: 'assistant', content: reply });
@@ -681,27 +526,16 @@ async function sendMessage(text) {
       loadDrawer();
     }
 
-    Memory.scheduleExtraction(content, reply, currentConvId).then(async saved => {
+    Memory.scheduleExtraction(content, reply, currentConvId).then(async (saved) => {
       if (saved && saved.length > 0) markMemoryBadge(saved);
     });
 
   } catch (err) {
-    removeAgentPanel();
-    const isKeyError = err.message?.includes('Chave Groq') || err.message?.includes('não configurada') || localStorage.getItem('gabriel_groq_key_error');
-    if (isKeyError) {
-      const div = document.createElement('div');
-      div.className = 'msg-row gabriel';
-      div.innerHTML = `<div class="bubble" style="display:flex;flex-direction:column;gap:10px">
-        <span>🔑 Chave API não configurada ou expirada.</span>
-        <button onclick="window.location.href='settings.html'" style="padding:10px 14px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;justify-content:center">
-          <span class="material-icons-round" style="font-size:16px">settings</span>Ir para Configurações
-        </button></div>
-        <div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
-      document.getElementById('messages-area').appendChild(div);
-      scrollToBottom();
-    } else {
-      addBubble('gabriel', `Ops, algo deu errado: ${err.message}`);
-    }
+    hideTyping();
+    const msg = err.message?.includes('Chave Groq')
+      ? '🔑 Chave API não configurada. Vá em Perfil → Configurações para adicionar sua chave Groq.'
+      : `Ops, algo deu errado: ${err.message}`;
+    addBubble('gabriel', msg);
   }
 
   setThinking(false);
@@ -737,10 +571,9 @@ function addBubble(role, content, actionResults = []) {
     </div>`;
   }
 
-  const ttsBtn = role === 'gabriel' ? `
-    <button class="tts-btn" onclick="speakText(this.closest('.msg-row').querySelector('.bubble-text').innerText, this)">
-      <span class="material-icons-round">volume_up</span>Ouvir
-    </button>` : '';
+  const ttsBtn = role === 'gabriel'
+    ? `<button class="tts-btn" onclick="speakText(this.closest('.bubble').querySelector('.bubble-text').innerText,this)"><span class="material-icons-round">volume_up</span>Ouvir</button>`
+    : '';
 
   row.innerHTML = `
     <div class="bubble">
@@ -813,16 +646,81 @@ function setThinking(val) {
 
 // ── Markdown ─────────────────────────────────────────────────
 function renderMarkdown(text) {
-  return text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  if (!text) return '';
+  let blocks = [];
+  let s = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const id = blocks.length;
+    blocks.push({ lang: lang || detectCodeLang(code), code: code.trim() });
+    return '__CB_' + id + '__';
+  });
+  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,'<em>$1</em>')
     .replace(/`(.+?)`/g,'<code>$1</code>')
-    .replace(/^#{1,3}\s(.+)$/gm,'<strong>$1</strong>')
-    .replace(/^[*-] (.+)$/gm,'<li>$1</li>')
-    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
-    .replace(/(<li>[\s\S]*?<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
-    .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+    .replace(/^#{3}\s(.+)$/gm,'<b style="display:block;margin:8px 0 2px;font-size:13px">$1</b>')
+    .replace(/^#{2}\s(.+)$/gm,'<b style="display:block;margin:10px 0 4px;font-size:14px">$1</b>')
+    .replace(/^#{1}\s(.+)$/gm,'<b style="display:block;margin:12px 0 5px;font-size:15px">$1</b>')
+    .replace(/^[*-] (.+)$/gm,'<li style="margin:2px 0">$1</li>')
+    .replace(/^\d+\. (.+)$/gm,'<li style="margin:2px 0">$1</li>')
+    .replace(/(<li[\s\S]*?<\/li>\n?)+/g, m => '<ul style="margin:6px 0;padding-left:16px">'+m+'</ul>')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+  s = s.replace(/__CB_(\d+)__/g, (_, id) => {
+    const { lang, code } = blocks[parseInt(id)];
+    const esc = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const bid = 'cb' + Date.now() + id;
+    setTimeout(() => { const el = document.getElementById(bid); if (el && window.Prism) Prism.highlightAllUnder(el); }, 80);
+    return '<div class="code-block" id="'+bid+'">' +
+      '<div class="code-block-header">' +
+        '<span class="code-lang">'+(lang||'código')+'</span>' +
+        '<div class="code-actions">' +
+          '<button class="code-action-btn" onclick="copyCode(\''+bid+'\',this)"><span class="material-icons-round">content_copy</span>Copiar</button>' +
+          '<button class="code-action-btn" onclick="saveToDrive(\''+bid+'\',\''+lang+'\')"><span class="material-icons-round">cloud_upload</span>Drive</button>' +
+        '</div>' +
+      '</div>' +
+      '<pre><code class="language-'+lang+'">'+esc+'</code></pre></div>';
+  });
+  return s;
+}
+
+function detectCodeLang(code) {
+  if (/^(import |from |def |class |print\()/.test(code)) return 'python';
+  if (/^<!DOCTYPE|^<html/.test(code)) return 'html';
+  if (/^[\{\[]/.test(code) && /":\s*/.test(code)) return 'json';
+  if (/^(SELECT|INSERT|UPDATE|DELETE)/i.test(code)) return 'sql';
+  if (/(function |const |let |var |=>)/.test(code)) return 'javascript';
+  if (/(\.[\w-]+\s*\{|@media|:hover)/.test(code)) return 'css';
+  if (/^(npm|pip|apt|cd |ls |echo )/.test(code)) return 'bash';
+  return 'javascript';
+}
+
+function copyCode(bid, btn) {
+  const el = document.getElementById(bid);
+  if (!el) return;
+  const code = el.querySelector('code').innerText;
+  (navigator.clipboard?.writeText(code) || Promise.reject()).then(() => {
+    btn.innerHTML = '<span class="material-icons-round" style="color:#4ade80">check</span>Copiado!';
+    setTimeout(() => { btn.innerHTML = '<span class="material-icons-round">content_copy</span>Copiar'; }, 2000);
+  }).catch(() => {
+    const t = document.createElement('textarea');
+    t.value = code; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
+    btn.innerHTML = '<span class="material-icons-round" style="color:#4ade80">check</span>Copiado!';
+    setTimeout(() => { btn.innerHTML = '<span class="material-icons-round">content_copy</span>Copiar'; }, 2000);
+  });
+}
+
+async function saveToDrive(bid, lang) {
+  if (!window.Google?.isConnected()) { addBubble('gabriel','⚠️ Conecte o Google Drive primeiro.'); return; }
+  const el = document.getElementById(bid);
+  if (!el) return;
+  const code = el.querySelector('code').innerText;
+  const ext = {javascript:'js',python:'py',html:'html',css:'css',json:'json',bash:'sh'}[lang]||'txt';
+  const name = 'gabriel_' + Date.now() + '.' + ext;
+  try {
+    const fid = await Google.Drive.getOrCreateGabrielFolder();
+    const blob = new Blob([code],{type:'text/plain'});
+    await Google.Drive.upload(new File([blob],name,{type:'text/plain'}), fid);
+    addBubble('gabriel','✅ Salvo no Drive: **' + name + '**');
+  } catch(e) { addBubble('gabriel','❌ Erro ao salvar: ' + e.message); }
 }
 
 // ── Drawer ───────────────────────────────────────────────────
@@ -879,164 +777,6 @@ async function newConversation() {
         <div class="suggestion-chip" onclick="sendSuggestion('Anote um gasto de R$ 50 em alimentação')"><span class="material-icons-round">account_balance_wallet</span>Anotar gasto</div>
       </div>
     </div>`;
-}
-
-
-// ── TTS — Voz do Gabriel ─────────────────────────────────────
-
-let ttsUtterance = null;
-let ttsSpeaking  = false;
-let ttsVoice     = null;
-
-function initTTS() {
-  if (!window.speechSynthesis) return;
-  const loadVoices = () => {
-    const voices = speechSynthesis.getVoices();
-    // Prefere voz masculina em português
-    ttsVoice = voices.find(v => v.lang === 'pt-BR' && v.name.toLowerCase().includes('male'))
-            || voices.find(v => v.lang === 'pt-BR' && (v.name.includes('Daniel') || v.name.includes('Lucas') || v.name.includes('Edson')))
-            || voices.find(v => v.lang === 'pt-BR')
-            || voices.find(v => v.lang.startsWith('pt'))
-            || voices[0];
-    console.log('[TTS] Voz selecionada:', ttsVoice?.name);
-  };
-  loadVoices();
-  speechSynthesis.onvoiceschanged = loadVoices;
-}
-
-function speakText(text, btnEl) {
-  if (!window.speechSynthesis) {
-    alert('Seu navegador não suporta voz. Tente no Chrome.');
-    return;
-  }
-
-  // Se já está falando o mesmo, para
-  if (ttsSpeaking) {
-    stopTTS();
-    if (btnEl) { btnEl.classList.remove('speaking'); btnEl.querySelector('.material-icons-round').textContent = 'volume_up'; }
-    return;
-  }
-
-  // Remove markdown e limpa o texto
-  const clean = text
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/#{1,6}\s/g, '')
-    .replace(/`(.*?)`/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/[•\-–—]/g, ', ')
-    .replace(/
-{2,}/g, '. ')
-    .replace(/
-/g, ' ')
-    .trim();
-
-  ttsUtterance = new SpeechSynthesisUtterance(clean);
-  ttsUtterance.lang  = 'pt-BR';
-  ttsUtterance.rate  = 1.05;
-  ttsUtterance.pitch = 0.9;
-  ttsUtterance.volume = 1;
-  if (ttsVoice) ttsUtterance.voice = ttsVoice;
-
-  ttsUtterance.onstart = () => {
-    ttsSpeaking = true;
-    document.getElementById('tts-bar').classList.add('show');
-    document.getElementById('tts-bar-text').textContent = 'Gabriel falando...';
-    if (btnEl) { btnEl.classList.add('speaking'); btnEl.querySelector('.material-icons-round').textContent = 'stop'; }
-  };
-
-  ttsUtterance.onend = ttsUtterance.onerror = () => {
-    ttsSpeaking = false;
-    document.getElementById('tts-bar').classList.remove('show');
-    if (btnEl) { btnEl.classList.remove('speaking'); btnEl.querySelector('.material-icons-round').textContent = 'volume_up'; }
-    ttsUtterance = null;
-  };
-
-  // Chrome mobile quirk — precisa cancelar antes de falar
-  speechSynthesis.cancel();
-  setTimeout(() => speechSynthesis.speak(ttsUtterance), 100);
-}
-
-function stopTTS() {
-  if (window.speechSynthesis) speechSynthesis.cancel();
-  ttsSpeaking = false;
-  document.getElementById('tts-bar').classList.remove('show');
-  document.querySelectorAll('.tts-btn.speaking').forEach(b => {
-    b.classList.remove('speaking');
-    b.querySelector('.material-icons-round').textContent = 'volume_up';
-  });
-}
-
-
-// ── Upload de arquivo ────────────────────────────────────────
-
-let pendingFile = null;
-let pendingFileBase64 = null;
-
-function handleFileUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-  pendingFile = file;
-
-  // Mostra preview
-  const bar = document.getElementById('file-preview-bar');
-  const name = document.getElementById('file-preview-name');
-  const icon = document.getElementById('file-preview-icon');
-  bar.style.display = 'flex';
-  name.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + 'KB)';
-  icon.textContent = file.type.startsWith('image/') ? 'image' : 
-                     file.type.includes('pdf') ? 'picture_as_pdf' : 'description';
-
-  // Lê como base64 para enviar ao Gabriel
-  const reader = new FileReader();
-  reader.onload = e => { pendingFileBase64 = e.target.result; };
-  reader.readAsDataURL(file);
-
-  // Foca no input
-  document.getElementById('msg-input').focus();
-  input.value = '';
-}
-
-function cancelFileUpload() {
-  pendingFile = null;
-  pendingFileBase64 = null;
-  document.getElementById('file-preview-bar').style.display = 'none';
-}
-
-// Mostra arquivo do Drive no chat
-function showDriveFile(file) {
-  const area = document.getElementById('messages-area');
-  const row = document.createElement('div');
-  row.className = 'msg-row gabriel';
-  
-  const isImage = file.mimeType?.includes('image') || file.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-  const isPdf   = file.mimeType?.includes('pdf') || file.name?.match(/\.pdf$/i);
-  
-  let fileHTML = '';
-  if (isImage && file.thumbnailUrl) {
-    fileHTML = `<img src="${file.thumbnailUrl}" style="max-width:100%;border-radius:10px;margin-top:8px" onclick="window.open('${file.webViewLink}','_blank')">`;
-  } else {
-    const icon = isPdf ? 'picture_as_pdf' : 'description';
-    const color = isPdf ? '#EA4335' : '#4285F4';
-    fileHTML = `
-      <div onclick="window.open('${file.webViewLink || '#'}','_blank')" style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:8px;cursor:pointer">
-        <span class="material-icons-round" style="color:${color};font-size:28px">${icon}</span>
-        <div>
-          <div style="font-size:13px;font-weight:600">${file.name}</div>
-          <div style="font-size:11px;color:var(--text-hint)">${file.size ? (file.size/1024).toFixed(0)+'KB' : 'Google Drive'} • Toque para abrir</div>
-        </div>
-        <span class="material-icons-round" style="margin-left:auto;color:var(--text-hint);font-size:18px">open_in_new</span>
-      </div>`;
-  }
-  
-  row.innerHTML = `
-    <div class="bubble">
-      <div class="bubble-text">📁 Arquivo do Drive:</div>
-      ${fileHTML}
-    </div>
-    <div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
-  area.appendChild(row);
-  scrollToBottom();
 }
 
 function scrollToBottom() {
