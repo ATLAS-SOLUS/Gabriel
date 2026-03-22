@@ -414,16 +414,23 @@ let activeGame = null; // { type, state, data }
 
 // ── Init ──────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  // Verifica se Groq carregou — se não, recarrega a página uma vez
-  if (typeof Groq === 'undefined') {
-    console.warn('[Gabriel] groq.js não carregou — limpando cache e recarregando...');
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for (const reg of regs) await reg.unregister();
-    }
-    const keys = await caches.keys();
-    for (const key of keys) await caches.delete(key);
-    window.location.reload(true);
+  // Verifica se módulos críticos carregaram — se não, limpa cache e recarrega
+  if (typeof Groq === 'undefined' || typeof Actions === 'undefined') {
+    console.warn('[Gabriel] Módulos não carregaram — limpando cache SW...');
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) await reg.unregister();
+      }
+      if (typeof caches !== 'undefined') {
+        const keys = await caches.keys();
+        for (const key of keys) await caches.delete(key);
+      }
+    } catch(e) {}
+    // Recarrega forçando bypass do cache
+    const url = new URL(window.location.href);
+    url.searchParams.set('_r', Date.now());
+    window.location.replace(url.toString());
     return;
   }
   await Auth.guard('chat.html');

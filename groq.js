@@ -341,61 +341,86 @@ Retorne APENAS o título, sem aspas, sem pontuação extra.`;
 
   async function searchWeb(query) {
     try {
-      // Tenta proxy Netlify primeiro (Brave Search)
       let results = [];
+
+      // Tentativa 1: Netlify Function (Brave Search)
       try {
         const res = await fetch('/.netlify/functions/web-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, count: 6 })
+          body: JSON.stringify({ query, count: 6 }),
+          signal: AbortSignal.timeout(5000)
         });
         if (res.ok) {
           const data = await res.json();
-          results = data.results || [];
+          if (data.results?.length) results = data.results;
         }
-      } catch(e) { console.warn('[Search] Proxy falhou, tentando fallbacks...'); }
+      } catch(e) { console.warn('[Search] Netlify proxy falhou'); }
 
-      // Fallback 1: DuckDuckGo Instant Answer API
-      if (results.length === 0) {
-        try {
-          const ddgRes = await fetch(
-            `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&t=gabriel`
-          );
-          const ddg = await ddgRes.json();
-          if (ddg.AbstractText) results.push({ title: ddg.Heading, snippet: ddg.AbstractText, url: ddg.AbstractURL });
-          (ddg.RelatedTopics || []).slice(0, 4).forEach(t => {
-            if (t.Text) results.push({ title: t.Text.split(' - ')[0], snippet: t.Text, url: t.FirstURL || '' });
-          });
-          if (ddg.Answer) results.unshift({ title: 'Resposta direta', snippet: ddg.Answer, url: '' });
-        } catch(e) { console.warn('[Search] DDG falhou'); }
-      }
-
-      // Fallback 2: Wikipedia API (sem CORS)
+      // Tentativa 2: Wikipedia PT (CORS liberado)
       if (results.length === 0) {
         try {
           const wikiRes = await fetch(
-            `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.split(' ').slice(0,3).join('_'))}`
+            `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.split(' ').slice(0,4).join('_'))}`,
+            { signal: AbortSignal.timeout(4000) }
           );
           if (wikiRes.ok) {
             const wiki = await wikiRes.json();
-            if (wiki.extract) results.push({ title: wiki.title, snippet: wiki.extract.slice(0, 500), url: wiki.content_urls?.desktop?.page || '' });
+            if (wiki.extract && wiki.extract.length > 50) {
+              results.push({
+                title: wiki.title,
+                snippet: wiki.extract.slice(0, 600),
+                url: wiki.content_urls?.desktop?.page || 'https://pt.wikipedia.org'
+              });
+            }
           }
-        } catch(e) {}
+        } catch(e) { console.warn('[Search] Wikipedia falhou'); }
       }
 
+      // Tentativa 3: Wikipedia Search API para encontrar artigo certo
       if (results.length === 0) {
-        return `Não encontrei resultados para "${query}". Tente reformular a pergunta.`;
+        try {
+          const searchRes = await fetch(
+            `https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=3`,
+            { signal: AbortSignal.timeout(4000) }
+          );
+          if (searchRes.ok) {
+            const data = await searchRes.json();
+            const articles = data.query?.search || [];
+            for (const art of articles.slice(0, 2)) {
+              results.push({
+                title: art.title,
+                snippet: art.snippet.replace(/<[^>]+>/g, ''),
+                url: `https://pt.wikipedia.org/wiki/${encodeURIComponent(art.title)}`
+              });
+            }
+          }
+        } catch(e) { console.warn('[Search] Wikipedia search falhou'); }
       }
 
-      const systemPrompt = `Você é Gabriel. Analise os resultados de pesquisa e responda em português de forma clara, completa e útil. Mencione as fontes. Seja informativo e direto.`;
-      const msgContent = `Pesquisa: "${query}"\n\nResultados:\n\n` +
-        results.slice(0, 5).map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? '\nFonte: ' + r.url : ''}`).join('\n\n');
+      // Usa o Groq para formular resposta com os resultados
+      const systemPrompt = `Você é Gabriel. Responda em português sobre: "${query}".
+${results.length > 0 ? 'Use as informações abaixo como base, cite fontes quando relevante.' : 'Use seu conhecimento para dar a melhor resposta possível, seja claro que é baseado no seu treinamento.'}
+Seja informativo, direto e útil.`;
 
-      return await call([{ role: 'user', content: msgContent }], systemPrompt, 1024);
+      const content = results.length > 0
+        ? `Pesquisa: "${query}"\n\nFontes encontradas:\n${results.map((r,i) => `[${i+1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`).join('\n\n')}`
+        : `Responda com seu melhor conhecimento sobre: "${query}"`;
+
+      return await call([{ role: 'user', content }], systemPrompt, 1500);
 
     } catch (e) {
       console.error('[Groq] Erro pesquisa:', e);
-      return `Não consegui buscar "${query}" agora. Verifique sua conexão.`;
+      // Último recurso: responde com conhecimento do modelo
+      try {
+        return await call(
+          [{ role: 'user', content: `Responda sobre: ${query}` }],
+          `Você é Gabriel. Responda em português sobre "${query}" com seu conhecimento. Seja claro que é baseado no seu treinamento.`,
+          800
+        );
+      } catch(e2) {
+        return `Não consegui pesquisar "${query}" agora.`;
+      }
     }
   }
 
