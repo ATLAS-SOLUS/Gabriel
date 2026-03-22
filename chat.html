@@ -194,6 +194,54 @@
     @keyframes apulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     @keyframes stepin { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
     @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* ── Jogos no chat ───────────────────────────────────── */
+    .game-bubble { background: var(--bubble-gabriel); border-radius: var(--radius-bubble); border-bottom-left-radius: 5px; box-shadow: var(--shadow-sm); overflow: hidden; max-width: 88%; }
+    .game-header { background: var(--accent); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+    .game-header-icon { font-size: 22px; }
+    .game-header-info { flex: 1; }
+    .game-header-title { font-size: 14px; font-weight: 700; color: white; }
+    .game-header-sub { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+    .game-score-row { display: flex; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .gscore { text-align: center; flex: 1; }
+    .gscore-val { font-size: 18px; font-weight: 700; }
+    .gscore-label { font-size: 10px; color: var(--text-hint); margin-top: 1px; }
+    .game-question { padding: 14px 16px; }
+    .game-q-cat { font-size: 10.5px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .game-q-text { font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--text-primary); }
+    .game-q-fact { font-size: 12.5px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); display: none; line-height: 1.5; }
+    .game-q-fact.show { display: block; }
+    .game-options { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .game-opt { width: 100%; padding: 11px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-primary); cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; -webkit-tap-highlight-color: transparent; transition: all 0.15s; }
+    .game-opt:active:not(.disabled) { transform: scale(0.99); }
+    .game-opt.correct { background: #EAF4EF; border-color: #2E7D5E; color: #2E7D5E; }
+    .game-opt.wrong   { background: #FFF0F0; border-color: #D94040; color: #D94040; }
+    .game-opt.disabled { pointer-events: none; }
+    .game-opt-letter { width: 24px; height: 24px; border-radius: 6px; background: var(--surface); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .game-input-row { padding: 12px 16px; display: flex; gap: 8px; }
+    .game-input { flex: 1; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-family: var(--font-sans); font-size: 16px; text-align: center; font-weight: 700; outline: none; }
+    .game-input:focus { border-color: var(--accent); }
+    .game-confirm-btn { padding: 12px 18px; background: var(--accent); color: white; border: none; border-radius: 12px; font-family: var(--font-sans); font-size: 14px; font-weight: 700; cursor: pointer; }
+    .game-hint-row { padding: 0 16px 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .game-hint-chip { padding: 5px 10px; background: #FFF8E7; border-radius: 99px; font-size: 11.5px; color: #E8A838; font-weight: 600; cursor: pointer; border: none; font-family: var(--font-sans); }
+    .hangman-display { padding: 10px 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .hangman-slot { width: 32px; height: 40px; border-bottom: 3px solid var(--accent); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-size: 20px; font-weight: 700; }
+    .hangman-keys { padding: 8px 16px 16px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+    .hkey { width: 34px; height: 34px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; font-family: var(--font-sans); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+    .hkey.hit  { background: #EAF4EF; border-color: #2E7D5E; color: #2E7D5E; }
+    .hkey.miss { background: #FFF0F0; border-color: #D94040; color: #D94040; opacity: 0.5; }
+    .game-result-bar { padding: 14px 16px; background: var(--accent-soft); display: flex; align-items: center; justify-content: space-between; }
+    .game-result-msg { font-size: 14px; font-weight: 600; }
+    .game-result-pts { font-size: 13px; color: var(--text-secondary); }
+    .game-actions { padding: 0 16px 16px; display: flex; gap: 8px; }
+    .game-action-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-family: var(--font-sans); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .game-action-btn.primary { background: var(--accent); color: white; }
+    .game-action-btn.secondary { background: var(--accent-soft); color: var(--text-primary); }
+    .loading-dots { display: inline-flex; gap: 4px; }
+    .loading-dots span { width: 6px; height: 6px; background: var(--text-hint); border-radius: 50%; animation: ldot 1.2s ease infinite; }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes ldot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
   </style>
 </head>
 <body>
@@ -361,6 +409,9 @@ let ttsVoice        = null;
 let ttsSpeaking     = false;
 let agentStart      = 0;
 
+// ── Jogo ativo no chat ────────────────────────────────────────
+let activeGame = null; // { type, state, data }
+
 // ── Init ──────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   await Auth.guard('chat.html');
@@ -520,6 +571,17 @@ async function sendMessage(text) {
   input.value = ''; input.style.height = 'auto'; updateSendBtn();
   document.getElementById('welcome-state')?.remove();
 
+  // ── Detecta jogada ativa ──────────────────────────────────
+  if (activeGame && processGameInput(content)) return;
+
+  // ── Detecta intenção de jogar ─────────────────────────────
+  const gameIntent = detectGameIntent(content);
+  if (gameIntent) {
+    addBubble('user', content);
+    await startChatGame(gameIntent);
+    return;
+  }
+
   if (!currentConvId) {
     const conv = await GabrielDB.Conversations.create('Nova conversa');
     currentConvId = conv.id; loadDrawer();
@@ -604,11 +666,55 @@ async function sendMessage(text) {
     let actionResults = [];
     if (actions?.length > 0) {
       const ra = addAgentStep('Executando ' + actions.length + ' ação(ões)...', 'running', actions.map(a => a.action).join(', '));
+
+      // Para create_note: garante conteúdo completo
+      for (const action of actions) {
+        if (action.action === 'create_note' && (!action.content || action.content.length < 100)) {
+          const noteStep = addAgentStep('Gerando conteúdo completo da nota...', 'running');
+          try {
+            const fullContent = await Groq.generateNoteContent(action.title || content, reply);
+            action.content = fullContent;
+            updateStep(noteStep, 'done', 'Conteúdo completo gerado');
+          } catch(e) {
+            updateStep(noteStep, 'error', 'Usando conteúdo disponível');
+            action.content = reply; // fallback: usa a resposta completa
+          }
+        }
+      }
+
       actionResults = await Actions.execute(actions);
-      const ok = actionResults.filter(r => r.success).length;
+      const ok  = actionResults.filter(r => r.success).length;
       const err = actionResults.filter(r => !r.success).length;
       updateStep(ra, err > 0 ? 'error' : 'done', ok + ' executada(s)' + (err > 0 ? ', ' + err + ' com erro' : ''));
+
+      // Se houve ações com erro, mostra botão de tentar novamente
+      if (err > 0) {
+        const failedActions = actionResults.filter(r => !r.success);
+        console.warn('[Chat] Ações com erro:', failedActions.map(r => r.action + ': ' + r.message));
+      }
+
       localStorage.setItem('gabriel_data_updated', JSON.stringify({ types: actions.map(a => a.action), ts: Date.now() }));
+    } else if (/criar|criar pasta|criar caderno|agendar|salvar|anotar|adicionar/i.test(content)) {
+      // Gabriel respondeu sem ações mas o usuário pediu para criar algo — tenta extrair ações da resposta
+      const retryStep = addAgentStep('Verificando ações pendentes...', 'running');
+      try {
+        const retryPrompt = `O usuário pediu: "${content}"
+Sua resposta foi: "${reply.slice(0, 500)}"
+
+Agora execute APENAS as ações necessárias. Responda SOMENTE com o bloco <gabriel_actions>.`;
+        const { actions: retryActions } = await Groq.chat(retryPrompt, []);
+        if (retryActions?.length > 0) {
+          updateStep(retryStep, 'info', 'Executando ' + retryActions.length + ' ação(ões) pendente(s)');
+          actionResults = await Actions.execute(retryActions);
+          const ok = actionResults.filter(r => r.success).length;
+          updateStep(retryStep, 'done', ok + ' ação(ões) executada(s)');
+          localStorage.setItem('gabriel_data_updated', JSON.stringify({ types: retryActions.map(a => a.action), ts: Date.now() }));
+        } else {
+          updateStep(retryStep, 'info', 'Nenhuma ação pendente');
+        }
+      } catch(e) {
+        updateStep(retryStep, 'error', 'Erro ao verificar ações');
+      }
     }
 
     finishPanel();
@@ -992,6 +1098,529 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 window.addEventListener('pageshow', e => { if (e.persisted) scrollToBottom(); });
+// ══════════════════════════════════════════════════════════════
+// GABRIEL GAMES NO CHAT — Motor de jogos interativos
+// Tudo gerado por IA, jogado dentro da conversa
+// ══════════════════════════════════════════════════════════════
+
+const GAME_TRIGGERS = {
+  quiz:     /\b(quiz|perguntas?|trivia|teste)\b/i,
+  number:   /\b(n[uú]mero|adivinh|chut[ae]|n[uú]m)\b.*chat|chat.*\b(n[uú]mero|adivinh)/i,
+  hangman:  /\b(forca|palavra secreta|adivinhe a palavra)\b/i,
+  scramble: /\b(embaralha(da|r)?|palavra embaralh|descubra a palavra)\b/i,
+};
+
+// Detecta se mensagem quer iniciar um jogo
+function detectGameIntent(msg) {
+  const m = msg.toLowerCase();
+  if (/(vamos? jogar|me desafie|brincar|jogar|jogo).*quiz/i.test(m) || /quiz/i.test(m)) return 'quiz';
+  if (/(vamos? jogar|brincar|jogar|jogo).*(forca|palavra)/i.test(m) || /forca/i.test(m)) return 'hangman';
+  if (/(vamos? jogar|brincar|jogar|jogo).*(n[uú]mero|adivinh)/i.test(m) || /(pensa num n[uú]mero|adivinhe o n[uú]mero)/i.test(m)) return 'number';
+  if (/(vamos? jogar|brincar|jogar|jogo).*(embaralh|palavra)/i.test(m)) return 'scramble';
+  if (/(vamos? jogar|brincar|jogar comigo|me desafie|jogo|jogar)/i.test(m) && !/(agenda|tarefa|nota|lembrete|drive|email)/i.test(m)) return 'choose';
+  return null;
+}
+
+// Verifica se a resposta do usuário é uma jogada
+function isGameInput(msg) {
+  if (!activeGame) return false;
+  const m = msg.trim();
+  if (activeGame.type === 'number') return /^\d+$/.test(m);
+  if (activeGame.type === 'hangman') return /^[a-zA-ZÀ-ú]$/.test(m);
+  if (activeGame.type === 'scramble') return m.length > 1;
+  if (activeGame.type === 'quiz' || activeGame.type === 'trivia') return /^[1234abcdABCD]$/.test(m);
+  return false;
+}
+
+// Cria bubble de jogo no chat
+function createGameBubble(gameObj) {
+  const area = document.getElementById('messages-area');
+  const row = document.createElement('div');
+  row.className = 'msg-row gabriel';
+  row.id = 'game-bubble-' + gameObj.id;
+  row.innerHTML = `
+    <div class="game-bubble" id="game-inner-${gameObj.id}">
+      <div class="game-header">
+        <span class="game-header-icon">${gameObj.icon}</span>
+        <div class="game-header-info">
+          <div class="game-header-title">${gameObj.title}</div>
+          <div class="game-header-sub" id="game-sub-${gameObj.id}">${gameObj.subtitle}</div>
+        </div>
+      </div>
+      <div id="game-content-${gameObj.id}">
+        <div style="padding:24px;text-align:center;color:var(--text-hint)">
+          <div class="loading-dots"><span></span><span></span><span></span></div>
+          <div style="margin-top:8px;font-size:13px">Gabriel gerando conteúdo...</div>
+        </div>
+      </div>
+    </div>
+    <div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  area.appendChild(row);
+  scrollToBottom();
+  return gameObj.id;
+}
+
+function updateGameContent(id, html) {
+  const el = document.getElementById('game-content-' + id);
+  if (el) { el.innerHTML = html; scrollToBottom(); }
+}
+
+function updateGameSub(id, text) {
+  const el = document.getElementById('game-sub-' + id);
+  if (el) el.textContent = text;
+}
+
+// Chama a API do Gabriel para gerar conteúdo do jogo
+async function callGabrielForGame(prompt) {
+  try {
+    const key = await GabrielDB.Settings.get('groq_api_key');
+    if (!key) return null;
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1500,
+        temperature: 0.9,
+        messages: [
+          { role: 'system', content: 'Você é o Gabriel, um assistente que cria conteúdo para jogos. Responda APENAS com JSON válido e nada mais. Sem markdown, sem explicações fora do JSON.' },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+    const data = await res.json();
+    const text = (data.choices?.[0]?.message?.content || '{}').replace(/```json|```/g,'').trim();
+    return JSON.parse(text);
+  } catch(e) { console.warn('[Game]', e); return null; }
+}
+
+// ── INICIAR JOGO ─────────────────────────────────────────────
+
+async function startChatGame(type) {
+  if (type === 'choose') {
+    const opts = [
+      {t:'quiz',     label:'🧠 Quiz',      desc:'Gabriel cria 5 perguntas únicas'},
+      {t:'number',   label:'🔢 Número',     desc:'Adivinhe o número (1-100)'},
+      {t:'hangman',  label:'🎯 Forca',      desc:'Gabriel escolhe a palavra'},
+      {t:'scramble', label:'🔤 Embaralhado', desc:'Descubra a palavra embaralhada'},
+    ];
+    const row = document.createElement('div');
+    row.className = 'msg-row gabriel';
+    row.innerHTML = `
+      <div class="game-bubble">
+        <div class="game-header">
+          <span class="game-header-icon">🎮</span>
+          <div class="game-header-info">
+            <div class="game-header-title">Vamos jogar!</div>
+            <div class="game-header-sub">Escolha um jogo</div>
+          </div>
+        </div>
+        <div class="game-options" style="padding:12px 16px 16px">
+          ${opts.map(o => `
+          <button class="game-opt" onclick="startChatGame('${o.t}')">
+            <span style="font-size:18px">${o.label.split(' ')[0]}</span>
+            <div>
+              <div style="font-weight:600">${o.label.split(' ').slice(1).join(' ')}</div>
+              <div style="font-size:12px;color:var(--text-hint)">${o.desc}</div>
+            </div>
+          </button>`).join('')}
+        </div>
+      </div>
+      <div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    document.getElementById('messages-area').appendChild(row);
+    scrollToBottom();
+    return;
+  }
+
+  const gid = Date.now();
+  const configs = {
+    quiz:     { icon:'🧠', title:'Quiz do Gabriel', subtitle:'Gerando perguntas...' },
+    number:   { icon:'🔢', title:'Adivinhe o Número', subtitle:'1 a 100 — 7 tentativas' },
+    hangman:  { icon:'🎯', title:'Jogo da Forca', subtitle:'Gabriel escolhendo palavra...' },
+    scramble: { icon:'🔤', title:'Palavra Embaralhada', subtitle:'Gerando palavra...' },
+  };
+  const cfg = configs[type] || configs.quiz;
+
+  activeGame = { type, id: gid, score: 0, data: {} };
+  createGameBubble({ id: gid, ...cfg });
+
+  if (type === 'quiz')     await initChatQuiz(gid);
+  if (type === 'number')   initChatNumber(gid);
+  if (type === 'hangman')  await initChatHangman(gid);
+  if (type === 'scramble') await initChatScramble(gid);
+}
+
+// ── QUIZ NO CHAT ─────────────────────────────────────────────
+
+async function initChatQuiz(gid) {
+  const themes = ['história do Brasil','ciências','cultura pop','geografía','tecnologia','natureza'];
+  const theme = themes[Math.floor(Math.random()*themes.length)];
+  const data = await callGabrielForGame(
+    `Crie 5 perguntas de quiz sobre "${theme}" em português. JSON: {"questions":[{"q":"pergunta","o":["op1","op2","op3","op4"],"a":0,"c":"emoji categoria","f":"curiosidade sobre a resposta"}]}`
+  );
+  if (!data?.questions?.length) {
+    updateGameContent(gid, '<div style="padding:16px;color:var(--red)">⚠️ Erro ao gerar perguntas. Verifique a chave API nas configurações.</div>');
+    activeGame = null; return;
+  }
+  activeGame.data = { questions: data.questions, cur: 0, lives: 3, streak: 0, correct: 0 };
+  renderChatQuiz(gid);
+}
+
+function renderChatQuiz(gid) {
+  const { questions, cur, lives, streak, correct } = activeGame.data;
+  if (cur >= questions.length || lives <= 0) { finishChatQuiz(gid); return; }
+  const q = questions[cur];
+  const letters = ['A','B','C','D'];
+  updateGameSub(gid, `Pergunta ${cur+1}/${questions.length} • ❤️${lives} • 🔥${streak}`);
+  updateGameContent(gid, `
+    <div class="game-score-row">
+      <div class="gscore"><div class="gscore-val">${activeGame.score}</div><div class="gscore-label">Pontos</div></div>
+      <div class="gscore"><div class="gscore-val">${correct}</div><div class="gscore-label">Certas</div></div>
+      <div class="gscore"><div class="gscore-val">❤️${'❤️'.repeat(lives-1)}${'🖤'.repeat(3-lives)}</div><div class="gscore-label">Vidas</div></div>
+    </div>
+    <div class="game-question">
+      <div class="game-q-cat">${q.c || '📚 Geral'}</div>
+      <div class="game-q-text">${q.q}</div>
+      <div class="game-q-fact" id="qfact-${gid}">${q.f || ''}</div>
+    </div>
+    <div class="game-options">
+      ${q.o.map((opt,i) => `
+      <button class="game-opt" id="qopt-${gid}-${i}" onclick="answerChatQuiz(${gid},${i})">
+        <span class="game-opt-letter">${letters[i]}</span>${opt}
+      </button>`).join('')}
+    </div>
+    <div style="padding:0 16px 12px;font-size:11.5px;color:var(--text-hint)">💡 Toque na resposta ou digite A, B, C ou D no chat</div>
+  `);
+}
+
+function answerChatQuiz(gid, idx) {
+  if (!activeGame || activeGame.id !== gid) return;
+  const { questions, cur } = activeGame.data;
+  const q = questions[cur];
+  document.querySelectorAll(`[id^="qopt-${gid}-"]`).forEach(b => b.classList.add('disabled'));
+  const fact = document.getElementById('qfact-' + gid);
+  if (fact) fact.classList.add('show');
+  if (idx === q.a) {
+    document.getElementById(`qopt-${gid}-${idx}`)?.classList.add('correct');
+    activeGame.data.streak++;
+    activeGame.data.correct++;
+    const pts = 10 + (activeGame.data.streak >= 3 ? activeGame.data.streak * 2 : 0);
+    activeGame.score += pts;
+    addBubble('gabriel', `✅ Correto! +${pts} pts${activeGame.data.streak >= 3 ? ` 🔥 Sequência de ${activeGame.data.streak}!` : ''}`);
+  } else {
+    document.getElementById(`qopt-${gid}-${idx}`)?.classList.add('wrong');
+    document.getElementById(`qopt-${gid}-${q.a}`)?.classList.add('correct');
+    activeGame.data.streak = 0;
+    activeGame.data.lives--;
+    addBubble('gabriel', `❌ Errado! A resposta certa era a **${['A','B','C','D'][q.a]}**. ${q.f ? '\n\n💡 ' + q.f : ''}`);
+  }
+  activeGame.data.cur++;
+  setTimeout(() => {
+    if (activeGame && activeGame.id === gid) renderChatQuiz(gid);
+  }, 1600);
+}
+
+function finishChatQuiz(gid) {
+  const { correct, questions } = activeGame.data;
+  const pct = Math.round((correct / questions.length) * 100);
+  const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '🌟' : '💪';
+  updateGameContent(gid, `
+    <div style="padding:24px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-size:48px">${emoji}</div>
+      <div style="font-family:var(--font-serif);font-size:22px">${pct >= 80 ? 'Incrível!' : pct >= 60 ? 'Muito bem!' : 'Continue treinando!'}</div>
+      <div style="font-size:13px;color:var(--text-secondary)">${correct}/${questions.length} certas • ${activeGame.score} pontos</div>
+      <div style="display:flex;gap:8px;width:100%">
+        <button class="game-action-btn primary" onclick="startChatGame('quiz')">🔄 Novo quiz</button>
+        <button class="game-action-btn secondary" onclick="startChatGame('choose')">🎮 Outro jogo</button>
+      </div>
+    </div>
+  `);
+  addBubble('gabriel', `${emoji} Quiz finalizado! Você acertou **${correct} de ${questions.length}** (${pct}%) e fez **${activeGame.score} pontos**! ${pct >= 80 ? 'Você é muito bom nisso!' : pct >= 60 ? 'Bom jogo!' : 'Quer tentar de novo?'}`);
+  activeGame = null;
+}
+
+// ── NÚMERO NO CHAT ───────────────────────────────────────────
+
+function initChatNumber(gid) {
+  const secret = Math.floor(Math.random() * 100) + 1;
+  activeGame.data = { secret, attempts: [], max: 7 };
+  updateGameContent(gid, `
+    <div style="background:var(--accent);padding:20px;text-align:center;color:white">
+      <div style="font-size:13px;opacity:0.6;margin-bottom:4px">Pensei num número entre</div>
+      <div style="font-size:36px;font-weight:700">1 — 100</div>
+      <div style="font-size:14px;opacity:0.7;margin-top:4px">7 tentativas • Dicas de temperatura 🌡️</div>
+    </div>
+    <div id="num-dots-${gid}" style="display:flex;gap:5px;justify-content:center;padding:12px 16px;flex-wrap:wrap">
+      ${Array(7).fill('<div style="width:12px;height:12px;border-radius:50%;background:var(--border)"></div>').join('')}
+    </div>
+    <div id="num-status-${gid}" style="padding:0 16px 8px;text-align:center;font-size:15px;font-weight:600;min-height:28px">Digite um número no chat ou abaixo ⬇️</div>
+    <div class="game-input-row">
+      <input class="game-input" id="num-input-${gid}" type="number" min="1" max="100" placeholder="1-100" onkeydown="if(event.key==='Enter')submitChatNumber(${gid})">
+      <button class="game-confirm-btn" onclick="submitChatNumber(${gid})">→</button>
+    </div>
+  `);
+  addBubble('gabriel', '🔢 Pensei num número entre 1 e 100! Você tem **7 tentativas**. A cada erro, dou dicas de quente 🔥 e frio 🧊. Digite aqui no chat ou use o campo abaixo!');
+}
+
+function submitChatNumber(gid, val) {
+  if (!activeGame || activeGame.id !== gid) return;
+  const input = document.getElementById('num-input-' + gid);
+  const guess = parseInt(val || input?.value || 0);
+  if (input) input.value = '';
+  processNumberGuess(gid, guess);
+}
+
+function processNumberGuess(gid, guess) {
+  if (!activeGame || activeGame.id !== gid) return;
+  const { secret, attempts, max } = activeGame.data;
+  if (!guess || guess < 1 || guess > 100) {
+    addBubble('gabriel', '⚠️ Digite um número entre 1 e 100!');
+    return;
+  }
+  activeGame.data.attempts.push(guess);
+  const n = activeGame.data.attempts.length;
+  const diff = Math.abs(guess - secret);
+  const dotsEl = document.getElementById('num-dots-' + gid);
+  const statusEl = document.getElementById('num-status-' + gid);
+
+  if (guess === secret) {
+    if (dotsEl) {
+      const dots = dotsEl.querySelectorAll('div');
+      if (dots[n-1]) { dots[n-1].style.background = '#2E7D5E'; dots[n-1].style.transform = 'scale(1.3)'; }
+    }
+    const pts = Math.max(20, (max - n + 1) * 20);
+    activeGame.score += pts;
+    updateGameContent(gid, `
+      <div style="padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:48px">🎯</div>
+        <div style="font-family:var(--font-serif);font-size:22px">Acertou!</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Era o ${secret} • ${n} tentativa(s) • +${pts} pts</div>
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="game-action-btn primary" onclick="startChatGame('number')">🔄 Novo número</button>
+          <button class="game-action-btn secondary" onclick="startChatGame('choose')">🎮 Outro jogo</button>
+        </div>
+      </div>
+    `);
+    addBubble('gabriel', `🎯 **Acertou!** Era o **${secret}**! Em ${n} tentativa(s)! +${pts} pontos!`);
+    activeGame = null;
+    return;
+  }
+
+  const isHigh = guess > secret;
+  const temp = diff <= 3 ? '🔥🔥🔥 QUEIMANDO!' : diff <= 8 ? '🔥🔥 Muito quente!' : diff <= 18 ? '♨️ Quente!' : diff <= 35 ? '😐 Morno' : '🧊 Frio!';
+  if (dotsEl) {
+    const dots = dotsEl.querySelectorAll('div');
+    if (dots[n-1]) dots[n-1].style.background = isHigh ? '#D94040' : '#3B5BDB';
+  }
+  if (statusEl) statusEl.textContent = (isHigh ? '⬇️ Menor! ' : '⬆️ Maior! ') + temp;
+  addBubble('gabriel', `${isHigh ? '⬇️ Menor!' : '⬆️ Maior!'} ${temp} — tentativa ${n}/${max}`);
+
+  if (n >= max) {
+    updateGameContent(gid, `
+      <div style="padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:48px">😔</div>
+        <div style="font-family:var(--font-serif);font-size:22px">Era o ${secret}!</div>
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="game-action-btn primary" onclick="startChatGame('number')">🔄 Tentar novamente</button>
+          <button class="game-action-btn secondary" onclick="startChatGame('choose')">🎮 Outro jogo</button>
+        </div>
+      </div>
+    `);
+    addBubble('gabriel', `😔 Acabaram as tentativas! Era o **${secret}**. Tente novamente!`);
+    activeGame = null;
+  }
+}
+
+// ── FORCA NO CHAT ────────────────────────────────────────────
+
+async function initChatHangman(gid) {
+  const data = await callGabrielForGame(
+    'Escolha UMA palavra em português (sem acentos, maiúscula, 5-10 letras) para jogo da forca. Escolha algo criativo e interessante. JSON: {"word":"PALAVRA","category":"emoji Categoria","hint":"dica sutil"}'
+  );
+  const word = data?.word?.toUpperCase().replace(/[^A-Z]/g,'') || 'INTELIGENCIA';
+  const hint = data?.hint || 'Algo interessante';
+  const cat  = data?.category || '🎯 Forca';
+  activeGame.data = { word, hint, cat, guessed: [], errors: 0, maxErr: 6 };
+  renderChatHangman(gid);
+  addBubble('gabriel', `🎯 Pensei em uma palavra da categoria **${cat}**! Tem **${word.length} letras**.\n\n💡 Dica: *${hint}*\n\nToque nas letras abaixo ou escreva uma letra no chat!`);
+}
+
+function renderChatHangman(gid) {
+  if (!activeGame || activeGame.id !== gid) return;
+  const { word, hint, cat, guessed, errors, maxErr } = activeGame.data;
+  const lives = Array(maxErr).fill(0).map((_,i) => i < errors ? '💀' : '❤️').join('');
+  const wordDisplay = word.split('').map(l =>
+    `<div class="hangman-slot">${guessed.includes(l) ? l : '&nbsp;'}</div>`
+  ).join('');
+  const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const keyboard = allLetters.split('').map(l => {
+    const cls = guessed.includes(l) ? (word.includes(l) ? 'hkey hit' : 'hkey miss') : 'hkey';
+    return `<button class="${cls}" onclick="guessChatHangman(${gid},'${l}')" ${guessed.includes(l)?'disabled':''}>${l}</button>`;
+  }).join('');
+  updateGameSub(gid, `${cat} • ${maxErr - errors} vida(s) restante(s)`);
+  updateGameContent(gid, `
+    <div class="game-score-row">
+      <div class="gscore"><div class="gscore-val">${lives}</div><div class="gscore-label">Vidas</div></div>
+      <div class="gscore"><div class="gscore-val">${errors}/${maxErr}</div><div class="gscore-label">Erros</div></div>
+      <div class="gscore"><div class="gscore-val">${guessed.filter(l=>word.includes(l)).length}/${[...new Set(word.split(''))].length}</div><div class="gscore-label">Letras</div></div>
+    </div>
+    <div style="padding:12px 16px 4px;font-size:11px;color:var(--text-hint)">💡 ${hint}</div>
+    <div class="hangman-display">${wordDisplay}</div>
+    <div class="hangman-keys">${keyboard}</div>
+    <div style="padding:4px 16px 12px;font-size:11.5px;color:var(--text-hint)">Ou escreva uma letra no chat</div>
+  `);
+}
+
+function guessChatHangman(gid, letter) {
+  if (!activeGame || activeGame.id !== gid) return;
+  const { word, guessed, errors, maxErr } = activeGame.data;
+  if (guessed.includes(letter)) return;
+  activeGame.data.guessed.push(letter);
+  const correct = word.includes(letter);
+  if (!correct) activeGame.data.errors++;
+  renderChatHangman(gid);
+  const won = word.split('').every(l => activeGame.data.guessed.includes(l));
+  if (won) {
+    activeGame.score += Math.max(20, (maxErr - activeGame.data.errors + 1) * 20);
+    updateGameContent(gid, `
+      <div style="padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:48px">🎉</div>
+        <div style="font-family:var(--font-serif);font-size:22px">Descobriu!</div>
+        <div style="font-size:15px;font-weight:700;letter-spacing:4px">${word}</div>
+        <div style="font-size:13px;color:var(--text-secondary)">${activeGame.data.errors} erros • +${activeGame.score} pts</div>
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="game-action-btn primary" onclick="startChatGame('hangman')">🔄 Nova palavra</button>
+          <button class="game-action-btn secondary" onclick="startChatGame('choose')">🎮 Outro jogo</button>
+        </div>
+      </div>
+    `);
+    addBubble('gabriel', `🎉 Parabéns! Você descobriu **"${word}"** com apenas ${activeGame.data.errors} erro(s)!`);
+    activeGame = null;
+  } else if (activeGame.data.errors >= maxErr) {
+    updateGameContent(gid, `
+      <div style="padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:48px">😔</div>
+        <div style="font-family:var(--font-serif);font-size:22px">Era: ${word}</div>
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="game-action-btn primary" onclick="startChatGame('hangman')">🔄 Nova palavra</button>
+          <button class="game-action-btn secondary" onclick="startChatGame('choose')">🎮 Outro jogo</button>
+        </div>
+      </div>
+    `);
+    addBubble('gabriel', `😔 Acabaram as chances! A palavra era **"${word}"**! Quer tentar de novo?`);
+    activeGame = null;
+  } else {
+    addBubble('gabriel', correct ? `✅ A letra **${letter}** está na palavra!` : `❌ Não tem **${letter}**... ${maxErr - activeGame.data.errors} vida(s) restante(s)`);
+  }
+}
+
+// ── EMBARALHADO NO CHAT ──────────────────────────────────────
+
+async function initChatScramble(gid) {
+  const data = await callGabrielForGame(
+    'Escolha UMA palavra em português (sem acentos, maiúscula, 4-9 letras) para embaralhar. JSON: {"word":"PALAVRA","category":"emoji Categoria","hint":"dica curta"}'
+  );
+  const word = data?.word?.toUpperCase().replace(/[^A-Z]/g,'') || 'GABRIEL';
+  const hint = data?.hint || 'Palavra interessante';
+  let scrambled = word.split('').sort(()=>Math.random()-0.5).join('');
+  if (scrambled === word) scrambled = word.split('').reverse().join('');
+  activeGame.data = { word, hint, scrambled, timeLeft: 30, timer: null, category: data?.category || '🔤' };
+
+  const gidRef = gid;
+  activeGame.data.timer = setInterval(() => {
+    if (!activeGame || activeGame.id !== gidRef) { clearInterval(activeGame?.data?.timer); return; }
+    activeGame.data.timeLeft--;
+    const el = document.getElementById('sc-timer-' + gidRef);
+    if (el) el.textContent = activeGame.data.timeLeft + 's';
+    if (activeGame.data.timeLeft <= 0) {
+      clearInterval(activeGame.data.timer);
+      updateGameContent(gidRef, `
+        <div style="padding:24px;text-align:center">
+          <div style="font-size:36px">⏰</div>
+          <div style="font-family:var(--font-serif);font-size:20px;margin-top:8px">Tempo esgotado!</div>
+          <div style="font-size:14px;color:var(--text-secondary);margin-top:4px">Era: <b>${word}</b></div>
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="game-action-btn primary" onclick="startChatGame('scramble')">🔄 Nova palavra</button>
+            <button class="game-action-btn secondary" onclick="startChatGame('choose')">🎮 Outro</button>
+          </div>
+        </div>
+      `);
+      addBubble('gabriel', `⏰ Tempo esgotado! Era **"${word}"**!`);
+      activeGame = null;
+    }
+  }, 1000);
+
+  updateGameContent(gid, `
+    <div style="background:var(--accent);padding:20px;text-align:center;color:white">
+      <div style="font-size:11px;opacity:0.6;margin-bottom:4px">${data?.category || '🔤 Palavra embaralhada'}</div>
+      <div style="font-size:38px;font-weight:700;letter-spacing:8px">${scrambled}</div>
+      <div style="font-size:12px;opacity:0.6;margin-top:6px">💡 ${hint}</div>
+    </div>
+    <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;color:var(--text-secondary)">⏱️ Tempo: <b id="sc-timer-${gid}">${activeGame.data.timeLeft}s</b></div>
+      <div style="font-size:13px;color:var(--text-secondary)">${word.length} letras</div>
+    </div>
+    <div class="game-input-row">
+      <input class="game-input" id="sc-input-${gid}" type="text" placeholder="Digite a palavra..." style="text-transform:uppercase" onkeydown="if(event.key==='Enter')checkChatScramble(${gid})">
+      <button class="game-confirm-btn" onclick="checkChatScramble(${gid})">✓</button>
+    </div>
+    <div style="padding:0 16px 12px;font-size:11.5px;color:var(--text-hint)">Ou escreva a resposta no chat</div>
+  `);
+  addBubble('gabriel', `🔤 Embaralhei uma palavra de **${word.length} letras** da categoria ${data?.category || '🔤'}!\n\n💡 Dica: *${hint}*\n\nVocê tem **30 segundos**! Digite aqui no chat ou use o campo abaixo!`);
+}
+
+function checkChatScramble(gid, val) {
+  if (!activeGame || activeGame.id !== gid) return;
+  const input = document.getElementById('sc-input-' + gid);
+  const answer = (val || input?.value || '').toUpperCase().trim().replace(/[^A-Z]/g,'');
+  if (input) input.value = '';
+  if (!answer) return;
+  const { word, timer } = activeGame.data;
+  if (answer === word) {
+    clearInterval(timer);
+    const pts = Math.ceil(activeGame.data.timeLeft * 3);
+    activeGame.score += pts;
+    updateGameContent(gid, `
+      <div style="padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:48px">🎉</div>
+        <div style="font-family:var(--font-serif);font-size:22px">Correto!</div>
+        <div style="font-size:16px;font-weight:700;letter-spacing:4px">${word}</div>
+        <div style="font-size:13px;color:var(--text-secondary)">+${pts} pontos em ${30-activeGame.data.timeLeft}s</div>
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="game-action-btn primary" onclick="startChatGame('scramble')">🔄 Nova palavra</button>
+          <button class="game-action-btn secondary" onclick="startChatGame('choose')">🎮 Outro jogo</button>
+        </div>
+      </div>
+    `);
+    addBubble('gabriel', `🎉 **Correto!** Era **"${word}"**! +${pts} pontos em ${30-activeGame.data.timeLeft} segundos!`);
+    activeGame = null;
+  } else {
+    addBubble('gabriel', `❌ Não é "${answer}"... Tente novamente! ⏱️ ${activeGame.data.timeLeft}s`);
+  }
+}
+
+// ── Processar input do usuário como jogada ───────────────────
+
+function processGameInput(msg) {
+  if (!activeGame) return false;
+  const m = msg.trim().toUpperCase();
+  if (activeGame.type === 'number') {
+    const n = parseInt(msg.trim());
+    if (n >= 1 && n <= 100) { processNumberGuess(activeGame.id, n); return true; }
+  }
+  if (activeGame.type === 'hangman') {
+    if (/^[A-ZÁÉÍÓÚÀÊÎÔÛÃÕ]$/.test(m)) { guessChatHangman(activeGame.id, m.replace(/[^A-Z]/g,'')); return true; }
+  }
+  if (activeGame.type === 'scramble') {
+    if (m.length >= 3) { checkChatScramble(activeGame.id, m); return true; }
+  }
+  if (activeGame.type === 'quiz') {
+    const map = {A:0,B:1,C:2,D:3,'1':0,'2':1,'3':2,'4':3};
+    if (m in map) { answerChatQuiz(activeGame.id, map[m]); return true; }
+  }
+  return false;
+}
+
 </script>
 </body>
 </html>

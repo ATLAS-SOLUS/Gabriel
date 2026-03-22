@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const DB_NAME = 'GabrielDB';
 
 // Dexie carregado via CDN no HTML principal
@@ -21,7 +21,9 @@ db.version(DB_VERSION).stores({
   finances:      '++id, desc, value, category, card, month, folderId, createdAt',
   notes:         '++id, title, content, folderId, createdAt, updatedAt',
   tasks:         '++id, title, done, dueDate, folderId, createdAt',
-  settings:      '++id, key, value'
+  settings:      '++id, key, value',
+  books:         '++id, title, author, totalChapters, currentChapter, totalPages, currentPage, status, rating, notes, folderId, createdAt, updatedAt',
+  studySessions: '++id, subject, duration, date, notes, reminderTime, folderId, createdAt'
 });
 
 // ============================================================
@@ -333,6 +335,115 @@ const Tasks = {
 // ============================================================
 // EXPORT GLOBAL
 // ============================================================
+
+// ============================================================
+// BOOKS — Tracker de Leitura
+// ============================================================
+const Books = {
+  async create({ title, author = '', totalChapters = 0, totalPages = 0, folderId = null }) {
+    return await db.books.add({
+      title, author, totalChapters, totalPages,
+      currentChapter: 0, currentPage: 0,
+      status: 'reading', rating: null, notes: '',
+      folderId, createdAt: new Date(), updatedAt: new Date()
+    });
+  },
+
+  async getAll() {
+    return await db.books.orderBy('updatedAt').reverse().toArray();
+  },
+
+  async get(id) {
+    return await db.books.get(id);
+  },
+
+  async update(id, fields) {
+    await db.books.update(id, { ...fields, updatedAt: new Date() });
+  },
+
+  async updateProgress(id, { currentChapter, currentPage }) {
+    const book = await db.books.get(id);
+    if (!book) return;
+    const updates = { updatedAt: new Date() };
+    if (currentChapter !== undefined) updates.currentChapter = currentChapter;
+    if (currentPage !== undefined) updates.currentPage = currentPage;
+    // Auto-marca como concluído
+    if (book.totalChapters > 0 && currentChapter >= book.totalChapters) {
+      updates.status = 'finished';
+    }
+    await db.books.update(id, updates);
+    return await db.books.get(id);
+  },
+
+  async finish(id, rating = null) {
+    await db.books.update(id, { status: 'finished', rating, updatedAt: new Date() });
+  },
+
+  async delete(id) {
+    await db.books.delete(id);
+  },
+
+  async getByStatus(status) {
+    return await db.books.where('status').equals(status).toArray();
+  },
+
+  async getStats() {
+    const all = await db.books.toArray();
+    return {
+      total:     all.length,
+      reading:   all.filter(b => b.status === 'reading').length,
+      finished:  all.filter(b => b.status === 'finished').length,
+      wishlist:  all.filter(b => b.status === 'wishlist').length,
+      pagesRead: all.reduce((s, b) => s + (b.currentPage || 0), 0)
+    };
+  }
+};
+
+// ============================================================
+// STUDY SESSIONS — Sessões de Estudo
+// ============================================================
+const StudySessions = {
+  async create({ subject, duration, date, notes = '', reminderTime = null, folderId = null }) {
+    return await db.studySessions.add({
+      subject, duration, notes, reminderTime, folderId,
+      date: date || new Date().toISOString().split('T')[0],
+      createdAt: new Date()
+    });
+  },
+
+  async getAll() {
+    return await db.studySessions.orderBy('createdAt').reverse().toArray();
+  },
+
+  async getBySubject(subject) {
+    return await db.studySessions.where('subject').equalsIgnoreCase(subject).toArray();
+  },
+
+  async getStats() {
+    const all = await db.studySessions.toArray();
+    const totalMinutes = all.reduce((s, ss) => s + (ss.duration || 0), 0);
+    const subjects = {};
+    all.forEach(ss => {
+      subjects[ss.subject] = (subjects[ss.subject] || 0) + (ss.duration || 0);
+    });
+    return {
+      totalSessions: all.length,
+      totalMinutes,
+      totalHours: (totalMinutes / 60).toFixed(1),
+      subjects,
+      topSubject: Object.entries(subjects).sort((a,b) => b[1]-a[1])[0]?.[0] || ''
+    };
+  },
+
+  async delete(id) {
+    await db.studySessions.delete(id);
+  },
+
+  async getRecent(limit = 5) {
+    return await db.studySessions.orderBy('createdAt').reverse().limit(limit).toArray();
+  }
+};
+
 window.GabrielDB = {
   db,
   Profile,
@@ -343,7 +454,9 @@ window.GabrielDB = {
   Events,
   Finances,
   Notes,
-  Tasks
+  Tasks,
+  Books,
+  StudySessions
 };
 
 console.log('[Gabriel] db.js carregado ✓');
