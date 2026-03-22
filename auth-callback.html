@@ -85,7 +85,7 @@
     <div class="icon-box red"><span class="material-icons-round">error_outline</span></div>
     <div class="state-title">Erro na conexão</div>
     <div class="state-sub" id="error-msg" style="color:#D94040">Não foi possível completar a autenticação.</div>
-    <button class="btn" onclick="window.location.href='login.html'">
+    <button class="btn" onclick="window.location.replace('/login.html')">
       <span class="material-icons-round">refresh</span>Tentar novamente
     </button>
   </div>
@@ -259,11 +259,11 @@ window.addEventListener('DOMContentLoaded', async function() {
     } catch(e) { isFirstTime = true; }
 
     // Redireciona: primeiro acesso → onboarding, demais → dashboard
-    var redirectTo = isFirstTime ? 'onboarding.html' : 'dashboard.html';
+    var redirectTo = isFirstTime ? '/onboarding.html' : '/dashboard.html';
 
     document.getElementById('btn-continue').href = redirectTo;
     showState('success');
-    setTimeout(function() { window.location.href = redirectTo; }, 2500);
+    setTimeout(function() { window.location.replace(redirectTo); }, 2500);
 
   } catch(err) {
     console.error('[Callback] Erro:', err);

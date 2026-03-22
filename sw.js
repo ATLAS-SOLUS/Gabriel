@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const CACHE_NAME    = 'gabriel-v3';
+const CACHE_NAME    = 'gabriel-v6';
 const OFFLINE_URL   = 'index.html';
 
 const CACHE_ASSETS = [
@@ -16,7 +16,8 @@ const CACHE_ASSETS = [
   'finance.html',
   'notes.html',
   'onboarding.html',
-  'terms.html',
+  'termosservicos.html',
+  'politicapublica.html',
   'global.css',
   'db.js',
   'auth.js',
@@ -28,7 +29,11 @@ const CACHE_ASSETS = [
   'google.js',
   'manifest.json',
   'icon-192.png',
-  'icon-512.png'
+  'icon-512.png',
+  'drive.html',
+  'photos.html',
+  'keep.html',
+  'settings.html'
 ];
 
 // ── Install ──────────────────────────────────────────────────

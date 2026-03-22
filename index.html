@@ -80,6 +80,7 @@
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
+<script src="google.js"></script>
 <script src="auth.js"></script>
 <script>
   // Registra Service Worker
@@ -92,35 +93,49 @@
                      window.location.search.includes('code=');
 
   if (isCallback) {
-    // Redireciona para página de callback
     window.location.href = 'auth-callback.html' + window.location.search;
   } else {
-    // Roteamento principal após splash
     window.addEventListener('DOMContentLoaded', async () => {
       await new Promise(r => setTimeout(r, 900));
 
       try {
-        const session = Auth.getSession();
+        // Verifica se Google está conectado com token válido
+        const googleConnected = localStorage.getItem('gabriel_google_connected') === 'true';
+        const googleToken     = localStorage.getItem('gabriel_google_access_token');
+        const googleExpiry    = parseInt(localStorage.getItem('gabriel_google_token_expiry') || '0');
+        const tokenValid      = googleConnected && googleToken && Date.now() < googleExpiry;
+
+        if (!tokenValid) {
+          window.location.replace('login.html');
+          return;
+        }
+
+        // Garante sessão local
+        let session = Auth.getSession();
         if (!session) {
-          window.location.replace('login.html');
-          return;
+          const email = localStorage.getItem('gabriel_google_email') || '';
+          const name  = localStorage.getItem('gabriel_google_name')  || 'Usuário';
+          const pic   = localStorage.getItem('gabriel_google_picture') || '';
+          if (email) {
+            localStorage.setItem('gabriel_session', JSON.stringify({
+              id: email, name, email, picture: pic,
+              provider: 'google', loggedAt: new Date().toISOString()
+            }));
+          } else {
+            window.location.replace('login.html');
+            return;
+          }
         }
 
-        const user = await Auth.getCurrentUserFull();
-        if (!user) {
-          window.location.replace('login.html');
-          return;
-        }
-
-        if (!user.termosAceitos) {
-          window.location.replace('terms.html');
-          return;
-        }
-
-        if (!user.onboardingDone) {
-          window.location.replace('onboarding.html');
-          return;
-        }
+        // Verifica onboarding
+        try {
+          const profile = await GabrielDB.Profile.get();
+          const groqKey = await GabrielDB.Settings.get('groq_api_key');
+          if (!profile?.onboardingDone || !groqKey) {
+            window.location.replace('onboarding.html');
+            return;
+          }
+        } catch(e) {}
 
         window.location.replace('dashboard.html');
 
