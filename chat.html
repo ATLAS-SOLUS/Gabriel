@@ -448,6 +448,8 @@ function toggleMic() {
 // ── TTS ───────────────────────────────────────────────────────
 function initTTS() {
   if (!window.speechSynthesis) return;
+  // Stop any speech that may have started automatically
+  speechSynthesis.cancel();
   const load = () => {
     const v = speechSynthesis.getVoices();
     ttsVoice = v.find(x => x.lang === 'pt-BR' && /male|daniel|lucas|edson/i.test(x.name))
@@ -591,7 +593,10 @@ async function sendMessage(text) {
 
     // Fase 3 — Gerar resposta
     const rr = addAgentStep('Gerando resposta...', 'running');
-    const enriched = agentCtx ? msgContent + '\n\n[CONTEXTO DOS AGENTES]\n' + agentCtx : msgContent;
+    // Build enriched message — keep original request clear, add context separately
+    const enriched = agentCtx
+      ? content + '\n\n---\n[INFORMAÇÕES COLETADAS PELOS AGENTES]\n' + agentCtx + '\n---\n\nCom base nessas informações, responda ao usuário e execute as ações necessárias.'
+      : msgContent;
     const { text: reply, actions } = await Groq.chat(enriched, currentMessages);
     updateStep(rr, 'done', 'Resposta gerada');
 

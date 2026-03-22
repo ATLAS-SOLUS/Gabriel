@@ -7,8 +7,8 @@ const Groq = (() => {
 
   const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
   const MODEL   = 'llama-3.3-70b-versatile';
-  const MAX_TOKENS_CHAT    = 2048;
-  const MAX_TOKENS_ACTIONS = 4096;
+  const MAX_TOKENS_CHAT    = 4096;
+  const MAX_TOKENS_ACTIONS = 8192;
   const MAX_TOKENS_MEMORY  = 512;
 
   // ── Chave API ────────────────────────────────────────────
@@ -88,8 +88,10 @@ const Groq = (() => {
     try {
       if (window.Google && window.Google.isConnected() && window.Google.isTokenValid()) {
         const email = window.Google.getConnectedEmail();
-        googleCtx = `\nGOOGLE CONECTADO: ${email}
-Você tem acesso completo ao Google do usuário: Gmail, Agenda, Drive, Fotos, Keep e Translate.`;
+        const name  = window.Google.getConnectedName();
+        googleCtx = `\n\n🔗 GOOGLE CONECTADO: ${name} <${email}>
+Serviços disponíveis: Gmail (ler/enviar emails), Google Agenda (criar/listar eventos), Google Drive (arquivos/pastas), Google Translate.
+Use ações gmail_*, gcal_* e drive_* para interagir com esses serviços.`;
         googleActions = `
 - gmail_list: { "action": "gmail_list", "query": "...", "max": 5 }
 - gmail_send: { "action": "gmail_send", "to": "email@...", "subject": "...", "body": "..." }
@@ -127,15 +129,27 @@ ${tasksTxt}
 PRÓXIMOS EVENTOS:
 ${eventsTxt}
 
-CAPACIDADES:
-Você pode criar pastas, eventos, gastos financeiros, notas, tarefas, buscar clima e pesquisar na web.${googleCtx ? ' Também pode ler e-mails, enviar e-mails e gerenciar o Google Agenda.' : ''}
-Quando o usuário pedir algo que envolva ação, responda normalmente E inclua no final um bloco JSON de ações.
-Formato do bloco de ações (apenas quando houver ações):
+CAPACIDADES E REGRAS DE AÇÃO:
+Você pode criar eventos, tarefas, notas, pastas, gastos, buscar clima, pesquisar na web.${googleCtx ? ' Também: ler/enviar emails (Gmail), criar eventos no Google Agenda, listar/buscar arquivos no Drive.' : ''}
+
+⚠️ REGRA CRÍTICA: Sempre que o usuário pedir para CRIAR, AGENDAR, SALVAR, ANOTAR, ADICIONAR qualquer coisa — você DEVE incluir o bloco <gabriel_actions> com a ação correspondente. NÃO apenas descreva o que vai fazer — EXECUTE via ação.
+
+Formato OBRIGATÓRIO quando há ações:
 <gabriel_actions>
 [
-  {"action": "...", ...parâmetros}
+  {"action": "nome_acao", "param1": "valor1", "param2": "valor2"}
 ]
 </gabriel_actions>
+
+Exemplos de quando OBRIGATORIAMENTE usar ações:
+- "cria uma tarefa" → create_task
+- "agenda um evento" → create_event  
+- "anota no caderno" → create_note
+- "salva uma nota" → create_note
+- "cria uma pasta" → create_folder
+- "registra um gasto" → create_finance
+- "pesquisa X e anota" → search_web + create_note (dois no mesmo bloco)
+- "qual o clima" → get_weather
 
 AÇÕES DISPONÍVEIS:
 - create_folder: { "action": "create_folder", "name": "...", "parentName": "..." }
@@ -176,7 +190,7 @@ REGRAS:
 
     history.push({ role: 'user', content: userMessage });
 
-    const rawResponse = await call(history, systemPrompt, MAX_TOKENS_CHAT);
+    const rawResponse = await call(history, systemPrompt, MAX_TOKENS_ACTIONS);
 
     // Separa texto da resposta e bloco de ações
     const actionMatch = rawResponse.match(/<gabriel_actions>([\s\S]*?)<\/gabriel_actions>/);
@@ -375,9 +389,19 @@ Forneça análises detalhadas, padrões identificados e recomendações prática
 
   // ── Agente de Programação ────────────────────────────────
   async function agentCode(task, language = 'javascript') {
-    const systemPrompt = `Você é o Agente de Programação do Gabriel. Especialista em escrever código limpo, funcional e bem comentado.
-Linguagem preferida: ${language}. Sempre inclua comentários explicativos e exemplos de uso.
-Quando criar código completo, sinalize para salvar no Drive ou caderno.`;
+    const systemPrompt = `Você é o Agente de Programação do Gabriel — especialista em desenvolvimento de software.
+
+REGRAS OBRIGATÓRIAS:
+1. Sempre escreva código COMPLETO e FUNCIONAL — nunca coloque "..." ou "// resto do código"
+2. Use blocos de código com a linguagem correta: \`\`\`javascript, \`\`\`python, \`\`\`html, etc
+3. Inclua comentários explicativos em português
+4. Explique brevemente o que o código faz antes e como usar depois
+5. Se o código for longo, divida em seções bem organizadas
+6. Detecte automaticamente a melhor linguagem para a tarefa
+7. Para apps web, sempre crie HTML+CSS+JS completo em um único arquivo
+8. Inclua exemplos de uso sempre que relevante
+
+Responda em português. Código deve ser pronto para usar.`;
 
     const messages = [{ role: 'user', content: task }];
     const result = await call(messages, systemPrompt, 4096);
