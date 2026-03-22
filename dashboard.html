@@ -654,7 +654,7 @@
   <div class="scroll-area" id="scroll-area">
 
     <!-- Banner Google -->
-    <div id="google-banner" style="display:none;margin:12px 16px 0;background:#FFF8E7;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+    <div id="google-banner" style="display:none;margin:12px 16px 0;background:#FFF8E7;border-radius:14px;padding:12px 14px;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
       <span class="material-icons-round" style="color:#E8A838;font-size:22px;flex-shrink:0">link</span>
       <div style="flex:1">
         <div style="font-size:13.5px;font-weight:600;color:#1A1A1A">Conecte Gmail e Agenda</div>
@@ -1092,6 +1092,40 @@ async function loadMemories() {
     `;
     container.appendChild(item);
   });
+}
+
+// ── Banner Google ─────────────────────────────────────────
+function checkGoogleBanner() {
+  const banner = document.getElementById('google-banner');
+  if (!banner) return;
+
+  // Consome a flag de conexão recém-feita
+  const justConnected = localStorage.getItem('gabriel_google_just_connected');
+  if (justConnected) {
+    localStorage.removeItem('gabriel_google_just_connected');
+  }
+
+  // Verifica se já está conectado com token válido
+  if (Google.isConnected() && Google.isTokenValid()) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  // Verifica se o usuário dispensou o banner antes
+  const dismissed = localStorage.getItem('gabriel_google_banner_dismissed');
+  if (dismissed) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  // Mostra o banner
+  banner.style.display = 'flex';
+}
+
+function dismissGoogleBanner() {
+  const banner = document.getElementById('google-banner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('gabriel_google_banner_dismissed', '1');
 }
 
 // ── Nav ───────────────────────────────────────────────────

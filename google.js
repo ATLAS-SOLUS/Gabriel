@@ -372,6 +372,7 @@ const Google = (() => {
 
   function disconnect() {
     Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+    localStorage.removeItem('gabriel_google_banner_dismissed');
     console.log('[Google] Desconectado.');
   }
 
