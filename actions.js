@@ -313,6 +313,21 @@ const Actions = (() => {
     }
   }
 
+
+  // ── GOOGLE DRIVE: baixar/abrir arquivo ──────────────────
+  async function execDriveDownload({ fileId, fileName }) {
+    if (!window.Google?.isConnected()) return result('drive_download', false, 'Google não conectado.');
+    try {
+      const token = localStorage.getItem('gabriel_google_access_token');
+      // Abre o arquivo diretamente no navegador
+      const url = fileId 
+        ? `https://drive.google.com/uc?export=download&id=${fileId}`
+        : `https://drive.google.com/drive/search?q=${encodeURIComponent(fileName||'')}`;
+      window.open(url, '_blank');
+      return result('drive_download', true, `Abrindo "${fileName || fileId}" no Google Drive ✓`);
+    } catch(err) { return result('drive_download', false, `Erro: ${err.message}`); }
+  }
+
   // ── DISPATCHER PRINCIPAL ─────────────────────────────────
 
   const handlers = {
@@ -328,6 +343,7 @@ const Actions = (() => {
     gmail_send:     execGmailSend,
     gcal_list:      execGcalList,
     gcal_create:    execGcalCreate,
+    drive_download: execDriveDownload,
     drive_list:     execDriveList,
     drive_upload:   execDriveUpload,
     drive_search:   execDriveSearch,

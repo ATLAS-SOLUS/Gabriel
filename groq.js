@@ -98,6 +98,7 @@ Você tem acesso completo ao Google do usuário: Gmail, Agenda, Drive, Fotos, Ke
 - drive_list: { "action": "drive_list", "max": 10 }
 - drive_search: { "action": "drive_search", "query": "nome do arquivo" }
 - drive_upload: { "action": "drive_upload", "name": "arquivo.txt", "content": "...", "mimeType": "text/plain" }
+- drive_download: { "action": "drive_download", "fileId": "id_do_arquivo", "fileName": "nome.pdf" }
 - photos_list: { "action": "photos_list", "max": 12 }
 - photos_albums: { "action": "photos_albums" }
 - keep_list: { "action": "keep_list" }
@@ -154,9 +155,12 @@ REGRAS:
 5. Ao executar múltiplas ações, liste todas no mesmo bloco JSON
 6. Após executar, confirme de forma amigável o que foi feito
 7. Para ações gmail_* e gcal_*, só use se Google estiver conectado. Caso contrário, oriente a conectar no Dashboard
-8. CONTEÚDO COMPLETO: Quando criar notas, músicas, poemas, letras, histórias ou qualquer texto criativo, SEMPRE salve o conteúdo COMPLETO na nota via create_note — nunca resuma ou corte
-9. PESQUISA: Quando o usuário pedir algo atual, notícias, preços, clima ou qualquer informação recente, use search_web para buscar dados reais antes de responder
-10. CLIMA: Para previsão do tempo, use get_weather com a cidade do usuário. Mostre temperatura, chuva e previsão para os próximos dias`;
+8. CONTEÚDO COMPLETO: Quando criar notas, músicas, poemas, letras, histórias ou qualquer texto criativo, SEMPRE salve o conteúdo COMPLETO na nota via create_note — nunca resuma ou corte. Se o conteúdo for longo, crie a nota mesmo assim com tudo
+9. PESQUISA: Quando o usuário pedir algo atual, notícias, preços, clima ou qualquer informação recente, use search_web para buscar dados reais antes de responder. SEMPRE use search_web quando pedir para pesquisar
+10. CLIMA: Para previsão do tempo, use get_weather SEM especificar cidade (deixe vazio) para usar a localização salva do usuário. Mostre temperatura, chuva e previsão para os próximos dias
+11. CALENDÁRIO: Para criar eventos no calendário LOCAL use create_event. Para criar no Google Calendar use gcal_create. Sempre pergunte se quer nos dois quando relevante
+12. DRIVE: Para baixar ou abrir arquivo use drive_download. Para buscar use drive_search. Para listar use drive_list
+13. COMBINAÇÃO: Quando o usuário pedir para pesquisar E salvar no caderno, execute search_web E create_note no mesmo bloco de ações`;
   }
 
   // ── Chat principal ───────────────────────────────────────
@@ -270,50 +274,65 @@ Retorne APENAS o título, sem aspas, sem pontuação extra.`;
     }
   }
 
-  // ── Pesquisa web real (via Netlify proxy) ────────────────
+  // ── Pesquisa web real ────────────────────────────────────
 
   async function searchWeb(query) {
     try {
-      // Chama nosso proxy Netlify que usa Brave Search (ou DuckDuckGo fallback)
-      const res = await fetch('/.netlify/functions/web-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, count: 6 })
-      });
+      // Tenta proxy Netlify primeiro (Brave Search)
+      let results = [];
+      try {
+        const res = await fetch('/.netlify/functions/web-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, count: 6 })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          results = data.results || [];
+        }
+      } catch(e) { console.warn('[Search] Proxy falhou, tentando fallbacks...'); }
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const results = data.results || [];
+      // Fallback 1: DuckDuckGo Instant Answer API
+      if (results.length === 0) {
+        try {
+          const ddgRes = await fetch(
+            `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&t=gabriel`
+          );
+          const ddg = await ddgRes.json();
+          if (ddg.AbstractText) results.push({ title: ddg.Heading, snippet: ddg.AbstractText, url: ddg.AbstractURL });
+          (ddg.RelatedTopics || []).slice(0, 4).forEach(t => {
+            if (t.Text) results.push({ title: t.Text.split(' - ')[0], snippet: t.Text, url: t.FirstURL || '' });
+          });
+          if (ddg.Answer) results.unshift({ title: 'Resposta direta', snippet: ddg.Answer, url: '' });
+        } catch(e) { console.warn('[Search] DDG falhou'); }
+      }
+
+      // Fallback 2: Wikipedia API (sem CORS)
+      if (results.length === 0) {
+        try {
+          const wikiRes = await fetch(
+            `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.split(' ').slice(0,3).join('_'))}`
+          );
+          if (wikiRes.ok) {
+            const wiki = await wikiRes.json();
+            if (wiki.extract) results.push({ title: wiki.title, snippet: wiki.extract.slice(0, 500), url: wiki.content_urls?.desktop?.page || '' });
+          }
+        } catch(e) {}
+      }
 
       if (results.length === 0) {
-        return `Nenhum resultado encontrado para: "${query}"`;
+        return `Não encontrei resultados para "${query}". Tente reformular a pergunta.`;
       }
 
-      // Passa os resultados para a IA resumir de forma inteligente
-      const systemPrompt = `Você é Gabriel, assistente pessoal. Analise os resultados de pesquisa e responda em português de forma clara, útil e completa. Cite as fontes quando relevante. Seja direto e informativo.`;
+      const systemPrompt = `Você é Gabriel. Analise os resultados de pesquisa e responda em português de forma clara, completa e útil. Mencione as fontes. Seja informativo e direto.`;
+      const msgContent = `Pesquisa: "${query}"\n\nResultados:\n\n` +
+        results.slice(0, 5).map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? '\nFonte: ' + r.url : ''}`).join('\n\n');
 
-      const content = `Pesquisa: "${query}"\n\nResultados encontrados:\n\n` +
-        results.map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? '\nFonte: ' + r.url : ''}`).join('\n\n');
-
-      const messages = [{ role: 'user', content }];
-      return await call(messages, systemPrompt, 1024);
+      return await call([{ role: 'user', content: msgContent }], systemPrompt, 1024);
 
     } catch (e) {
-      console.error('[Groq] Erro pesquisa web:', e);
-      // Fallback direto DuckDuckGo
-      try {
-        const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const results = [];
-        if (data.AbstractText) results.push(`${data.Heading}: ${data.AbstractText}`);
-        (data.RelatedTopics || []).slice(0, 3).forEach(t => { if (t.Text) results.push(t.Text); });
-        if (results.length === 0) return `Não consegui buscar "${query}" agora.`;
-        const messages = [{ role: 'user', content: `Pesquisa: "${query}"\n\n${results.join('\n\n')}` }];
-        return await call(messages, 'Resuma em português de forma clara e útil.', 512);
-      } catch(e2) {
-        return `Não consegui buscar "${query}" agora. Verifique sua conexão.`;
-      }
+      console.error('[Groq] Erro pesquisa:', e);
+      return `Não consegui buscar "${query}" agora. Verifique sua conexão.`;
     }
   }
 

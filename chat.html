@@ -185,6 +185,21 @@
     @keyframes agent-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
     @keyframes stepIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
     @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* ── TTS / Voz ───────────────────────────────────────── */
+    .tts-btn { background: none; border: none; cursor: pointer; color: var(--text-hint); padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-family: inherit; transition: color 0.15s ease, background 0.15s ease; -webkit-tap-highlight-color: transparent; margin-top: 6px; }
+    .tts-btn:hover, .tts-btn.speaking { color: var(--accent); background: var(--accent-soft); }
+    .tts-btn .material-icons-round { font-size: 15px; }
+    .tts-bar { position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 60px); left: 50%; transform: translateX(-50%); background: var(--accent); color: white; border-radius: 99px; padding: 10px 18px; display: none; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 50; white-space: nowrap; }
+    .tts-bar.show { display: flex; }
+    .tts-bar-wave { display: flex; gap: 3px; align-items: center; }
+    .tts-bar-wave span { width: 3px; border-radius: 99px; background: white; animation: wave 1s ease infinite; }
+    .tts-bar-wave span:nth-child(1) { height: 8px; animation-delay: 0s; }
+    .tts-bar-wave span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+    .tts-bar-wave span:nth-child(3) { height: 10px; animation-delay: 0.3s; }
+    .tts-bar-wave span:nth-child(4) { height: 16px; animation-delay: 0.1s; }
+    .tts-bar-wave span:nth-child(5) { height: 8px; animation-delay: 0.25s; }
+    @keyframes wave { 0%,100%{transform:scaleY(0.5)} 50%{transform:scaleY(1)} }
   </style>
 </head>
 <body>
@@ -254,7 +269,21 @@
   </div>
 
   <!-- Input -->
+  <input type="file" id="file-upload-input" style="display:none" accept="image/*,application/pdf,.txt,.doc,.docx,.xls,.xlsx" onchange="handleFileUpload(this)">
+  
+  <!-- Preview arquivo selecionado -->
+  <div id="file-preview-bar" style="display:none;background:var(--surface);border-top:1px solid var(--border);padding:8px 14px;display:none;align-items:center;gap:8px">
+    <span class="material-icons-round" style="font-size:18px;color:var(--text-secondary)" id="file-preview-icon">attach_file</span>
+    <span style="font-size:13px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="file-preview-name"></span>
+    <button onclick="cancelFileUpload()" style="background:none;border:none;cursor:pointer;color:var(--text-hint);padding:2px">
+      <span class="material-icons-round" style="font-size:18px">close</span>
+    </button>
+  </div>
+
   <div class="input-bar">
+    <button class="mic-btn" onclick="document.getElementById('file-upload-input').click()" title="Anexar arquivo" id="attach-btn">
+      <span class="material-icons-round">attach_file</span>
+    </button>
     <div class="input-wrap" id="input-wrap">
       <textarea
         class="msg-input"
@@ -298,6 +327,16 @@
   </nav>
 </div>
 
+
+  <!-- TTS Bar -->
+  <div class="tts-bar" id="tts-bar">
+    <div class="tts-bar-wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <span id="tts-bar-text">Gabriel falando...</span>
+    <button onclick="stopTTS()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:99px;padding:4px 10px;font-family:inherit;font-size:12px;cursor:pointer">Parar</button>
+  </div>
+
 <div class="tooltip" id="tooltip"></div>
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
@@ -321,6 +360,7 @@ let finalTranscript = '';
 // ── Init ────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   await Auth.guard('chat.html');
+  initTTS();
   const name = (Auth.getSession()?.name || 'você').split(' ')[0];
   document.getElementById('welcome-subtitle').textContent =
     `Olá, ${name}! Escreva ou toque no microfone para falar comigo.`;
@@ -523,9 +563,30 @@ async function sendMessage(text) {
     loadDrawer();
   }
 
-  addBubble('user', content);
-  currentMessages.push({ role: 'user', content });
-  await GabrielDB.Conversations.addMessage(currentConvId, { role: 'user', content });
+  // Handle file attachment
+  let fileContext = '';
+  if (pendingFile) {
+    const fname = pendingFile.name;
+    const ftype = pendingFile.type;
+    addBubble('user', content + `\n📎 ${fname}`);
+    fileContext = `\n\n[ARQUIVO ANEXADO: ${fname} (${ftype})]\nO usuário enviou um arquivo. Analise e responda sobre ele.`;
+    
+    // Upload para Drive se Google conectado
+    if (window.Google?.isConnected()) {
+      try {
+        const folderId = await Google.Drive.getOrCreateGabrielFolder();
+        await Google.Drive.upload(pendingFile, folderId);
+        fileContext += `\nArquivo "${fname}" salvo no Google Drive com sucesso.`;
+      } catch(e) { console.warn('[Upload] Drive:', e); }
+    }
+    cancelFileUpload();
+  } else {
+    addBubble('user', content);
+  }
+
+  const enrichedUserContent = content + fileContext;
+  currentMessages.push({ role: 'user', content: enrichedUserContent });
+  await GabrielDB.Conversations.addMessage(currentConvId, { role: 'user', content: enrichedUserContent });
 
   setThinking(true);
   createAgentPanel();
@@ -535,9 +596,9 @@ async function sendMessage(text) {
     const routeStep = addAgentStep('route', 'Analisando mensagem...', 'running');
     await new Promise(r => setTimeout(r, 250));
 
-    const needsSearch   = /pesquis|busca|notícia|atual|hoje|preço|clima|quem é|o que é|quando foi|como funciona|lançamento|novidade/i.test(content);
-    const needsCode     = /código|programa|script|função|desenvolv|implementa|crie um app|cria um/i.test(content);
-    const needsDrive    = /drive|arquivo|pasta|documento|salv.*drive|upload/i.test(content);
+    const needsSearch   = /pesquis|busca|notícia|atual|hoje|preço|clima|quem é|o que é|quando foi|como funciona|lançamento|novidade|pesquise|me fale sobre|me diga|informe/i.test(content);
+    const needsCode     = /código|programa|script|função|desenvolv|implementa|crie um app|crie um sistema/i.test(content);
+    const needsDrive    = /drive|meu arquivo|minha foto|pasta|documento|salv.*drive|upload|baixar|abrir arquivo|ver arquivo|mostrar arquivo/i.test(content);
     const needsAnalysis = /analis|compara|relatório|gráfico|dado/i.test(content);
 
     const agents = [];
@@ -564,12 +625,26 @@ async function sendMessage(text) {
     }
 
     if (needsDrive && window.Google?.isConnected()) {
-      const s = addAgentStep('drive', 'Verificando Google Drive...', 'running');
+      const s = addAgentStep('drive', 'Acessando Google Drive...', 'running');
       try {
-        const r = await Groq.agentDrive(content);
-        agentContext += '\n\n[DRIVE]\n' + r.result;
-        updateAgentStep(s, 'done', 'Drive verificado');
-      } catch(e) { updateAgentStep(s, 'error', 'Erro no Drive'); }
+        // Busca arquivos relevantes
+        const query = content.match(/["']([^"']+)["']|(?:arquivo|foto|documento|pasta)\s+(\w+)/i)?.[1] || '';
+        let driveFiles = [];
+        if (query) {
+          driveFiles = await Google.Drive.search(query);
+        } else {
+          driveFiles = await Google.Drive.list('', 8);
+        }
+        agentContext += '\n\n[DRIVE]\nArquivos encontrados:\n' + 
+          driveFiles.map(f => `- ${f.name} (${f.mimeType?.split('/').pop() || 'arquivo'})`).join('\n');
+        
+        // Exibe arquivos visualmente no chat
+        if (driveFiles.length > 0 && (content.includes('mostr') || content.includes('exib') || content.includes('ver') || content.includes('abr') || content.includes('baixar'))) {
+          setTimeout(() => driveFiles.slice(0,3).forEach(f => showDriveFile(f)), 200);
+        }
+        
+        updateAgentStep(s, 'done', `${driveFiles.length} arquivo(s) encontrado(s)`);
+      } catch(e) { updateAgentStep(s, 'error', 'Erro no Drive: ' + (e.message||'').slice(0,30)); }
     }
 
     if (needsCode)     { const s = addAgentStep('code',    'Agente de código ativado...', 'running');   await new Promise(r=>setTimeout(r,100)); updateAgentStep(s,'info','Agente de código pronto'); }
@@ -662,10 +737,16 @@ function addBubble(role, content, actionResults = []) {
     </div>`;
   }
 
+  const ttsBtn = role === 'gabriel' ? `
+    <button class="tts-btn" onclick="speakText(this.closest('.msg-row').querySelector('.bubble-text').innerText, this)">
+      <span class="material-icons-round">volume_up</span>Ouvir
+    </button>` : '';
+
   row.innerHTML = `
     <div class="bubble">
       <div class="bubble-text">${html}</div>
       ${actionsHTML}${badgesHTML}
+      ${ttsBtn}
     </div>
     <div class="msg-time">${timeStr}</div>
   `;
@@ -798,6 +879,164 @@ async function newConversation() {
         <div class="suggestion-chip" onclick="sendSuggestion('Anote um gasto de R$ 50 em alimentação')"><span class="material-icons-round">account_balance_wallet</span>Anotar gasto</div>
       </div>
     </div>`;
+}
+
+
+// ── TTS — Voz do Gabriel ─────────────────────────────────────
+
+let ttsUtterance = null;
+let ttsSpeaking  = false;
+let ttsVoice     = null;
+
+function initTTS() {
+  if (!window.speechSynthesis) return;
+  const loadVoices = () => {
+    const voices = speechSynthesis.getVoices();
+    // Prefere voz masculina em português
+    ttsVoice = voices.find(v => v.lang === 'pt-BR' && v.name.toLowerCase().includes('male'))
+            || voices.find(v => v.lang === 'pt-BR' && (v.name.includes('Daniel') || v.name.includes('Lucas') || v.name.includes('Edson')))
+            || voices.find(v => v.lang === 'pt-BR')
+            || voices.find(v => v.lang.startsWith('pt'))
+            || voices[0];
+    console.log('[TTS] Voz selecionada:', ttsVoice?.name);
+  };
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function speakText(text, btnEl) {
+  if (!window.speechSynthesis) {
+    alert('Seu navegador não suporta voz. Tente no Chrome.');
+    return;
+  }
+
+  // Se já está falando o mesmo, para
+  if (ttsSpeaking) {
+    stopTTS();
+    if (btnEl) { btnEl.classList.remove('speaking'); btnEl.querySelector('.material-icons-round').textContent = 'volume_up'; }
+    return;
+  }
+
+  // Remove markdown e limpa o texto
+  const clean = text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/`(.*?)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[•\-–—]/g, ', ')
+    .replace(/
+{2,}/g, '. ')
+    .replace(/
+/g, ' ')
+    .trim();
+
+  ttsUtterance = new SpeechSynthesisUtterance(clean);
+  ttsUtterance.lang  = 'pt-BR';
+  ttsUtterance.rate  = 1.05;
+  ttsUtterance.pitch = 0.9;
+  ttsUtterance.volume = 1;
+  if (ttsVoice) ttsUtterance.voice = ttsVoice;
+
+  ttsUtterance.onstart = () => {
+    ttsSpeaking = true;
+    document.getElementById('tts-bar').classList.add('show');
+    document.getElementById('tts-bar-text').textContent = 'Gabriel falando...';
+    if (btnEl) { btnEl.classList.add('speaking'); btnEl.querySelector('.material-icons-round').textContent = 'stop'; }
+  };
+
+  ttsUtterance.onend = ttsUtterance.onerror = () => {
+    ttsSpeaking = false;
+    document.getElementById('tts-bar').classList.remove('show');
+    if (btnEl) { btnEl.classList.remove('speaking'); btnEl.querySelector('.material-icons-round').textContent = 'volume_up'; }
+    ttsUtterance = null;
+  };
+
+  // Chrome mobile quirk — precisa cancelar antes de falar
+  speechSynthesis.cancel();
+  setTimeout(() => speechSynthesis.speak(ttsUtterance), 100);
+}
+
+function stopTTS() {
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  ttsSpeaking = false;
+  document.getElementById('tts-bar').classList.remove('show');
+  document.querySelectorAll('.tts-btn.speaking').forEach(b => {
+    b.classList.remove('speaking');
+    b.querySelector('.material-icons-round').textContent = 'volume_up';
+  });
+}
+
+
+// ── Upload de arquivo ────────────────────────────────────────
+
+let pendingFile = null;
+let pendingFileBase64 = null;
+
+function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  pendingFile = file;
+
+  // Mostra preview
+  const bar = document.getElementById('file-preview-bar');
+  const name = document.getElementById('file-preview-name');
+  const icon = document.getElementById('file-preview-icon');
+  bar.style.display = 'flex';
+  name.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + 'KB)';
+  icon.textContent = file.type.startsWith('image/') ? 'image' : 
+                     file.type.includes('pdf') ? 'picture_as_pdf' : 'description';
+
+  // Lê como base64 para enviar ao Gabriel
+  const reader = new FileReader();
+  reader.onload = e => { pendingFileBase64 = e.target.result; };
+  reader.readAsDataURL(file);
+
+  // Foca no input
+  document.getElementById('msg-input').focus();
+  input.value = '';
+}
+
+function cancelFileUpload() {
+  pendingFile = null;
+  pendingFileBase64 = null;
+  document.getElementById('file-preview-bar').style.display = 'none';
+}
+
+// Mostra arquivo do Drive no chat
+function showDriveFile(file) {
+  const area = document.getElementById('messages-area');
+  const row = document.createElement('div');
+  row.className = 'msg-row gabriel';
+  
+  const isImage = file.mimeType?.includes('image') || file.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  const isPdf   = file.mimeType?.includes('pdf') || file.name?.match(/\.pdf$/i);
+  
+  let fileHTML = '';
+  if (isImage && file.thumbnailUrl) {
+    fileHTML = `<img src="${file.thumbnailUrl}" style="max-width:100%;border-radius:10px;margin-top:8px" onclick="window.open('${file.webViewLink}','_blank')">`;
+  } else {
+    const icon = isPdf ? 'picture_as_pdf' : 'description';
+    const color = isPdf ? '#EA4335' : '#4285F4';
+    fileHTML = `
+      <div onclick="window.open('${file.webViewLink || '#'}','_blank')" style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:8px;cursor:pointer">
+        <span class="material-icons-round" style="color:${color};font-size:28px">${icon}</span>
+        <div>
+          <div style="font-size:13px;font-weight:600">${file.name}</div>
+          <div style="font-size:11px;color:var(--text-hint)">${file.size ? (file.size/1024).toFixed(0)+'KB' : 'Google Drive'} • Toque para abrir</div>
+        </div>
+        <span class="material-icons-round" style="margin-left:auto;color:var(--text-hint);font-size:18px">open_in_new</span>
+      </div>`;
+  }
+  
+  row.innerHTML = `
+    <div class="bubble">
+      <div class="bubble-text">📁 Arquivo do Drive:</div>
+      ${fileHTML}
+    </div>
+    <div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  area.appendChild(row);
+  scrollToBottom();
 }
 
 function scrollToBottom() {
