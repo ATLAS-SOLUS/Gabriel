@@ -417,6 +417,16 @@ let currentGame = null;
 let aiReady = false;
 
 window.addEventListener('DOMContentLoaded', async () => {
+  if (typeof Groq === 'undefined') {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) await reg.unregister();
+    }
+    const keys = await caches.keys();
+    for (const key of keys) await caches.delete(key);
+    window.location.reload(true);
+    return;
+  }
   await Auth.guard('games.html');
   updateTotalScore(0);
   // Verifica se tem chave API

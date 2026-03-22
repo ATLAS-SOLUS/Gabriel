@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const CACHE_NAME    = 'gabriel-v7';
+const CACHE_NAME    = 'gabriel-v8';
 const OFFLINE_URL   = 'index.html';
 
 const CACHE_ASSETS = [

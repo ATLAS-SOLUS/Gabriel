@@ -414,6 +414,18 @@ let activeGame = null; // { type, state, data }
 
 // ── Init ──────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  // Verifica se Groq carregou — se não, recarrega a página uma vez
+  if (typeof Groq === 'undefined') {
+    console.warn('[Gabriel] groq.js não carregou — limpando cache e recarregando...');
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) await reg.unregister();
+    }
+    const keys = await caches.keys();
+    for (const key of keys) await caches.delete(key);
+    window.location.reload(true);
+    return;
+  }
   await Auth.guard('chat.html');
   initTTS();
   const name = (Auth.getSession()?.name || 'você').split(' ')[0];
