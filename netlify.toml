@@ -1,38 +1,24 @@
-# netlify.toml — Configuração do Gabriel no Netlify
-# Coloque este arquivo na raiz do repositório
+# netlify.toml — Configuração do Gabriel
+# Este arquivo deve estar na RAIZ do repositório
 
 [build]
-  # Sem build command — projeto estático puro
   publish = "."
   functions = "netlify/functions"
 
-# ── Redirecionamentos ──────────────────────────────────────
-
-# Callback OAuth do Google
+# Callback OAuth do Google → auth-callback.html
 [[redirects]]
-  from = "/auth/google/callback"
-  to   = "/auth-callback.html"
+  from   = "/auth/google/callback"
+  to     = "/auth-callback.html"
   status = 200
-  force = true
+  force  = true
 
-# SPA fallback — todas as rotas apontam para index
-[[redirects]]
-  from   = "/*"
-  to     = "/index.html"
-  status = 200
-
-# ── Headers de segurança ───────────────────────────────────
-
+# Headers de segurança e PWA
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options        = "DENY"
     X-Content-Type-Options = "nosniff"
-    X-XSS-Protection       = "1; mode=block"
-    Referrer-Policy        = "strict-origin-when-cross-origin"
-    Permissions-Policy     = "camera=(), microphone=(self), geolocation=()"
 
-# PWA — cache agressivo para assets estáticos
 [[headers]]
   for = "/sw.js"
   [headers.values]
@@ -43,13 +29,3 @@
   [headers.values]
     Cache-Control = "public, max-age=86400"
     Content-Type  = "application/manifest+json"
-
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-
-[[headers]]
-  for = "/*.html"
-  [headers.values]
-    Cache-Control = "no-cache"
