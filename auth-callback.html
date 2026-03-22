@@ -86,8 +86,8 @@
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
-<script src="auth.js"></script>
 <script src="google.js"></script>
+<script src="auth.js"></script>
 <script>
 const REDIRECT_URI = 'https://atlasgabriel.netlify.app/auth/google/callback';
 
@@ -130,40 +130,74 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     stepDone(2); await delay(250);
 
-    // Busca perfil
+    // Busca perfil Google
     const userInfo = await Google.getUserInfo(tokenData.access_token);
     stepDone(3); await delay(250);
 
-    // Salva tokens
-    Google.saveTokens({ ...tokenData, email: userInfo.email, name: userInfo.name, picture: userInfo.picture, id: userInfo.sub });
-    localStorage.setItem('gabriel_google_just_connected', '1');
+    // Salva tokens via Google.js
+    Google.saveTokens({
+      ...tokenData,
+      email:   userInfo.email,
+      name:    userInfo.name,
+      picture: userInfo.picture,
+      id:      userInfo.sub
+    });
 
-    // Cria/atualiza sessão local
+    // Cria sessão local
     const email = userInfo.email || '';
     const name  = userInfo.name  || 'Usuário';
-    const usersRaw = await GabrielDB.Settings.get('gabriel_users');
-    const usersList = usersRaw ? JSON.parse(usersRaw) : [];
-    let user = usersList.find(u => u.email === email);
-    if (!user) {
-      user = { id: Date.now().toString(36), name, email, createdAt: new Date().toISOString(), onboardingDone: true, termosAceitos: true, googleAuth: true };
-      usersList.push(user);
-    } else {
-      user.name = name; user.googleAuth = true;
-    }
-    await GabrielDB.Settings.set('gabriel_users', JSON.stringify(usersList));
-    localStorage.setItem('gabriel_session', JSON.stringify({ id: user.id, name, email, loggedAt: new Date().toISOString() }));
+    localStorage.setItem('gabriel_session', JSON.stringify({
+      id: userInfo.sub || email, name, email,
+      picture: userInfo.picture || '',
+      provider: 'google',
+      loggedAt: new Date().toISOString()
+    }));
+    localStorage.setItem('gabriel_google_just_connected', '1');
+
+    // Salva/atualiza perfil no DB
+    try {
+      await GabrielDB.Profile.save({
+        name, email,
+        userId: userInfo.sub || email,
+        picture: userInfo.picture || '',
+        provider: 'google',
+        onboardingDone: true,
+        createdAt: new Date()
+      });
+    } catch(e) { console.warn('[Callback] Perfil DB:', e); }
 
     stepDone(4); await delay(250);
 
-    // Cria pasta Gabriel no Drive (em background)
-    try { await Google.Drive.getOrCreateGabrielFolder(); } catch {}
+    // Cria pasta Gabriel no Drive em background
+    try { await Google.Drive.getOrCreateGabrielFolder(); } catch(e) { console.warn('[Callback] Drive:', e); }
     stepDone(5); await delay(300);
 
-    // Mostra sucesso
+    // Mostra tela de sucesso
     document.getElementById('google-user-name').textContent  = name;
     document.getElementById('google-user-email').textContent = email;
     if (userInfo.picture) {
-      document.getElementById('google-avatar').innerHTML = `<img src="${userInfo.picture}" alt="${name}">`;
+      document.getElementById('google-avatar').innerHTML = `<img src="${userInfo.picture}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    }
+
+    let redirectTo = 'dashboard.html';
+    try {
+      const d = JSON.parse(atob(state || btoa('{}')));
+      if (d.from && !d.from.includes('login.html')) {
+        redirectTo = d.from.replace(/^\//, '');
+      }
+    } catch {}
+
+    document.getElementById('btn-continue').href = redirectTo;
+    showState('success');
+    setTimeout(() => { window.location.href = redirectTo; }, 2200);
+
+  } catch (err) {
+    console.error('[Callback]', err);
+    document.getElementById('error-msg').textContent = err.message || 'Erro inesperado.';
+    showState('error');
+  }
+});
+</script>      document.getElementById('google-avatar').innerHTML = `<img src="${userInfo.picture}" alt="${name}">`;
     }
 
     let redirectTo = 'dashboard.html';
