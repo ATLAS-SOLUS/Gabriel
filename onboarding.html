@@ -684,6 +684,7 @@
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
+<script src="google.js"></script>
 <script src="auth.js"></script>
 <script src="groq.js"></script>
 <script src="weather.js"></script>
@@ -703,8 +704,24 @@
 
   async function prefillName() {
     const session = Auth.getSession();
+    const nameInput = document.getElementById('input-name');
+
     if (session?.name) {
-      document.getElementById('input-name').value = session.name;
+      nameInput.value = session.name;
+      // Nome vem do Google — deixa editável mas já preenchido
+      nameInput.placeholder = session.name;
+    }
+
+    // Preenche cidade se já tiver
+    const city = await Weather.getDefaultCity();
+    if (city) document.getElementById('input-city').value = city;
+
+    // Mostra email do Google no slide 0 como info
+    if (session?.email) {
+      const subtitle = document.querySelector('#slide-0 .slide-subtitle');
+      if (subtitle) {
+        subtitle.innerHTML = `Conectado como <strong>${session.email}</strong>.<br>Como prefere que eu te chame?`;
+      }
     }
   }
 

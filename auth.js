@@ -10,106 +10,72 @@ const Auth = (() => {
   // ── Sessão ───────────────────────────────────────────────
 
   function getSession() {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (raw) { try { return JSON.parse(raw); } catch { return null; } }
-    if (typeof Google !== 'undefined' && Google.isConnected && Google.isConnected()) {
-      return buildSessionFromGoogle();
-    }
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e) {}
+
+    // Fallback: monta sessão a partir dos tokens Google
+    try {
+      const connected = localStorage.getItem('gabriel_google_connected') === 'true';
+      const email     = localStorage.getItem('gabriel_google_email');
+      const name      = localStorage.getItem('gabriel_google_name');
+      const picture   = localStorage.getItem('gabriel_google_picture') || '';
+      const id        = localStorage.getItem('gabriel_google_user_id') || email;
+
+      if (connected && email) {
+        const session = { id, name, email, picture, provider: 'google', loggedAt: new Date().toISOString() };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        return session;
+      }
+    } catch(e) {}
+
     return null;
   }
 
-  function buildSessionFromGoogle() {
-    const name    = Google.getConnectedName();
-    const email   = Google.getConnectedEmail();
-    const picture = typeof Google.getConnectedPicture === 'function' ? Google.getConnectedPicture() : '';
-    if (!email) return null;
-    return { id: email, name, email, picture, provider: 'google', loggedAt: new Date().toISOString() };
+  function isGoogleConnected() {
+    const connected = localStorage.getItem('gabriel_google_connected') === 'true';
+    const token     = localStorage.getItem('gabriel_google_access_token');
+    const expiry    = parseInt(localStorage.getItem('gabriel_google_token_expiry') || '0');
+    return connected && token && Date.now() < expiry;
   }
-
-  function saveSession(data) {
-    const session = {
-      id: data.email || data.id, name: data.name, email: data.email,
-      picture: data.picture || '', provider: 'google', loggedAt: new Date().toISOString()
-    };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    return session;
-  }
-
-  function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
   function isLoggedIn() {
-    const session = getSession();
-    if (!session) return false;
-    if (typeof Google !== 'undefined' && Google.isConnected) {
-      return Google.isConnected() && Google.isTokenValid();
-    }
-    return !!session;
+    return isGoogleConnected();
+  }
+
+  function clearSession() {
+    localStorage.removeItem(SESSION_KEY);
   }
 
   // ── Login via Google ─────────────────────────────────────
 
-  function loginWithGoogle(fromPage) {
+  function loginWithGoogle() {
     if (typeof Google !== 'undefined') {
-      Google.connect(fromPage);
+      Google.connect();
     } else {
-      console.error('[Auth] Google.js não carregado');
+      window.location.href = 'login.html';
     }
   }
 
-  // ── Pós-OAuth: cria sessão + recupera dados do Drive ─────
-
-  async function handleGoogleLoginSuccess() {
-    const name    = Google.getConnectedName();
-    const email   = Google.getConnectedEmail();
-    const picture = typeof Google.getConnectedPicture === 'function' ? Google.getConnectedPicture() : '';
-    const userId  = typeof Google.getConnectedUserId === 'function' ? Google.getConnectedUserId() : email;
-
-    const session = saveSession({ id: userId, name, email, picture });
-
-    try {
-      const existing = await GabrielDB.Profile.get();
-      if (!existing || existing.email !== email) {
-        await GabrielDB.Profile.save({ name, email, userId, picture, provider: 'google', createdAt: new Date() });
-      }
-    } catch(e) { console.warn('[Auth] Erro perfil:', e); }
-
-    // Recupera memórias do Drive
-    try {
-      const memoriesJson = await Google.Drive.loadMemories();
-      if (memoriesJson) {
-        const memories = JSON.parse(memoriesJson);
-        for (const m of memories) {
-          const exists = await GabrielDB.Memories.search(m.content?.slice(0, 20) || '');
-          if (!exists?.length) await GabrielDB.Memories.add(m.content, m.tags || [], null);
-        }
-        console.log(`[Auth] ${memories.length} memória(s) recuperada(s) do Drive.`);
-      }
-    } catch(e) { console.warn('[Auth] Drive memórias:', e); }
-
-    return session;
-  }
-
-  // ── Logout ───────────────────────────────────────────────
-
-  function logout() {
-    clearSession();
-    if (typeof Google !== 'undefined' && Google.disconnect) Google.disconnect();
-    window.location.href = 'login.html';
-  }
+  // ── Atualizar sessão ─────────────────────────────────────
 
   async function updateUser(fields) {
     const session = getSession();
     if (!session) throw new Error('Nenhuma sessão ativa.');
     const updated = { ...session, ...fields };
     localStorage.setItem(SESSION_KEY, JSON.stringify(updated));
-    try { await GabrielDB.Profile.save({ ...updated }); } catch(e) {}
+    try { await GabrielDB.Profile.save(updated); } catch(e) {}
     return updated;
   }
 
   async function completeOnboarding(prefs = {}) {
     await GabrielDB.Profile.save({ onboardingDone: true, prefs });
     const session = getSession();
-    if (session) { session.onboardingDone = true; localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
+    if (session) {
+      session.onboardingDone = true;
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
   }
 
   async function getCurrentUserFull() {
@@ -118,41 +84,59 @@ const Auth = (() => {
     try { return await GabrielDB.Profile.get() || session; } catch { return session; }
   }
 
+  function logout() {
+    clearSession();
+    // Limpa tokens Google
+    ['gabriel_google_access_token','gabriel_google_refresh_token','gabriel_google_token_expiry',
+     'gabriel_google_connected','gabriel_google_email','gabriel_google_name',
+     'gabriel_google_picture','gabriel_google_user_id','gabriel_google_banner_dismissed'].forEach(k => {
+      localStorage.removeItem(k);
+    });
+    window.location.href = 'login.html';
+  }
+
   // ── Guard ────────────────────────────────────────────────
 
   async function guard(page) {
-    const publicPages = ['login.html', 'auth-callback.html', 'terms.html', 'politicapublica.html', 'termosservicos.html'];
+    const publicPages = ['login.html', 'auth-callback.html', 'termosservicos.html', 'politicapublica.html'];
     const isPublic = publicPages.some(p => page.includes(p));
 
-    const googleOk = typeof Google !== 'undefined' && Google.isConnected && Google.isConnected() && Google.isTokenValid();
+    const loggedIn = isGoogleConnected();
 
-    if (!googleOk) {
-      clearSession();
-      if (!isPublic) { window.location.href = 'login.html'; return false; }
-      return true;
+    if (!loggedIn) {
+      // Tenta reconstruir sessão a partir dos tokens
+      const session = getSession();
+      if (!session) {
+        if (!isPublic) {
+          window.location.href = 'login.html';
+          return false;
+        }
+        return true;
+      }
     }
 
-    if (!localStorage.getItem(SESSION_KEY)) await handleGoogleLoginSuccess();
+    // Garante sessão local salva
+    getSession(); // chamada reconstrói e salva se necessário
 
-    const session = getSession();
-    if (!session) { window.location.href = 'login.html'; return false; }
-    if (page.includes('login.html')) { window.location.href = 'dashboard.html'; return false; }
-
-    try {
-      const profile = await GabrielDB.Profile.get();
-      if (!profile?.onboardingDone && !page.includes('onboarding.html') && !page.includes('terms.html')) {
-        window.location.href = 'onboarding.html';
-        return false;
-      }
-    } catch(e) {}
+    // Se está na login e já logado, vai para dashboard
+    if (page.includes('login.html')) {
+      window.location.href = 'dashboard.html';
+      return false;
+    }
 
     return true;
   }
 
   return {
-    loginWithGoogle, handleGoogleLoginSuccess,
-    isLoggedIn, getSession, getCurrentUserFull,
-    updateUser, completeOnboarding, logout, guard
+    loginWithGoogle,
+    isLoggedIn,
+    isGoogleConnected,
+    getSession,
+    getCurrentUserFull,
+    updateUser,
+    completeOnboarding,
+    logout,
+    guard
   };
 
 })();

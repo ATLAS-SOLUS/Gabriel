@@ -251,14 +251,15 @@ window.addEventListener('DOMContentLoaded', async function() {
       avatar.innerHTML = '<img src="' + userInfo.picture + '" alt="' + name + '">';
     }
 
-    // Destino do redirect
-    var redirectTo = 'dashboard.html';
+    // Verifica se é primeiro acesso (sem chave API = nunca configurou)
+    var isFirstTime = false;
     try {
-      var decoded = JSON.parse(atob(state || btoa('{}')));
-      if (decoded.from && !decoded.from.includes('login.html') && !decoded.from.includes('callback')) {
-        redirectTo = decoded.from.replace(/^\//, '');
-      }
-    } catch(e) {}
+      var existingKey = await GabrielDB.Settings.get('groq_api_key');
+      isFirstTime = !existingKey;
+    } catch(e) { isFirstTime = true; }
+
+    // Redireciona: primeiro acesso → onboarding, demais → dashboard
+    var redirectTo = isFirstTime ? 'onboarding.html' : 'dashboard.html';
 
     document.getElementById('btn-continue').href = redirectTo;
     showState('success');
