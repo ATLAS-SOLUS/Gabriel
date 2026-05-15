@@ -37,6 +37,7 @@ AÇÕES LOCAIS:
 - create_task: { "action": "create_task", "title": "...", "dueDate": "YYYY-MM-DD", "folderName": "..." }
 - memory_add: { "action": "memory_add", "content": "fato duradouro para lembrar", "tags": ["..."] }
 - search_web: { "action": "search_web", "query": "..." }
+- search_news: { "action": "search_news", "query": "...", "count": 8 }
 - search_entertainment: { "action": "search_entertainment", "query": "nome do filme/série", "type": "auto|filme|serie" }
 - search_images: { "action": "search_images", "query": "tema da imagem", "count": 6 }
 - create_table: { "action": "create_table", "title": "...", "headers": ["Coluna 1"], "rows": [["valor"]], "format": "md|csv|html|doc", "fileName": "tabela", "saveToDrive": false }
@@ -424,7 +425,7 @@ REGRAS PRÁTICAS:
 3. Para mês atual use ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.
 4. Conteúdo de nota/e-mail/documento deve ir completo no campo da ação, não resumido.
 5. Se uma tarefa tem várias etapas, gere várias ações no mesmo bloco.
-6. Para pesquisa atual, use search_web antes de concluir.
+6. Para pesquisa atual, use search_web antes de concluir. Para notícias recentes/manchetes, use search_news.
 7. Para filmes, séries, elenco, temporadas ou recomendações de entretenimento, use search_entertainment e mostre pôster/imagem quando vier fonte visual.
 8. Para imagem anexada, descreva o que vê, extraia texto visível quando possível e use isso na resposta/ações.
 9. Para pedidos visuais sem anexo, use search_images quando fizer sentido.
@@ -663,6 +664,39 @@ Entregue resposta útil, organizada e prática.`;
 
 
 
+
+  // ── Notícias grátis ───────────────────────────────────────
+
+  async function searchNews(query, count = 8) {
+    try {
+      const res = await fetch('/.netlify/functions/news-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, count }),
+        signal: AbortSignal.timeout ? AbortSignal.timeout(9000) : undefined
+      });
+      if (!res.ok) throw new Error('Busca de notícias falhou: ' + res.status);
+      const data = await res.json();
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (!results.length) return `Não encontrei notícias recentes confiáveis para "${query}" agora.`;
+
+      const table = [
+        '| Notícia | Fonte | Data | Link |',
+        '|---|---|---|---|',
+        ...results.slice(0, Math.min(count, 10)).map(r => `| ${String(r.title || '').replace(/\|/g, '/')} | ${String(r.source || r.provider || '').replace(/\|/g, '/')} | ${String(r.publishedAt || '').replace(/\|/g, '/')} | ${r.url || ''} |`)
+      ].join('\n');
+
+      const systemPrompt = `Você é o Agente de Notícias do Gabriel.
+Organize as notícias em português brasileiro, com resumo curto, principais pontos e tabela.
+Não invente fatos além dos títulos/fontes. Avise se a busca for limitada.`;
+      const context = `Pesquisa: ${query}\n\nResultados:\n${JSON.stringify(results.slice(0, 10), null, 2)}\n\nTabela base:\n${table}`;
+      return await call([{ role: 'user', content: clipText(context, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1300, { temperature: 0.2 });
+    } catch(e) {
+      console.warn('[News] falhou:', e);
+      return `Não consegui consultar notícias agora. Detalhe: ${e.message}`;
+    }
+  }
+
   // ── Pesquisa visual / imagens ─────────────────────────────
 
   function mediaMarkdownCards(items = [], opts = {}) {
@@ -763,6 +797,9 @@ Não invente streaming, elenco ou temporadas se os dados não vieram nas fontes.
     const msg = String(userMessage || '');
     const agents = [];
     const tasks = {};
+    if (/not[ií]cia|manchete|jornal|aconteceu|hoje|atual|recente|últimas|ultimas/i.test(msg)) {
+      agents.push('news'); tasks.news = msg;
+    }
     if (/pesquis|busca|not[ií]cia|atual|pre[cç]o|quem [ée]|o que [ée]|como funciona|lan[cç]amento|novidade/i.test(msg)) {
       agents.push('search'); tasks.search = msg;
     }
@@ -829,6 +866,11 @@ Crie até 3 queries objetivas para pesquisar a tarefa. Retorne JSON: {"queries":
     }
   }
 
+  async function agentNews(task) {
+    const result = await searchNews(task, 8);
+    return { agent: 'news', label: 'Notícias', task, result };
+  }
+
   async function agentEntertainment(task) {
     const result = await searchEntertainment(task, /filme/i.test(task) && !/s[eé]rie/i.test(task) ? 'filme' : 'auto');
     return { agent: 'entertainment', label: 'Filmes e séries', task, result };
@@ -889,16 +931,16 @@ Use o contexto de arquivos para orientar ações concretas. Seja específico.`;
 
   async function planAgents(userMessage) {
     const routerPrompt = `Analise a mensagem e decida quais micro-agentes ativar.
-Agentes disponíveis: search, entertainment, images, vision, analyze, code, drive, data, document.
+Agentes disponíveis: search, news, entertainment, images, vision, analyze, code, drive, data, document.
 Retorne SOMENTE JSON válido:
-{"agents":["..."],"tasks":{"search":"...","entertainment":"...","images":"...","vision":"...","analyze":"...","code":"...","drive":"...","data":"...","document":"..."}}
+{"agents":["..."],"tasks":{"search":"...","news":"...","entertainment":"...","images":"...","vision":"...","analyze":"...","code":"...","drive":"...","data":"...","document":"..."}}
 Ative até 8 agentes se necessário. Se for conversa simples, retorne {"agents":[],"tasks":{}}.`;
     try {
       const raw = await call([{ role: 'user', content: `Mensagem: ${clipText(userMessage, 1800)}` }], routerPrompt, 500, { temperature: 0.08 });
       const plan = safeJsonParse(raw, fallbackAgentPlan(userMessage));
       const fallback = fallbackAgentPlan(userMessage);
       const merged = [...new Set([...(Array.isArray(plan.agents) ? plan.agents : []), ...fallback.agents])]
-        .filter(a => ['search','entertainment','images','vision','analyze','code','drive','data','document'].includes(a))
+        .filter(a => ['search','news','entertainment','images','vision','analyze','code','drive','data','document'].includes(a))
         .slice(0, 8);
       return { agents: merged, tasks: { ...(fallback.tasks || {}), ...(plan.tasks || {}) } };
     } catch(e) {
@@ -922,6 +964,7 @@ Ative até 8 agentes se necessário. Se for conversa simples, retorne {"agents":
         const task = plan.tasks?.[agent] || userMessage;
         let out = null;
         if (agent === 'search') out = await agentSearch(task);
+        else if (agent === 'news') out = await agentNews(task);
         else if (agent === 'entertainment') out = await agentEntertainment(task);
         else if (agent === 'images') out = await agentImages(task);
         else if (agent === 'vision') out = await agentVision(task, attachments);
@@ -952,6 +995,104 @@ Ative até 8 agentes se necessário. Se for conversa simples, retorne {"agents":
     return await chat(enrichedMessage, conversationMessages, options);
   }
 
+
+
+  // ── Consolidador Premium: transforma resultados dos agentes em entrega final ──
+  function buildAgentContext(agentResults = []) {
+    return (agentResults || []).map((r, i) => {
+      const label = r.label || r.agent || `Agente ${i + 1}`;
+      return `## ${label}\nTarefa: ${r.task || ''}\n\n${clipText(r.result || '', 3600, { label: 'resultado de agente compactado' })}`;
+    }).join('\n\n---\n\n');
+  }
+
+  function isLowQualityAnswer(userMessage = '', answer = '', opts = {}) {
+    const msg = String(userMessage || '');
+    const text = String(answer || '').trim();
+    if (!text) return true;
+
+    const complex = looksLikeComplexTask(msg) || !!opts.needsPowerMode || !!opts.hasAgentContext;
+    const askedFile = /pdf|docx?|documento|arquivo|csv|planilha|tabela|relat[oó]rio|proposta|contrato/i.test(msg);
+    const askedCode = /c[oó]digo|script|html|css|javascript|node|programa|sistema|app/i.test(msg);
+    const askedResearch = /pesquis|busca|filme|s[eé]rie|imagem|not[ií]cia|atual|pre[cç]o/i.test(msg);
+    const hasStructure = /(^|\n)#{1,3}\s|\|.+\|\n\|[-:| ]+\||```|\n[-*]\s|\n\d+\.\s/i.test(text);
+    const hasBadPhrases = /(n[aã]o consegui|n[aã]o encontrei|posso tentar|se voc[eê] quiser|continua|restante do c[oó]digo|\.\.\.)/i.test(text);
+    const tooShort = complex && text.length < 650;
+    const missingStructure = (askedFile || askedCode || askedResearch || complex) && !hasStructure && text.length < 1400;
+    return !!(tooShort || missingStructure || hasBadPhrases);
+  }
+
+  async function synthesizeWithAgents(userMessage, agentResults = [], conversationMessages = [], options = {}) {
+    const agentContext = buildAgentContext(agentResults);
+    const hasVisual = (agentResults || []).some(r => /vision|images|entertainment/i.test(r.agent || ''));
+    const systemPrompt = `Você é o CONSOLIDADOR PREMIUM do Gabriel.
+Sua missão é transformar resultados de micro-agentes em uma ENTREGA FINAL ÚNICA, bonita, completa e acionável.
+
+REGRAS DE QUALIDADE:
+1. Não mostre bastidores, nomes internos ou "resultado do agente".
+2. Corte duplicações e tentativas ruins. Se houver resultado útil, não comece pedindo desculpas.
+3. Dê resposta direta no início e depois organize por seções.
+4. Use tabela Markdown quando houver comparação, lista de filmes/séries, dados, opções, preços ou status.
+5. Use Markdown de imagem válido quando houver pôster/imagem: ![Título](URL). Não repita a mesma imagem.
+6. Para pedido de código: entregar código completo, sem placeholders.
+7. Para pedido de documento/PDF/DOC/CSV: incluir conteúdo completo e a ação create_document/create_table quando fizer sentido.
+8. Para pedido grande: entregar resumo executivo, blocos principais, checklist e próximos passos.
+9. Não invente dado que não veio das fontes. Marque como "não informado" quando faltar.
+10. A resposta precisa parecer pronta para uso, não rascunho.
+
+QUANDO HOUVER AÇÕES EXECUTÁVEIS, use exatamente:
+<gabriel_actions>
+[
+  {"action":"nome_acao"}
+]
+</gabriel_actions>
+
+AÇÕES DISPONÍVEIS:
+${ACTION_SCHEMAS}`;
+
+    const payload = `PEDIDO ORIGINAL DO USUÁRIO:\n${clipText(userMessage, 2200)}\n\nRESULTADOS DOS ESPECIALISTAS:\n${clipText(agentContext, 9000, { label: 'contexto dos agentes compactado' })}\n\nENTREGUE AGORA A RESPOSTA FINAL PREMIUM. ${hasVisual ? 'Se houver imagens/pôsteres nos resultados, mantenha os melhores cards visuais.' : ''}`;
+
+    const history = compactMessages(conversationMessages || [], { maxHistory: 4, maxChars: 1200 });
+    history.push({ role: 'user', content: payload });
+    const raw = await call(history, systemPrompt, 2600, { temperature: 0.28 });
+    const parsed = extractActions(raw);
+    return { text: parsed.text || raw || 'Feito.', actions: parsed.actions, raw };
+  }
+
+  async function repairIncompleteAnswer(userMessage, assistantResponse, agentResults = [], actionResults = [], options = {}) {
+    if (!isLowQualityAnswer(userMessage, assistantResponse, options)) {
+      return { improved_reply: '', reason: 'Resposta já está adequada.' };
+    }
+
+    const systemPrompt = `Você é o REVISOR PREMIUM do Gabriel.
+Reescreva respostas rasas, incompletas ou mal formatadas para ficarem completas, bonitas e úteis.
+Retorne SOMENTE JSON válido:
+{"improved_reply":"...","reason":"..."}
+
+Regras:
+- Preserve fatos e limitações reais.
+- Não diga que ação foi feita se ela falhou ou não foi executada.
+- Remova pedidos de desculpa desnecessários se há dados úteis.
+- Entregue estrutura: título curto, resposta direta, tabela/lista/checklist quando fizer sentido e próximos passos.
+- Nada de "...", "continua", "posso fazer" como substituto de entrega.`;
+
+    const payload = {
+      pedido: clipText(userMessage, 2000),
+      respostaAtual: clipText(assistantResponse, 3000),
+      contextoAgentes: clipText(buildAgentContext(agentResults), 5200),
+      resultadosAcoes: (actionResults || []).slice(-12).map(r => ({ action: r.action, success: !!r.success, message: clipText(r.message || '', 550) }))
+    };
+
+    try {
+      const raw = await call([{ role: 'user', content: JSON.stringify(payload) }], systemPrompt, 1700, { temperature: 0.18 });
+      const parsed = safeJsonParse(raw, null);
+      if (!parsed || typeof parsed !== 'object') return { improved_reply: '', reason: 'Revisor não retornou JSON.' };
+      return { improved_reply: String(parsed.improved_reply || '').trim(), reason: String(parsed.reason || '').trim() };
+    } catch (e) {
+      console.warn('[Groq] Revisor premium falhou:', e);
+      return { improved_reply: '', reason: 'Revisor falhou: ' + e.message };
+    }
+  }
+
   // ── Gerar conteúdo completo para nota ────────────────────
 
   async function generateNoteContent(topic, existingResponse) {
@@ -973,10 +1114,14 @@ Não resuma, não corte, não use placeholders. Responda apenas com o conteúdo 
   return {
     chat,
     chatWithAgents,
+    synthesizeWithAgents,
+    repairIncompleteAnswer,
+    isLowQualityAnswer,
     reviewTaskCompletion,
     generateNoteContent,
     runAgents,
     agentSearch,
+    agentNews,
     agentImages,
     agentVision,
     agentAnalyze,
@@ -986,6 +1131,7 @@ Não resuma, não corte, não use placeholders. Responda apenas com o conteúdo 
     extractTasks,
     generateTitle,
     searchWeb,
+    searchNews,
     searchImages,
     searchEntertainment,
     planAgents,

@@ -224,6 +224,14 @@ const Actions = (() => {
   }
 
 
+  // 🗞️ Notícias recentes
+  async function execSearchNews(params) {
+    const { query, count = 8 } = params || {};
+    if (!query) return result('search_news', false, 'Termo de notícia não informado.');
+    const newsResult = await Groq.searchNews(query, count);
+    return result('search_news', true, newsResult, { query, count });
+  }
+
   // 🎬 Filmes e séries
   async function execSearchEntertainment(params) {
     const { query, type = 'auto' } = params;
@@ -587,6 +595,7 @@ ${String(text || '').slice(0, 7000)}`, { text });
     create_task:    execCreateTask,
     memory_add:     execMemoryAdd,
     search_web:     execSearchWeb,
+    search_news:    execSearchNews,
     search_entertainment: execSearchEntertainment,
     search_images:  execSearchImages,
     create_table:   execCreateTable,

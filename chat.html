@@ -407,12 +407,12 @@
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
-<script src="google.js?v=20260515-format-v17"></script>
+<script src="google.js?v=20260515-power-v18"></script>
 <script src="auth.js"></script>
-<script src="document-utils.js?v=20260515-format-v17"></script>
-<script src="groq.js?v=20260515-format-v17"></script>
-<script src="actions.js?v=20260515-format-v17"></script>
-<script src="memory.js?v=20260515-format-v17"></script>
+<script src="document-utils.js?v=20260515-power-v18"></script>
+<script src="groq.js?v=20260515-power-v18"></script>
+<script src="actions.js?v=20260515-power-v18"></script>
+<script src="memory.js?v=20260515-power-v18"></script>
 <script src="notifications.js"></script>
 <script src="weather.js"></script>
 <script>
@@ -726,6 +726,7 @@ function escapeHTML(value) {
 function summarizeActionResult(r) {
   const actionNames = {
     search_web: 'Pesquisa web concluída',
+    search_news: 'Busca de notícias concluída',
     search_entertainment: 'Busca de filmes/séries concluída',
     search_images: 'Busca de imagens concluída',
     create_table: 'Tabela criada',
@@ -739,7 +740,7 @@ function summarizeActionResult(r) {
   };
   const base = actionNames[r?.action] || r?.action || 'Ação';
   if (!r?.success) return base + ': ' + String(r?.message || 'falhou').slice(0, 180);
-  if (/^search_(web|entertainment|images)$/.test(r?.action || '')) return base + '. Resultado usado na resposta final.';
+  if (/^search_(web|news|entertainment|images)$/.test(r?.action || '')) return base + '. Resultado usado na resposta final.';
   const msg = String(r?.message || '').replace(/\s+/g, ' ').trim();
   return msg.length > 180 ? msg.slice(0, 180) + '…' : (msg || base + ' com sucesso.');
 }
@@ -796,7 +797,7 @@ async function sendMessage(text) {
     currentConvId = conv.id; loadDrawer();
   }
 
-  const previousMessages = currentMessages.slice(-10).map(m => ({ role: m.role, content: String(m.content || '').slice(0, 2500) }));
+  const previousMessages = currentMessages.slice(-14).map(m => ({ role: m.role, content: String(m.content || '').slice(0, 2200) }));
 
   // Arquivo anexado
   let userDisplay = content;
@@ -868,6 +869,8 @@ async function sendMessage(text) {
     const needsDoc    = /pdf|docx?|documento|relatório|relatorio|arquivo|tabela|csv|planilha|proposta|contrato|roteiro/i.test(fullIntentText);
     const needsAdvanced = needsDoc || (window.Groq?.looksLikeComplexTask && Groq.looksLikeComplexTask(fullIntentText));
     const hasVision   = attachmentForAI?.kind === 'image';
+    const asksForQuality = /igual voc[eê]|chatgpt|avan[cç]ad|inteligente|premium|completo|caprichad|bem feito|bonito|formatad|n[aã]o b[aá]sico|detalhad|profundo|profissional/i.test(fullIntentText);
+    const needsPowerMode = !!(needsSearch || needsEntertainment || needsImages || needsDrive || needsCode || needsDoc || needsAdvanced || hasVision || asksForQuality);
 
     const agents = [];
     if (needsSearch) agents.push('🔍 Pesquisa');
@@ -876,18 +879,20 @@ async function sendMessage(text) {
     if (needsDrive)  agents.push('📁 Drive');
     if (needsCode)   agents.push('💻 Código');
     if (needsDoc)    agents.push('📄 Documentos/Dados');
-    if (needsAdvanced) agents.push('🧩 Micro-agentes');
+    if (needsPowerMode) agents.push('🧩 Modo avançado');
     if (hasVision)   agents.push('👁️ Visão');
     updateStep(r1, 'done', agents.length ? agents.join(' · ') + ' ativado(s)' : 'Resposta direta');
 
     let agentCtx = '';
+    let microResults = [];
 
     // Fase 2 — Agentes especializados
-    if (needsAdvanced && window.Groq?.runAgents) {
+    if (needsPowerMode && window.Groq?.runAgents) {
       const rm = addAgentStep('Rodando micro-agentes...', 'running', 'dividindo tarefa em módulos');
       try {
         const micro = await Groq.runAgents(toolContent || content, { attachments: attachmentForAI ? [attachmentForAI] : [] });
         if (micro?.length) {
+          microResults = micro;
           agentCtx += `\n\n[RESULTADOS DOS MICRO-AGENTES]\n` + micro.map(m => `## ${m.label || m.agent}\n${m.result}`).join(`\n\n---\n\n`);
           updateStep(rm, 'done', micro.map(m => m.label || m.agent).join(' · '));
         } else {
@@ -946,15 +951,22 @@ ${result}`;
       ? clipForGroq(msgContent + '\n\n---\n[INFORMAÇÕES COLETADAS PELOS AGENTES]\n' + agentCtx + '\n---\n\nCom base nessas informações, responda ao usuário como ENTREGA FINAL ÚNICA. Não mostre tentativas fracassadas antigas se já houver resultado útil. Não repita blocos. Não gere ações search_web/search_entertainment/search_images duplicadas, porque as buscas já foram feitas. Se houver tabela, use Markdown válido. Se houver imagens/pôsteres, mantenha Markdown de imagem válido. Se o usuário pediu arquivo/PDF/DOC/CSV, gere também a ação create_document ou create_table.', 6200)
       : clipForGroq(msgContent, 6200);
 
-    const chatResult = await Groq.chat(enriched, previousMessages, {
-      attachments: attachmentForAI ? [attachmentForAI] : []
-    });
+    let chatResult;
+    if (agentCtx && window.Groq?.synthesizeWithAgents && microResults.length) {
+      chatResult = await Groq.synthesizeWithAgents(toolContent || content, microResults, previousMessages, {
+        attachments: attachmentForAI ? [attachmentForAI] : []
+      });
+    } else {
+      chatResult = await Groq.chat(enriched, previousMessages, {
+        attachments: attachmentForAI ? [attachmentForAI] : []
+      });
+    }
     reply = polishAssistantReply(chatResult.text);
     actions = chatResult.actions || [];
     if (agentCtx) {
       actions = actions.filter(a => !['search_web','search_entertainment','search_images'].includes(a.action));
     }
-    updateStep(rr, 'done', 'Resposta gerada');
+    updateStep(rr, 'done', agentCtx ? 'Resposta consolidada pelo modo premium' : 'Resposta gerada');
 
     // Fase 4 — Executar ações
     if (actions?.length > 0) {
@@ -1020,6 +1032,22 @@ ${result}`;
       updateStep(rv, 'done', review?.reason || 'Tarefa conferida');
     } catch(e) {
       updateStep(rv, 'info', 'Auditoria ignorada');
+    }
+
+    // Fase 6 — Revisor Premium: impede resposta curta, básica ou mal formatada
+    if (window.Groq?.isLowQualityAnswer?.(content, reply, { needsPowerMode, hasAgentContext: !!agentCtx })) {
+      const rq = addAgentStep('Melhorando acabamento da resposta...', 'running', 'anti-resposta básica');
+      try {
+        const repaired = await Groq.repairIncompleteAnswer(content, reply, microResults, actionResults, { needsPowerMode, hasAgentContext: !!agentCtx });
+        if (repaired?.improved_reply && repaired.improved_reply.length > Math.max(450, reply.length * 0.8)) {
+          reply = polishAssistantReply(repaired.improved_reply);
+          updateStep(rq, 'done', repaired.reason || 'Resposta premium aplicada');
+        } else {
+          updateStep(rq, 'info', 'Resposta mantida');
+        }
+      } catch(e) {
+        updateStep(rq, 'info', 'Revisor premium ignorado');
+      }
     }
 
     finishPanel();
