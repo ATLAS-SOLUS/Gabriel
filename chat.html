@@ -405,6 +405,7 @@ let recognition     = null;
 let isRecording     = false;
 let finalTranscript = '';
 let pendingFile     = null;
+let pendingAttachment = null;
 let ttsVoice        = null;
 let ttsSpeaking     = false;
 let agentStart      = 0;
@@ -466,7 +467,8 @@ function autoResize(el) {
 
 function updateSendBtn() {
   const hasText = document.getElementById('msg-input').value.trim().length > 0;
-  document.getElementById('send-btn').style.opacity = (hasText && !isThinking) ? '1' : '0.4';
+  const hasFile = !!pendingFile;
+  document.getElementById('send-btn').style.opacity = ((hasText || hasFile) && !isThinking) ? '1' : '0.4';
 }
 
 // ── Speech Recognition ────────────────────────────────────────
@@ -573,28 +575,98 @@ function handleFileUpload(input) {
   document.getElementById('file-preview-bar').classList.add('show');
   document.getElementById('msg-input').focus();
   input.value = '';
+  updateSendBtn();
 }
 
 function cancelFile() {
   pendingFile = null;
+  pendingAttachment = null;
   document.getElementById('file-preview-bar').classList.remove('show');
+  updateSendBtn();
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Falha ao ler arquivo.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || '');
+    reader.onerror = () => reject(reader.error || new Error('Falha ao ler texto.'));
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+async function resizeImageForVision(file, maxEdge = 1400, quality = 0.86) {
+  const originalDataUrl = await readFileAsDataURL(file);
+  try {
+    const img = new Image();
+    img.src = originalDataUrl;
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+
+    const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+    if (scale >= 1 && file.size <= 2.5 * 1024 * 1024) return originalDataUrl;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch (err) {
+    console.warn('[Gabriel] Não foi possível redimensionar imagem:', err);
+    return originalDataUrl;
+  }
+}
+
+async function buildAttachmentForAI(file) {
+  const base = {
+    name: file.name,
+    type: file.type || 'application/octet-stream',
+    size: file.size,
+    lastModified: file.lastModified
+  };
+
+  if ((file.type || '').startsWith('image/')) {
+    return { ...base, kind: 'image', dataUrl: await resizeImageForVision(file) };
+  }
+
+  const textLike = /text\//i.test(file.type || '') || /\.(txt|csv|json|md|html|css|js|ts|xml|log)$/i.test(file.name || '');
+  if (textLike && file.size <= 1024 * 1024) {
+    return { ...base, kind: 'text', text: await readFileAsText(file) };
+  }
+
+  return {
+    ...base,
+    kind: 'file',
+    note: 'Arquivo recebido e salvo como referência. Para análise visual direta, envie imagem JPG/PNG/WebP.'
+  };
 }
 
 // ── Enviar mensagem ───────────────────────────────────────────
 async function sendMessage(text) {
-  const input   = document.getElementById('msg-input');
-  const content = (text || input.value).trim();
-  if (!content || isThinking) return;
+  const input = document.getElementById('msg-input');
+  let content = (text || input.value).trim();
+  const fileToSend = pendingFile;
+
+  if ((!content && !fileToSend) || isThinking) return;
+  if (!content && fileToSend) content = 'Analise este anexo e me diga o que você consegue identificar.';
 
   if (isRecording && recognition) recognition.stop();
   input.value = ''; input.style.height = 'auto'; updateSendBtn();
   document.getElementById('welcome-state')?.remove();
 
   // ── Detecta jogada ativa ──────────────────────────────────
-  if (activeGame && processGameInput(content)) return;
+  if (!fileToSend && activeGame && processGameInput(content)) return;
 
   // ── Detecta intenção de jogar ─────────────────────────────
-  const gameIntent = detectGameIntent(content);
+  const gameIntent = !fileToSend ? detectGameIntent(content) : null;
   if (gameIntent) {
     addBubble('user', content);
     await startChatGame(gameIntent);
@@ -606,49 +678,84 @@ async function sendMessage(text) {
     currentConvId = conv.id; loadDrawer();
   }
 
+  const previousMessages = currentMessages.slice();
+
   // Arquivo anexado
   let userDisplay = content;
   let msgContent  = content;
-  if (pendingFile) {
-    userDisplay = content + (content ? '\n' : '') + '📎 ' + pendingFile.name;
-    msgContent  = content + '\n\n[ARQUIVO ANEXADO: ' + pendingFile.name + ' — tipo: ' + pendingFile.type + ']';
-    if (window.Google?.isConnected()) {
-      try {
-        const fid = await Google.Drive.getOrCreateGabrielFolder();
-        await Google.Drive.upload(pendingFile, fid);
-        msgContent += '\nArquivo salvo no Google Drive ✓';
-      } catch(e) { console.warn('Upload Drive:', e); }
-    }
-    cancelFile();
+  if (fileToSend) {
+    userDisplay = content + (content ? '\n' : '') + '📎 ' + fileToSend.name;
+    msgContent  = content + '\n\n[ARQUIVO ANEXADO: ' + fileToSend.name + ' — tipo: ' + (fileToSend.type || 'desconhecido') + ' — tamanho: ' + Math.round(fileToSend.size / 1024) + 'KB]';
   }
 
   addBubble('user', userDisplay);
-  currentMessages.push({ role: 'user', content: msgContent });
-  await GabrielDB.Conversations.addMessage(currentConvId, { role: 'user', content: msgContent });
 
   setThinking(true);
   createAgentPanel();
 
+  let attachmentForAI = null;
+  let reply = '';
+  let actions = [];
+  let actionResults = [];
+
   try {
+    // Fase 0 — Preparar anexo para IA e Drive
+    if (fileToSend) {
+      const rf = addAgentStep('Preparando anexo...', 'running', fileToSend.name);
+      try {
+        attachmentForAI = await buildAttachmentForAI(fileToSend);
+        pendingAttachment = attachmentForAI;
+        if (attachmentForAI.kind === 'image') {
+          msgContent += '\nImagem preparada para análise visual pelo modelo.';
+          updateStep(rf, 'done', 'Imagem pronta para visão');
+        } else if (attachmentForAI.kind === 'text') {
+          msgContent += '\n\n[CONTEÚDO DO ARQUIVO]\n' + String(attachmentForAI.text || '').slice(0, 8000);
+          updateStep(rf, 'done', 'Texto extraído do anexo');
+        } else {
+          updateStep(rf, 'info', 'Arquivo referenciado');
+        }
+      } catch(e) {
+        updateStep(rf, 'error', 'Falha ao preparar anexo');
+        console.warn('[Gabriel] Anexo não preparado:', e);
+      }
+
+      if (window.Google?.isConnected()) {
+        const ru = addAgentStep('Salvando anexo no Google Drive...', 'running');
+        try {
+          const fid = await Google.Drive.getOrCreateGabrielFolder();
+          const saved = await Google.Drive.upload(fileToSend, fid);
+          msgContent += '\nArquivo salvo no Google Drive ✓' + (saved?.id ? ' ID: ' + saved.id : '');
+          updateStep(ru, 'done', 'Salvo no Drive');
+        } catch(e) {
+          updateStep(ru, 'error', 'Drive não salvou');
+          console.warn('Upload Drive:', e);
+        }
+      }
+      cancelFile();
+    }
+
     // Fase 1 — Análise da mensagem
     const r1 = addAgentStep('Analisando mensagem...', 'running');
-    await new Promise(r => setTimeout(r, 250));
+    await new Promise(r => setTimeout(r, 180));
 
-    const needsSearch = /pesquis|busca|notícia|atual|hoje|preço|clima|quem é|o que é|como funciona|lançamento|novidade|pesquise|me fale sobre/i.test(content);
-    const needsDrive  = /drive|meu arquivo|minha foto|meus arquivos|meus documentos|pasta do drive|baixar arquivo|mostrar arquivo|ver arquivo/i.test(content);
-    const needsCode   = /código|programa|script|função|desenvolv|implementa|crie um app|crie um sistema|me crie/i.test(content);
+    const fullIntentText = content + ' ' + msgContent;
+    const needsSearch = /pesquis|busca|notícia|atual|hoje|preço|clima|quem é|o que é|como funciona|lançamento|novidade|pesquise|me fale sobre/i.test(fullIntentText);
+    const needsDrive  = /drive|meu arquivo|minha foto|meus arquivos|meus documentos|pasta do drive|baixar arquivo|mostrar arquivo|ver arquivo/i.test(fullIntentText);
+    const needsCode   = /código|programa|script|função|desenvolv|implementa|crie um app|crie um sistema|me crie|corrija código|programar/i.test(fullIntentText);
+    const hasVision   = attachmentForAI?.kind === 'image';
 
     const agents = [];
     if (needsSearch) agents.push('🔍 Pesquisa');
     if (needsDrive)  agents.push('📁 Drive');
     if (needsCode)   agents.push('💻 Código');
+    if (hasVision)   agents.push('👁️ Visão');
     updateStep(r1, 'done', agents.length ? agents.join(' · ') + ' ativado(s)' : 'Resposta direta');
 
     let agentCtx = '';
 
     // Fase 2 — Agentes especializados
     if (needsSearch) {
-      const rs = addAgentStep('Buscando na internet...', 'running', content.slice(0, 55) + '...');
+      const rs = addAgentStep('Buscando informações...', 'running', content.slice(0, 55) + '...');
       try {
         const result = await Groq.searchWeb(content);
         agentCtx += '\n\n[RESULTADO DA PESQUISA WEB]\n' + result;
@@ -659,30 +766,31 @@ async function sendMessage(text) {
     if (needsDrive && window.Google?.isConnected()) {
       const rd = addAgentStep('Acessando Google Drive...', 'running');
       try {
-        const files = await Google.Drive.list('', 10);
+        const files = await Google.Drive.list('', 15);
         if (files.length > 0) {
-          agentCtx += '\n\n[ARQUIVOS NO DRIVE]\n' + files.map(f => '- ' + f.name + ' (' + (f.mimeType || '').split('/').pop() + ')').join('\n');
+          agentCtx += '\n\n[ARQUIVOS NO DRIVE]\n' + files.map(f => '- ' + f.name + ' | id=' + f.id + ' | ' + (f.mimeType || '')).join('\n');
           updateStep(rd, 'done', files.length + ' arquivo(s) encontrado(s)');
-          if (/ver|exib|mostr|list|abrir/i.test(content)) {
-            files.slice(0, 3).forEach(f => showDriveFile(f));
-          }
+          if (/ver|exib|mostr|list|abrir/i.test(content)) files.slice(0, 3).forEach(f => showDriveFile(f));
         } else {
           updateStep(rd, 'info', 'Drive vazio ou sem acesso');
         }
       } catch(e) { updateStep(rd, 'error', 'Erro Drive: ' + (e.message || '').slice(0, 30)); }
     }
 
-    // Fase 3 — Gerar resposta
-    const rr = addAgentStep('Gerando resposta...', 'running');
-    // Build enriched message — keep original request clear, add context separately
+    // Fase 3 — Gerar resposta + ações
+    const rr = addAgentStep(hasVision ? 'Analisando imagem e gerando resposta...' : 'Gerando resposta...', 'running');
     const enriched = agentCtx
-      ? content + '\n\n---\n[INFORMAÇÕES COLETADAS PELOS AGENTES]\n' + agentCtx + '\n---\n\nCom base nessas informações, responda ao usuário e execute as ações necessárias.'
+      ? msgContent + '\n\n---\n[INFORMAÇÕES COLETADAS PELOS AGENTES]\n' + agentCtx + '\n---\n\nCom base nessas informações, responda ao usuário e execute as ações necessárias.'
       : msgContent;
-    const { text: reply, actions } = await Groq.chat(enriched, currentMessages);
+
+    const chatResult = await Groq.chat(enriched, previousMessages, {
+      attachments: attachmentForAI ? [attachmentForAI] : []
+    });
+    reply = chatResult.text;
+    actions = chatResult.actions || [];
     updateStep(rr, 'done', 'Resposta gerada');
 
     // Fase 4 — Executar ações
-    let actionResults = [];
     if (actions?.length > 0) {
       const ra = addAgentStep('Executando ' + actions.length + ' ação(ões)...', 'running', actions.map(a => a.action).join(', '));
 
@@ -696,7 +804,7 @@ async function sendMessage(text) {
             updateStep(noteStep, 'done', 'Conteúdo completo gerado');
           } catch(e) {
             updateStep(noteStep, 'error', 'Usando conteúdo disponível');
-            action.content = reply; // fallback: usa a resposta completa
+            action.content = reply;
           }
         }
       }
@@ -705,29 +813,19 @@ async function sendMessage(text) {
       const ok  = actionResults.filter(r => r.success).length;
       const err = actionResults.filter(r => !r.success).length;
       updateStep(ra, err > 0 ? 'error' : 'done', ok + ' executada(s)' + (err > 0 ? ', ' + err + ' com erro' : ''));
-
-      // Se houve ações com erro, mostra botão de tentar novamente
-      if (err > 0) {
-        const failedActions = actionResults.filter(r => !r.success);
-        console.warn('[Chat] Ações com erro:', failedActions.map(r => r.action + ': ' + r.message));
-      }
-
       localStorage.setItem('gabriel_data_updated', JSON.stringify({ types: actions.map(a => a.action), ts: Date.now() }));
-    } else if (/criar|criar pasta|criar caderno|agendar|salvar|anotar|adicionar/i.test(content)) {
-      // Gabriel respondeu sem ações mas o usuário pediu para criar algo — tenta extrair ações da resposta
-      const retryStep = addAgentStep('Verificando ações pendentes...', 'running');
+    } else if (/criar|cria|criar pasta|criar caderno|agendar|salvar|anotar|adicionar|enviar|mandar|registrar|lembrar/i.test(content)) {
+      const retryStep = addAgentStep('Buscando ação que ficou faltando...', 'running');
       try {
-        const retryPrompt = `O usuário pediu: "${content}"
-Sua resposta foi: "${reply.slice(0, 500)}"
-
-Agora execute APENAS as ações necessárias. Responda SOMENTE com o bloco <gabriel_actions>.`;
-        const { actions: retryActions } = await Groq.chat(retryPrompt, []);
-        if (retryActions?.length > 0) {
-          updateStep(retryStep, 'info', 'Executando ' + retryActions.length + ' ação(ões) pendente(s)');
-          actionResults = await Actions.execute(retryActions);
+        const retryPrompt = `O usuário pediu: "${content}"\nA resposta foi: "${reply.slice(0, 900)}"\n\nSe existe alguma ação real para cumprir o pedido, retorne somente <gabriel_actions> com todas as ações necessárias. Se não houver, retorne texto curto dizendo que não há ação.`;
+        const retry = await Groq.chat(retryPrompt, previousMessages, { attachments: attachmentForAI ? [attachmentForAI] : [] });
+        if (retry.actions?.length > 0) {
+          updateStep(retryStep, 'info', 'Executando ' + retry.actions.length + ' ação(ões) pendente(s)');
+          actionResults = await Actions.execute(retry.actions);
+          actions = retry.actions;
           const ok = actionResults.filter(r => r.success).length;
           updateStep(retryStep, 'done', ok + ' ação(ões) executada(s)');
-          localStorage.setItem('gabriel_data_updated', JSON.stringify({ types: retryActions.map(a => a.action), ts: Date.now() }));
+          localStorage.setItem('gabriel_data_updated', JSON.stringify({ types: retry.actions.map(a => a.action), ts: Date.now() }));
         } else {
           updateStep(retryStep, 'info', 'Nenhuma ação pendente');
         }
@@ -736,8 +834,26 @@ Agora execute APENAS as ações necessárias. Responda SOMENTE com o bloco <gabr
       }
     }
 
+    // Fase 5 — Auditoria contra tarefas pela metade
+    const rv = addAgentStep('Conferindo se ficou completo...', 'running');
+    try {
+      const review = await Groq.reviewTaskCompletion(content, reply, actions, actionResults, { hasAttachment: !!attachmentForAI });
+      if (review?.extra_actions?.length) {
+        updateStep(rv, 'info', 'Executando correções finais');
+        const extraResults = await Actions.execute(review.extra_actions);
+        actionResults = actionResults.concat(extraResults);
+        actions = actions.concat(review.extra_actions);
+      }
+      if (review?.improved_reply && review.improved_reply.length > 20) {
+        reply = review.improved_reply;
+      }
+      updateStep(rv, 'done', review?.reason || 'Tarefa conferida');
+    } catch(e) {
+      updateStep(rv, 'info', 'Auditoria ignorada');
+    }
+
     finishPanel();
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 350));
     removePanel();
 
     if (reply.includes('```')) {
@@ -746,10 +862,12 @@ Agora execute APENAS as ações necessárias. Responda SOMENTE com o bloco <gabr
       addBubble('gabriel', reply, actionResults);
     }
 
+    currentMessages.push({ role: 'user', content: msgContent });
     currentMessages.push({ role: 'assistant', content: reply });
+    await GabrielDB.Conversations.addMessage(currentConvId, { role: 'user', content: msgContent });
     await GabrielDB.Conversations.addMessage(currentConvId, { role: 'assistant', content: reply });
 
-    if (currentMessages.length === 2) {
+    if (previousMessages.length === 0) {
       const title = await Groq.generateTitle(content);
       await GabrielDB.Conversations.updateTitle(currentConvId, title);
       loadDrawer();

@@ -34,6 +34,7 @@ const Google = (() => {
   // ── Estado ───────────────────────────────────────────────
   function isConnected()   { return localStorage.getItem(KEYS.connected) === 'true'; }
   function getAccessToken(){ return localStorage.getItem(KEYS.access_token); }
+  function getRefreshToken(){ return localStorage.getItem(KEYS.refresh_token); }
   function getTokenExpiry(){ return parseInt(localStorage.getItem(KEYS.token_expiry) || '0'); }
   function isTokenValid()  { return isConnected() && getAccessToken() && Date.now() < getTokenExpiry(); }
   function getConnectedEmail()  { return localStorage.getItem(KEYS.user_email) || ''; }
@@ -70,18 +71,62 @@ const Google = (() => {
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
 
-  // ── Request autenticado ──────────────────────────────────
-  async function request(url, options = {}) {
-    if (!isTokenValid()) throw new Error('Token Google inválido. Reconecte nas Configurações.');
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`,
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
+  // ── Renovar token com refresh_token via Netlify Function ───
+  async function refreshAccessToken() {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+      const res = await fetch('/.netlify/functions/google-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'refresh', refresh_token: refreshToken })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error || !data.access_token) {
+        console.warn('[Google] Falha ao renovar token:', data.error || res.status);
+        return false;
       }
-    });
-    if (res.status === 401) { disconnect(); throw new Error('Sessão Google expirada. Conecte novamente.'); }
+      localStorage.setItem(KEYS.access_token, data.access_token);
+      localStorage.setItem(KEYS.token_expiry, Date.now() + ((data.expires_in || 3600) * 1000));
+      localStorage.setItem(KEYS.connected, 'true');
+      console.log('[Google] Token renovado ✓');
+      return true;
+    } catch (err) {
+      console.warn('[Google] Erro ao renovar token:', err);
+      return false;
+    }
+  }
+
+  async function ensureTokenValid() {
+    if (isTokenValid()) return true;
+    if (!isConnected()) throw new Error('Google não conectado.');
+    const refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      disconnect();
+      throw new Error('Sessão Google expirada. Reconecte nas Configurações.');
+    }
+    return true;
+  }
+
+  // ── Request autenticado ──────────────────────────────────
+  async function request(url, options = {}, retry = true) {
+    await ensureTokenValid();
+    const headers = {
+      'Authorization': `Bearer ${getAccessToken()}`,
+      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(options.headers || {})
+    };
+
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401 && retry) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) return await request(url, options, false);
+      disconnect();
+      throw new Error('Sessão Google expirada. Conecte novamente.');
+    }
+
     return res;
   }
 
@@ -111,8 +156,69 @@ const Google = (() => {
         const data = await res.json();
         const headers = data.payload?.headers || [];
         const get = (name) => headers.find(h => h.name === name)?.value || '';
-        return { id: data.id, subject: get('Subject') || '(sem assunto)', from: get('From'), to: get('To'), date: new Date(parseInt(data.internalDate)).toLocaleString('pt-BR'), snippet: data.snippet || '', unread: data.labelIds?.includes('UNREAD'), labels: data.labelIds || [] };
+        return { id: data.id, threadId: data.threadId, subject: get('Subject') || '(sem assunto)', from: get('From'), to: get('To'), date: new Date(parseInt(data.internalDate)).toLocaleString('pt-BR'), snippet: data.snippet || '', unread: data.labelIds?.includes('UNREAD'), labels: data.labelIds || [] };
       } catch { return null; }
+    },
+    decodeBody(data = '') {
+      try {
+        const b64 = data.replace(/-/g, '+').replace(/_/g, '/');
+        const bin = atob(b64);
+        return decodeURIComponent(escape(bin));
+      } catch(e) {
+        try { return atob(data.replace(/-/g, '+').replace(/_/g, '/')); } catch { return ''; }
+      }
+    },
+    extractBody(payload) {
+      if (!payload) return '';
+      if (payload.body?.data && /text\/(plain|html)/i.test(payload.mimeType || '')) {
+        return Gmail.decodeBody(payload.body.data);
+      }
+      const parts = payload.parts || [];
+      let plain = '', html = '';
+      for (const part of parts) {
+        const mime = part.mimeType || '';
+        if (part.parts?.length) {
+          const nested = Gmail.extractBody(part);
+          if (nested && !plain) plain = nested;
+        } else if (part.body?.data && mime.includes('text/plain')) {
+          plain += '\n' + Gmail.decodeBody(part.body.data);
+        } else if (part.body?.data && mime.includes('text/html')) {
+          html += '\n' + Gmail.decodeBody(part.body.data).replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+        }
+      }
+      return (plain || html || '').trim();
+    },
+    async getFull(id) {
+      const res  = await request(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const headers = data.payload?.headers || [];
+      const get = (name) => headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
+      return {
+        id: data.id, threadId: data.threadId,
+        subject: get('Subject') || '(sem assunto)',
+        from: get('From'), to: get('To'), cc: get('Cc'), date: get('Date'),
+        snippet: data.snippet || '', labels: data.labelIds || [],
+        body: Gmail.extractBody(data.payload)
+      };
+    },
+    async createDraft({ to, subject, body }) {
+      const from = getConnectedEmail();
+      const lines = [`To: ${to}`, `From: ${from}`, `Subject: ${subject}`, 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=utf-8', '', body];
+      const raw = btoa(unescape(encodeURIComponent(lines.join('\r\n')))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      const res = await request('https://gmail.googleapis.com/gmail/v1/users/me/drafts', { method: 'POST', body: JSON.stringify({ message: { raw } }) });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      return data;
+    },
+    async modify(id, { addLabelIds = [], removeLabelIds = [] } = {}) {
+      const res = await request(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}/modify`, {
+        method: 'POST',
+        body: JSON.stringify({ addLabelIds, removeLabelIds })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      return data;
     },
     async send({ to, subject, body, replyToId }) {
       const from = getConnectedEmail();
@@ -188,6 +294,7 @@ const Google = (() => {
     },
     // Upload de arquivo
     async upload(file, folderId = null, onProgress = null) {
+      await ensureTokenValid();
       const meta = { name: file.name };
       if (folderId) meta.parents = [folderId];
       const form = new FormData();
@@ -209,17 +316,35 @@ const Google = (() => {
       });
     },
     // Buscar arquivo por nome
+    escapeQuery(value) {
+      return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    },
     async search(term) {
-      const q = `name contains '${term}' and trashed=false`;
+      const safe = Drive.escapeQuery(term);
+      const q = `name contains '${safe}' and trashed=false`;
       return await Drive.list(q);
     },
     // Ler conteúdo de arquivo texto
     async readText(fileId) {
       const res = await request(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+      if (!res.ok) throw new Error('Não foi possível ler o arquivo do Drive.');
       return await res.text();
+    },
+    async exportText(fileId, mimeType = 'text/plain') {
+      const params = new URLSearchParams({ mimeType });
+      const res = await request(`https://www.googleapis.com/drive/v3/files/${fileId}/export?${params}`);
+      if (!res.ok) throw new Error('Não foi possível exportar o arquivo do Drive.');
+      return await res.text();
+    },
+    async readAnyText(fileId, mimeType = '') {
+      if (/application\/vnd\.google-apps\./.test(mimeType || '')) {
+        return await Drive.exportText(fileId, 'text/plain');
+      }
+      return await Drive.readText(fileId);
     },
     // Salvar arquivo de texto
     async saveText(name, content, folderId = null) {
+      await ensureTokenValid();
       const meta = { name };
       if (folderId) meta.parents = [folderId];
       const form = new FormData();
@@ -250,6 +375,7 @@ const Google = (() => {
       const existing = await Drive.list(`name='memorias.json' and '${folderId}' in parents and trashed=false`);
       if (existing.length > 0) {
         // Atualiza arquivo existente
+        await ensureTokenValid();
         const token = getAccessToken();
         const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing[0].id}?uploadType=media`, {
           method: 'PATCH',
@@ -348,6 +474,7 @@ const Google = (() => {
       const content = await Drive.readText(driveId);
       const note = JSON.parse(content);
       const updated = { ...note, ...fields, updatedAt: new Date().toISOString() };
+      await ensureTokenValid();
       const token = getAccessToken();
       await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveId}?uploadType=media`, {
         method: 'PATCH',
@@ -411,7 +538,7 @@ const Google = (() => {
     connect, disconnect,
     isConnected, isTokenValid,
     getConnectedEmail, getConnectedName, getConnectedPicture, getConnectedUserId,
-    saveTokens, getUserInfo,
+    saveTokens, getUserInfo, getAccessToken, getRefreshToken, refreshAccessToken, ensureTokenValid,
     getStatus, request,
     Gmail, Calendar, Drive, Photos, Keep, Translate
   };

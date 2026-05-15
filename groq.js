@@ -1,39 +1,183 @@
 // ============================================================
-// groq.js — Motor da API Groq (IA + Tool Calling)
+// groq.js — Motor da API Groq (IA + Tool Calling + Visão)
 // Gabriel PWA
 // ============================================================
 
 const Groq = (() => {
 
   const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-  const MODEL   = 'llama-3.3-70b-versatile';
-  const MAX_TOKENS_CHAT    = 4096;
-  const MAX_TOKENS_ACTIONS = 8192;
-  const MAX_TOKENS_MEMORY  = 512;
+
+  const MODELS = {
+    text:   'llama-3.3-70b-versatile',
+    vision: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    fast:   'llama-3.1-8b-instant'
+  };
+
+  const MAX_TOKENS_CHAT       = 8192;
+  const MAX_TOKENS_ACTIONS    = 12000;
+  const MAX_TOKENS_MEMORY     = 1024;
+  const MAX_TOKENS_REVIEW     = 4096;
+  const HISTORY_LIMIT         = 34;
+
+  const ACTION_SCHEMAS = `
+AÇÕES LOCAIS:
+- create_folder: { "action": "create_folder", "name": "...", "parentName": "..." }
+- create_event: { "action": "create_event", "title": "...", "date": "YYYY-MM-DD", "time": "HH:MM", "description": "...", "reminder": true, "folderName": "..." }
+- create_finance: { "action": "create_finance", "desc": "...", "value": 0.0, "category": "...", "card": "crédito|débito|pix|dinheiro", "month": "YYYY-MM", "folderName": "..." }
+- create_note: { "action": "create_note", "title": "...", "content": "texto completo", "folderName": "..." }
+- create_task: { "action": "create_task", "title": "...", "dueDate": "YYYY-MM-DD", "folderName": "..." }
+- memory_add: { "action": "memory_add", "content": "fato duradouro para lembrar", "tags": ["..."] }
+- search_web: { "action": "search_web", "query": "..." }
+- get_weather: { "action": "get_weather", "city": "..." }
+- open_module: { "action": "open_module", "module": "dashboard|chat|folders|agenda|finance|notes|games" }
+- create_book: { "action": "create_book", "title": "...", "author": "...", "totalChapters": 0, "totalPages": 0, "folderName": "Livros" }
+- update_book: { "action": "update_book", "title": "...", "currentChapter": 0, "currentPage": 0 }
+- list_books: { "action": "list_books" }
+- log_study: { "action": "log_study", "subject": "...", "duration": 60, "notes": "...", "reminderTime": "HH:MM", "folderName": "Estudos" }
+- schedule_study: { "action": "schedule_study", "subject": "...", "date": "YYYY-MM-DD", "time": "HH:MM", "duration": 60, "notes": "..." }
+- study_stats: { "action": "study_stats" }
+
+AÇÕES GOOGLE (somente se Google estiver conectado):
+- gmail_list: { "action": "gmail_list", "query": "...", "max": 5 }
+- gmail_read: { "action": "gmail_read", "id": "id_do_email" }
+- gmail_send: { "action": "gmail_send", "to": "email@...", "subject": "...", "body": "..." }
+- gmail_draft: { "action": "gmail_draft", "to": "email@...", "subject": "...", "body": "..." }
+- gcal_list: { "action": "gcal_list", "days": 7 }
+- gcal_today: { "action": "gcal_today" }
+- gcal_create: { "action": "gcal_create", "title": "...", "start": "YYYY-MM-DDTHH:MM", "end": "YYYY-MM-DDTHH:MM", "description": "...", "location": "..." }
+- gcal_delete: { "action": "gcal_delete", "eventId": "..." }
+- drive_list: { "action": "drive_list", "folder": "", "max": 10 }
+- drive_search: { "action": "drive_search", "query": "nome do arquivo" }
+- drive_read_text: { "action": "drive_read_text", "fileId": "...", "mimeType": "..." }
+- drive_upload: { "action": "drive_upload", "name": "arquivo.txt", "content": "...", "mimeType": "text/plain" }
+- drive_create_folder: { "action": "drive_create_folder", "name": "...", "parentId": "..." }
+- drive_download: { "action": "drive_download", "fileId": "...", "fileName": "nome.pdf" }
+- photos_list: { "action": "photos_list", "max": 12 }
+- photos_albums: { "action": "photos_albums" }
+- keep_list: { "action": "keep_list" }
+- keep_create: { "action": "keep_create", "title": "...", "content": "...", "color": "#fff", "pinned": false }
+- translate: { "action": "translate", "text": "...", "targetLang": "pt", "sourceLang": null }`;
 
   // ── Chave API ────────────────────────────────────────────
 
   async function getApiKey() {
     const key = await GabrielDB.Settings.get('groq_api_key');
     if (!key) throw new Error('Chave Groq não configurada. Vá em Perfil → Configurações.');
-    return key;
+    return String(key).trim();
   }
 
   async function setApiKey(key) {
-    await GabrielDB.Settings.set('groq_api_key', key.trim());
+    await GabrielDB.Settings.set('groq_api_key', String(key || '').trim());
+  }
+
+  async function getModel(kind = 'text') {
+    const saved = await GabrielDB.Settings.get(kind === 'vision' ? 'groq_model_vision' : 'groq_model_text');
+    return String(saved || '').trim() || MODELS[kind] || MODELS.text;
+  }
+
+  // ── Utilitários ──────────────────────────────────────────
+
+  function clampTokens(n) {
+    const value = Number(n || MAX_TOKENS_CHAT);
+    return Math.max(64, Math.min(value, 16000));
+  }
+
+  function cleanJson(raw) {
+    return String(raw || '')
+      .replace(/^```(?:json)?/i, '')
+      .replace(/```$/g, '')
+      .trim();
+  }
+
+  function safeJsonParse(raw, fallback = null) {
+    const text = cleanJson(raw);
+    try { return JSON.parse(text); } catch(e) {}
+
+    const firstObj = text.indexOf('{');
+    const lastObj  = text.lastIndexOf('}');
+    if (firstObj >= 0 && lastObj > firstObj) {
+      try { return JSON.parse(text.slice(firstObj, lastObj + 1)); } catch(e) {}
+    }
+
+    const firstArr = text.indexOf('[');
+    const lastArr  = text.lastIndexOf(']');
+    if (firstArr >= 0 && lastArr > firstArr) {
+      try { return JSON.parse(text.slice(firstArr, lastArr + 1)); } catch(e) {}
+    }
+
+    return fallback;
+  }
+
+  function normalizeActionList(actions) {
+    if (!actions) return [];
+    const list = Array.isArray(actions) ? actions : [actions];
+    return list
+      .flat()
+      .filter(Boolean)
+      .map(a => typeof a === 'string' ? { action: a } : a)
+      .filter(a => a && typeof a === 'object' && typeof a.action === 'string')
+      .map(a => ({ ...a, action: a.action.trim() }));
+  }
+
+  function extractActions(rawResponse) {
+    const raw = String(rawResponse || '');
+    const openTag = raw.search(/<gabriel_actions>/i);
+    if (openTag < 0) return { text: raw.trim(), actions: [] };
+
+    const afterOpen = raw.slice(openTag).replace(/^<gabriel_actions>/i, '');
+    const closeMatch = afterOpen.match(/<\/gabriel_actions>/i);
+    const jsonStr = (closeMatch ? afterOpen.slice(0, closeMatch.index) : afterOpen).trim();
+    let actions = safeJsonParse(jsonStr, null);
+
+    if (!actions) {
+      const matches = jsonStr.match(/\{[\s\S]*?\}/g) || [];
+      actions = matches.map(m => safeJsonParse(m, null)).filter(Boolean);
+    }
+
+    const before = raw.slice(0, openTag).trim();
+    const after = closeMatch ? afterOpen.slice(closeMatch.index + closeMatch[0].length).trim() : '';
+    const text = [before, after].filter(Boolean).join('\n\n').trim();
+    return { text, actions: normalizeActionList(actions) };
+  }
+
+  function hasImageAttachment(attachments = []) {
+    return attachments.some(a => a?.kind === 'image' && a.dataUrl);
+  }
+
+  function attachmentTextSummary(attachments = []) {
+    if (!attachments.length) return '';
+    return attachments.map(a => {
+      if (a.kind === 'image') return `Imagem anexada: ${a.name || 'sem nome'} (${a.type || 'image/*'}, ${Math.round((a.size || 0) / 1024)}KB).`;
+      if (a.kind === 'text') return `Arquivo de texto anexado: ${a.name || 'sem nome'} (${a.type || 'text/plain'}). Conteúdo:\n${a.text || ''}`;
+      return `Arquivo anexado: ${a.name || 'sem nome'} (${a.type || 'desconhecido'}, ${Math.round((a.size || 0) / 1024)}KB).`;
+    }).join('\n\n');
+  }
+
+  function buildUserContent(userMessage, attachments = []) {
+    if (!hasImageAttachment(attachments)) return userMessage;
+
+    const parts = [{ type: 'text', text: `${userMessage}\n\n${attachmentTextSummary(attachments)}`.trim() }];
+    attachments.forEach(att => {
+      if (att.kind === 'image' && att.dataUrl) {
+        parts.push({ type: 'image_url', image_url: { url: att.dataUrl } });
+      }
+    });
+    return parts;
   }
 
   // ── Chamada base ─────────────────────────────────────────
 
-  async function call(messages, systemPrompt, maxTokens = MAX_TOKENS_CHAT) {
+  async function call(messages, systemPrompt = '', maxTokens = MAX_TOKENS_CHAT, options = {}) {
     const apiKey = await getApiKey();
+    const model = options.model || await getModel(options.vision ? 'vision' : 'text');
 
     const body = {
-      model: MODEL,
-      max_tokens: maxTokens,
-      temperature: 0.7,
+      model,
+      max_tokens: clampTokens(maxTokens),
+      temperature: options.temperature ?? 0.45,
+      top_p: options.top_p ?? 0.9,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: systemPrompt || 'Você é Gabriel, assistente útil em português brasileiro.' },
         ...messages
       ]
     };
@@ -50,82 +194,68 @@ const Groq = (() => {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       const errMsg = err?.error?.message || `Erro Groq: ${response.status}`;
-      if (response.status === 401 || response.status === 403 || errMsg.includes('invalid_api_key') || errMsg.includes('rate_limit')) {
+      if (response.status === 401 || response.status === 403 || /invalid_api_key|rate_limit/i.test(errMsg)) {
         localStorage.setItem('gabriel_groq_key_error', '1');
       }
       throw new Error(errMsg);
     }
 
+    localStorage.removeItem('gabriel_groq_key_error');
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '';
   }
 
   // ── System Prompt principal ──────────────────────────────
 
-  async function buildSystemPrompt() {
+  async function buildSystemPrompt(userContext = '', attachments = []) {
     const profile  = await GabrielDB.Profile.get();
-    const memories = await GabrielDB.Memories.getRecent(15);
     const tasks    = await GabrielDB.Tasks.getPending();
-    const events   = await GabrielDB.Events.getUpcoming(3);
+    const events   = await GabrielDB.Events.getUpcoming(14);
     const now      = new Date();
 
-    const userName  = profile?.name || 'usuário';
-    const memoryTxt = memories.length
-      ? memories.map(m => `- ${m.content}`).join('\n')
-      : 'Nenhuma memória registrada ainda.';
+    const userName = profile?.name || 'usuário';
 
-    const tasksTxt = tasks.length
-      ? tasks.slice(0, 5).map(t => `- ${t.title}`).join('\n')
-      : 'Nenhuma tarefa pendente.';
-
-    const eventsTxt = events.length
-      ? events.slice(0, 3).map(e => `- ${e.title} em ${e.date} às ${e.time || 'horário não definido'}`).join('\n')
-      : 'Nenhum evento próximo.';
-
-    // Verifica conexão Google
-    let googleCtx = '';
-    let googleActions = '';
+    let memoryTxt = 'Nenhuma memória registrada ainda.';
     try {
-      if (window.Google && window.Google.isConnected() && window.Google.isTokenValid()) {
-        const email = window.Google.getConnectedEmail();
-        const name  = window.Google.getConnectedName();
-        googleCtx = `\n\n🔗 GOOGLE CONECTADO: ${name} <${email}>
-Serviços disponíveis: Gmail (ler/enviar emails), Google Agenda (criar/listar eventos), Google Drive (arquivos/pastas), Google Translate.
-Use ações gmail_*, gcal_* e drive_* para interagir com esses serviços.`;
-        googleActions = `
-- gmail_list: { "action": "gmail_list", "query": "...", "max": 5 }
-- gmail_send: { "action": "gmail_send", "to": "email@...", "subject": "...", "body": "..." }
-- gcal_list: { "action": "gcal_list", "days": 7 }
-- gcal_create: { "action": "gcal_create", "title": "...", "start": "YYYY-MM-DDTHH:MM", "end": "YYYY-MM-DDTHH:MM", "description": "...", "location": "..." }
-- drive_list: { "action": "drive_list", "max": 10 }
-- drive_search: { "action": "drive_search", "query": "nome do arquivo" }
-- drive_upload: { "action": "drive_upload", "name": "arquivo.txt", "content": "...", "mimeType": "text/plain" }
-- drive_download: { "action": "drive_download", "fileId": "id_do_arquivo", "fileName": "nome.pdf" }
-- photos_list: { "action": "photos_list", "max": 12 }
-- photos_albums: { "action": "photos_albums" }
-- keep_list: { "action": "keep_list" }
-- keep_create: { "action": "keep_create", "title": "...", "content": "...", "color": "#fff", "pinned": false }
-- translate: { "action": "translate", "text": "...", "targetLang": "pt", "sourceLang": null }`;
+      if (window.Memory?.formatForPrompt) {
+        memoryTxt = await window.Memory.formatForPrompt(userContext, 30);
+      } else {
+        const memories = await GabrielDB.Memories.getRecent(30);
+        memoryTxt = memories.length ? memories.map(m => `• ${m.content}`).join('\n') : memoryTxt;
       }
     } catch(e) {}
 
-    return `Você é Gabriel, assistente pessoal inteligente e analítico de ${userName}.
+    const tasksTxt = tasks.length
+      ? tasks.slice(0, 20).map(t => `- ${t.title}${t.dueDate ? ` (${t.dueDate})` : ''}`).join('\n')
+      : 'Nenhuma tarefa pendente.';
+
+    const eventsTxt = events.length
+      ? events.slice(0, 12).map(e => `- ${e.title} em ${e.date}${e.time ? ' às ' + e.time : ''}`).join('\n')
+      : 'Nenhum evento próximo.';
+
+    let googleCtx = '';
+    try {
+      if (window.Google && window.Google.isConnected()) {
+        const status = window.Google.getStatus?.() || {};
+        googleCtx = `\n\n🔗 GOOGLE CONECTADO: ${status.name || window.Google.getConnectedName?.() || 'Conta Google'} <${status.email || window.Google.getConnectedEmail?.() || ''}>\nServiços disponíveis: Gmail, Google Agenda, Google Drive, Google Photos, notas simuladas no Drive e Translate. Use ações Google quando o pedido envolver e-mail, agenda, arquivos, fotos ou tradução.`;
+      }
+    } catch(e) {}
+
+    const attachmentCtx = attachments.length
+      ? `\n\nANEXOS RECEBIDOS NESTA MENSAGEM:\n${attachmentTextSummary(attachments)}\nSe houver imagem, você deve analisá-la visualmente e responder com base no que vê.`
+      : '';
+
+    return `Você é Gabriel, assistente pessoal inteligente, executor e analítico de ${userName}.
 Data e hora atual: ${now.toLocaleString('pt-BR')}
-${googleCtx}
+${googleCtx}${attachmentCtx}
 
 PERSONALIDADE:
-- Inteligente, analítico, direto, carismático e divertido
-- Responde em português brasileiro com naturalidade
-- Usa emojis de forma natural e moderada (não excessivo)
-- Respostas concisas mas completas
-- Executa ações autonomamente quando solicitado
-- Confirma o que foi feito após executar ações
-- Quando perceber algo importante sobre o usuário, já registra na memória
-- Sugere próximas ações relevantes após completar uma tarefa
-- Adora jogos e desafios — quando o usuário quer jogar, entra no espírito do jogo com entusiasmo
-- Todo conteúdo de jogo que o Gabriel cria é ÚNICO e personalizado — nunca repetido
+- Português brasileiro natural, direto, educado, esperto e útil.
+- Respostas completas, bem formatadas e sem enrolação.
+- Use emojis com moderação e contexto.
+- Quando o usuário pedir algo prático, faça. Não finja que fez.
 
-MEMÓRIAS SOBRE ${userName.toUpperCase()}:
+MEMÓRIAS RELEVANTES SOBRE ${String(userName).toUpperCase()}:
 ${memoryTxt}
 
 TAREFAS PENDENTES:
@@ -134,128 +264,136 @@ ${tasksTxt}
 PRÓXIMOS EVENTOS:
 ${eventsTxt}
 
-ESTATÍSTICAS RÁPIDAS (para contexto):
-- Use estas infos para ser mais pessoal e relevante nas respostas
+MODO EXECUTOR COMPLETO — REGRA DE OURO:
+Você NÃO deve fazer tarefa pela metade. Antes de responder, siga internamente:
+1. Entender o pedido real do usuário.
+2. Quebrar em módulos quando necessário.
+3. Executar todas as ações possíveis via <gabriel_actions>.
+4. Conferir se falta alguma etapa, dado, formatação ou ação.
+5. Entregar uma resposta final limpa, objetiva e completa.
 
-CAPACIDADES E REGRAS DE AÇÃO:
-Você pode criar eventos, tarefas, notas, pastas, gastos, buscar clima, pesquisar na web.${googleCtx ? ' Também: ler/enviar emails (Gmail), criar eventos no Google Agenda, listar/buscar arquivos no Drive.' : ''}
+NUNCA faça isto:
+- Não use "...", "etc", "continua", "restante do código" ou placeholders quando o usuário pediu algo completo.
+- Não diga que salvou/criou/agendou/enviou se não incluiu a ação correspondente.
+- Não entregue só o básico se o pedido exige estrutura, checklist, código completo, plano completo ou arquivo organizado.
+- Não ignore anexos. Se imagem vier anexada, analise a imagem.
 
-⚠️ REGRA CRÍTICA: Sempre que o usuário pedir para CRIAR, AGENDAR, SALVAR, ANOTAR, ADICIONAR qualquer coisa — você DEVE incluir o bloco <gabriel_actions> com a ação correspondente. NÃO apenas descreva o que vai fazer — EXECUTE via ação.
+QUANDO USAR AÇÕES:
+Sempre que o usuário pedir para criar, salvar, anotar, lembrar, registrar, agendar, enviar, listar, buscar, abrir, baixar, organizar, pesquisar ou mexer em dados do Google, inclua um bloco de ações.
 
-Formato OBRIGATÓRIO quando há ações:
+Formato obrigatório quando houver ações:
 <gabriel_actions>
 [
-  {"action": "nome_acao", "param1": "valor1", "param2": "valor2"}
+  {"action":"nome_acao","param":"valor"}
 ]
 </gabriel_actions>
 
-Exemplos de quando OBRIGATORIAMENTE usar ações:
-- "cria uma tarefa" → create_task
-- "agenda um evento" → create_event  
-- "anota no caderno" → create_note
-- "salva uma nota" → create_note
-- "cria uma pasta" → create_folder
-- "registra um gasto" → create_finance
-- "pesquisa X e anota" → search_web + create_note (dois no mesmo bloco)
-- "qual o clima" → get_weather
-- "estou lendo X" → create_book (pergunta autor e capítulos se não informado)
-- "li 3 capítulos" → update_book
-- "estudei 2h de matemática" → log_study (duration em minutos: 120)
-- "agendar estudo de inglês amanhã" → schedule_study
-- "ver meus livros" → list_books
-- "minha evolução de estudos" → study_stats
+${ACTION_SCHEMAS}
 
-AÇÕES DISPONÍVEIS:
-- create_folder: { "action": "create_folder", "name": "...", "parentName": "..." }
-- create_event: { "action": "create_event", "title": "...", "date": "YYYY-MM-DD", "time": "HH:MM", "description": "...", "reminder": true, "folderName": "..." }
-- create_finance: { "action": "create_finance", "desc": "...", "value": 0.0, "category": "...", "card": "crédito|débito|pix|dinheiro", "month": "YYYY-MM", "folderName": "..." }
-- create_note: { "action": "create_note", "title": "...", "content": "...", "folderName": "..." }
-- create_task: { "action": "create_task", "title": "...", "dueDate": "YYYY-MM-DD", "folderName": "..." }
-- search_web: { "action": "search_web", "query": "..." }
-- get_weather: { "action": "get_weather", "city": "..." }
-- open_module: { "action": "open_module", "module": "dashboard|chat|folders|agenda|finance|notes|games" }
-- create_book: { "action": "create_book", "title": "...", "author": "...", "totalChapters": 0, "totalPages": 0, "folderName": "Livros" }
-- update_book: { "action": "update_book", "title": "...", "currentChapter": 0, "currentPage": 0 }
-- list_books: { "action": "list_books" }
-- log_study: { "action": "log_study", "subject": "...", "duration": 60, "notes": "...", "reminderTime": "HH:MM", "folderName": "Estudos" }
-- schedule_study: { "action": "schedule_study", "subject": "...", "date": "YYYY-MM-DD", "time": "HH:MM", "duration": 60, "notes": "..." }
-- study_stats: { "action": "study_stats" }${googleActions}
-
-REGRAS:
-1. Sempre responda em português
-2. Seja preciso com datas — hoje é ${now.toLocaleDateString('pt-BR')}
-3. Amanhã = ${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}
-4. Para "mês atual" use ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}
-5. Ao executar múltiplas ações, liste todas no mesmo bloco JSON
-6. Após executar, confirme de forma amigável o que foi feito
-7. Para ações gmail_* e gcal_*, só use se Google estiver conectado. Caso contrário, oriente a conectar no Dashboard
-8. CONTEÚDO COMPLETO NAS AÇÕES: Ao criar notas (create_note), o campo "content" deve conter o texto COMPLETO — nunca use "...", nunca resuma, nunca corte. Se o conteúdo for longo, coloque tudo mesmo assim. A resposta ao usuário pode ser resumida, mas o conteúdo salvo deve ser completo.
-9. SEPARAÇÃO: Responda ao usuário de forma concisa. As ações devem carregar os dados completos. Não duplique conteúdo longo na resposta E na ação — coloque o completo na ação e o resumo na resposta.
-10. PESQUISA: Quando o usuário pedir algo atual, notícias, preços, clima ou qualquer informação recente, use search_web para buscar dados reais antes de responder. SEMPRE use search_web quando pedir para pesquisar
-11. CLIMA: Para previsão do tempo, use get_weather SEM especificar cidade (deixe vazio) para usar a localização salva do usuário. Mostre temperatura, chuva e previsão para os próximos dias
-12. CALENDÁRIO: Para criar eventos no calendário LOCAL use create_event. Para criar no Google Calendar use gcal_create. Sempre pergunte se quer nos dois quando relevante
-13. DRIVE: Para baixar ou abrir arquivo use drive_download. Para buscar use drive_search. Para listar use drive_list
-14. COMBINAÇÃO: Quando o usuário pedir para pesquisar E salvar no caderno, execute search_web E create_note no mesmo bloco de ações
-15. AUTONOMIA: Seja proativo — se o usuário mencionar um livro, pergunte se quer adicionar ao tracker. Se mencionar estudo, sugira registrar. Se criar evento, pergunte se quer lembrete
-16. LIVROS: Quando o usuário mencionar que está lendo algo, use create_book. Pergunte autor e número de capítulos/páginas se não informado. Organize sempre na pasta "Livros"
-17. ESTUDOS: Registre sessões de estudo com log_study. Para agendar próximas sessões use schedule_study. Mostre progresso com study_stats
-18. EMOJIS: Use emojis contextualmente — 📚 para livros, 🎓 para estudos, 📅 para agenda, 💰 para finanças, 🎮 para jogos, ✅ para tarefas concluídas
-19. JOGOS NO CHAT: Você pode jogar diretamente no chat com o usuário:
-   - "vamos jogar quiz" → inicie um quiz com 5 perguntas, espere respostas, dê pontuação
-   - "adivinhe um número" → pense num número 1-100, dê dicas quente/frio conforme o usuário tenta
-   - "me faça perguntas de trivia" → faça perguntas uma a uma, espere resposta, explique o porquê
-   - "jogo da forca" → escolha uma palavra, mostre _ _ _ _, aceite letras uma a uma
-   - "20 perguntas" → pense em algo, responda só sim/não, usuário tenta descobrir em 20 perguntas
-   - Mantenha o estado do jogo na conversa, seja animado e use emojis durante os jogos
-20. AUTONOMIA TOTAL: Você tem acesso a Gmail, Agenda, Drive, tarefas, notas, finanças e livros. Quando o usuário mencionar qualquer coisa que possa ser organizada, ofereça-se para fazer isso automaticamente`;
+REGRAS PRÁTICAS:
+1. Hoje é ${now.toLocaleDateString('pt-BR')}.
+2. Amanhã = ${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}.
+3. Para mês atual use ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.
+4. Conteúdo de nota/e-mail/documento deve ir completo no campo da ação, não resumido.
+5. Se uma tarefa tem várias etapas, gere várias ações no mesmo bloco.
+6. Para pesquisa atual, use search_web antes de concluir.
+7. Para imagem, descreva o que vê, extraia texto visível quando possível e use isso na resposta/ações.
+8. Se faltarem dados obrigatórios que impedem execução real, pergunte só o mínimo necessário. Se der para fazer uma versão útil com os dados atuais, faça.
+9. Depois das ações, a resposta deve confirmar o que foi feito e mencionar qualquer limitação real.
+10. Seja caprichoso: títulos bons, listas claras, mensagem bem formatada, conclusão útil.`;
   }
 
   // ── Chat principal ───────────────────────────────────────
 
-  async function chat(userMessage, conversationMessages = []) {
-    const systemPrompt = await buildSystemPrompt();
+  async function chat(userMessage, conversationMessages = [], options = {}) {
+    const attachments = options.attachments || [];
+    const systemPrompt = await buildSystemPrompt(userMessage, attachments);
+    const usingVision = hasImageAttachment(attachments);
 
-    // Monta histórico — últimas 20 mensagens para não estourar contexto
-    const history = conversationMessages.slice(-20).map(m => ({
-      role:    m.role,
-      content: m.content
+    const history = (conversationMessages || []).slice(-HISTORY_LIMIT).map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: String(m.content || '').slice(0, 12000)
     }));
 
-    history.push({ role: 'user', content: userMessage });
+    history.push({
+      role: 'user',
+      content: buildUserContent(userMessage, attachments)
+    });
 
-    const rawResponse = await call(history, systemPrompt, MAX_TOKENS_ACTIONS);
-
-    // Separa texto da resposta e bloco de ações
-    const actionMatch = rawResponse.match(/<gabriel_actions>([\s\S]*?)<\/gabriel_actions>/);
-    let actions = [];
-    let text = rawResponse;
-
-    if (actionMatch) {
-      try {
-        let jsonStr = actionMatch[1].trim();
-        // Fix truncated JSON — try to close array if cut off
-        if (!jsonStr.endsWith(']')) {
-          // Find last complete object
-          const lastClose = jsonStr.lastIndexOf('}');
-          if (lastClose > 0) {
-            jsonStr = jsonStr.substring(0, lastClose + 1) + ']';
-          } else {
-            jsonStr = '[]';
-          }
-        }
-        actions = JSON.parse(jsonStr);
-      } catch (e) {
-        console.warn('[Groq] Erro ao parsear ações:', e);
-        // Try to extract individual action objects
-        try {
-          const matches = actionMatch[1].match(/\{[^{}]+\}/g) || [];
-          actions = matches.map(m => JSON.parse(m)).filter(Boolean);
-        } catch(e2) { actions = []; }
+    let rawResponse;
+    try {
+      rawResponse = await call(history, systemPrompt, MAX_TOKENS_ACTIONS, {
+        vision: usingVision,
+        temperature: usingVision ? 0.25 : 0.42
+      });
+    } catch (err) {
+      // Fallback: se o modelo de visão falhar, tenta responder com texto/metadados do anexo.
+      if (usingVision) {
+        const fallbackMsg = `${userMessage}\n\n[O envio visual falhou no modelo de visão. Use os metadados do anexo e peça reenvio se precisar ver a imagem.]\n${attachmentTextSummary(attachments)}`;
+        rawResponse = await call(
+          [...history.slice(0, -1), { role: 'user', content: fallbackMsg }],
+          await buildSystemPrompt(fallbackMsg, []),
+          MAX_TOKENS_ACTIONS,
+          { temperature: 0.35 }
+        );
+      } else {
+        throw err;
       }
-      text = rawResponse.replace(/<gabriel_actions>[\s\S]*?<\/gabriel_actions>/, '').trim();
     }
 
-    return { text, actions };
+    const parsed = extractActions(rawResponse);
+    return { text: parsed.text || 'Feito.', actions: parsed.actions, raw: rawResponse };
+  }
+
+  // ── Auditor de conclusão da tarefa ───────────────────────
+
+  async function reviewTaskCompletion(userMessage, assistantResponse, actions = [], actionResults = [], options = {}) {
+    const systemPrompt = `Você é o Auditor de Conclusão do Gabriel.
+Sua função é detectar se o assistente fez a tarefa pela metade e corrigir antes de mostrar ao usuário.
+
+Retorne SOMENTE JSON válido, sem markdown.
+Formato:
+{
+  "complete": true,
+  "reason": "resumo curto",
+  "extra_actions": [],
+  "improved_reply": "resposta final revisada ou string vazia"
+}
+
+Use extra_actions somente se faltar uma ação executável real.
+Use improved_reply quando a resposta estiver rasa, mal formatada, incompleta ou sem explicar o resultado.
+Não invente execução de ação que falhou. Se algo falhou, explique claramente.
+
+Ações disponíveis:
+${ACTION_SCHEMAS}`;
+
+    const payload = {
+      userMessage,
+      assistantResponse,
+      plannedActions: normalizeActionList(actions),
+      actionResults: (actionResults || []).map(r => ({ action: r.action, success: !!r.success, message: r.message })),
+      hasAttachment: !!options.hasAttachment
+    };
+
+    try {
+      const raw = await call(
+        [{ role: 'user', content: JSON.stringify(payload) }],
+        systemPrompt,
+        MAX_TOKENS_REVIEW,
+        { temperature: 0.1 }
+      );
+      const parsed = safeJsonParse(raw, null);
+      if (!parsed || typeof parsed !== 'object') return null;
+      return {
+        complete: parsed.complete !== false,
+        reason: parsed.reason || '',
+        extra_actions: normalizeActionList(parsed.extra_actions || parsed.missing_actions || []),
+        improved_reply: typeof parsed.improved_reply === 'string' ? parsed.improved_reply.trim() : ''
+      };
+    } catch(e) {
+      console.warn('[Groq] Auditor falhou:', e);
+      return null;
+    }
   }
 
   // ── Extração de memórias ─────────────────────────────────
@@ -264,27 +402,21 @@ REGRAS:
     const profile = await GabrielDB.Profile.get();
     const userName = profile?.name || 'usuário';
 
-    const systemPrompt = `Você é um extrator de informações pessoais.
-Analise a conversa e extraia APENAS fatos relevantes e duradouros sobre ${userName}.
-Retorne SOMENTE um JSON válido. Sem texto extra. Sem markdown.
-Formato: { "memories": ["fato 1", "fato 2"] }
-Extraia apenas se houver fatos claros. Se não houver, retorne: { "memories": [] }
-Exemplos de fatos válidos:
-- Preferências pessoais (gosta de X, não gosta de Y)
-- Informações profissionais (trabalha em X, cargo Y)
-- Informações familiares (tem filhos, casado)
-- Hábitos relevantes
-- Metas e objetivos`;
-
-    const messages = [
-      { role: 'user', content: `Usuário disse: "${userMessage}"\nGabriel respondeu: "${assistantResponse}"` }
-    ];
+    const systemPrompt = `Você é um extrator de memória do Gabriel.
+Extraia APENAS fatos duradouros, úteis e claros sobre ${userName} ou preferências permanentes do usuário.
+Não extraia dado sensível desnecessário, fofoca, frase passageira ou conteúdo de documento/anexo.
+Retorne SOMENTE JSON válido: { "memories": ["fato 1", "fato 2"] }
+Se não houver, retorne { "memories": [] }.`;
 
     try {
-      const raw = await call(messages, systemPrompt, MAX_TOKENS_MEMORY);
-      const clean = raw.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      return parsed.memories || [];
+      const raw = await call(
+        [{ role: 'user', content: `Usuário: ${userMessage}\n\nResposta do Gabriel: ${assistantResponse}` }],
+        systemPrompt,
+        MAX_TOKENS_MEMORY,
+        { temperature: 0.1 }
+      );
+      const parsed = safeJsonParse(raw, { memories: [] });
+      return Array.isArray(parsed?.memories) ? parsed.memories.slice(0, 8) : [];
     } catch (e) {
       console.warn('[Groq] Erro extração de memórias:', e);
       return [];
@@ -296,23 +428,19 @@ Exemplos de fatos válidos:
   async function extractTasks(userMessage) {
     const systemPrompt = `Você é um extrator de tarefas.
 Analise a mensagem e extraia tarefas mencionadas implicitamente ou explicitamente.
-Retorne SOMENTE JSON válido. Sem texto. Sem markdown.
-Formato: { "tasks": [{ "title": "...", "dueDate": "YYYY-MM-DD ou null" }] }
-Se não houver tarefas, retorne: { "tasks": [] }`;
+Retorne SOMENTE JSON válido: { "tasks": [{ "title": "...", "dueDate": "YYYY-MM-DD ou null" }] }
+Se não houver tarefas, retorne { "tasks": [] }.`;
 
     const now = new Date();
-    const messages = [
-      {
-        role: 'user',
-        content: `Data atual: ${now.toISOString().split('T')[0]}\nMensagem: "${userMessage}"`
-      }
-    ];
-
     try {
-      const raw = await call(messages, systemPrompt, MAX_TOKENS_MEMORY);
-      const clean = raw.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      return parsed.tasks || [];
+      const raw = await call(
+        [{ role: 'user', content: `Data atual: ${now.toISOString().split('T')[0]}\nMensagem: ${userMessage}` }],
+        systemPrompt,
+        MAX_TOKENS_MEMORY,
+        { temperature: 0.1 }
+      );
+      const parsed = safeJsonParse(raw, { tasks: [] });
+      return Array.isArray(parsed?.tasks) ? parsed.tasks : [];
     } catch (e) {
       console.warn('[Groq] Erro extração de tarefas:', e);
       return [];
@@ -322,16 +450,10 @@ Se não houver tarefas, retorne: { "tasks": [] }`;
   // ── Gerar título de conversa ─────────────────────────────
 
   async function generateTitle(firstMessage) {
-    const systemPrompt = `Gere um título curto (máx. 5 palavras) em português para uma conversa que começa com a mensagem do usuário.
-Retorne APENAS o título, sem aspas, sem pontuação extra.`;
-
+    const systemPrompt = `Gere um título curto em português, com no máximo 5 palavras. Retorne apenas o título.`;
     try {
-      const title = await call(
-        [{ role: 'user', content: firstMessage }],
-        systemPrompt,
-        50
-      );
-      return title.trim().slice(0, 50);
+      const title = await call([{ role: 'user', content: firstMessage }], systemPrompt, 50, { temperature: 0.2 });
+      return title.trim().replace(/^['"]|['"]$/g, '').slice(0, 50) || 'Nova conversa';
     } catch (e) {
       return 'Nova conversa';
     }
@@ -343,222 +465,174 @@ Retorne APENAS o título, sem aspas, sem pontuação extra.`;
     try {
       let results = [];
 
-      // Tentativa 1: Netlify Function (Brave Search)
       try {
         const res = await fetch('/.netlify/functions/web-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, count: 6 }),
-          signal: AbortSignal.timeout(5000)
+          body: JSON.stringify({ query, count: 8 }),
+          signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined
         });
         if (res.ok) {
           const data = await res.json();
           if (data.results?.length) results = data.results;
         }
-      } catch(e) { console.warn('[Search] Netlify proxy falhou'); }
+      } catch(e) { console.warn('[Search] Netlify proxy falhou:', e?.message || e); }
 
-      // Tentativa 2: Wikipedia PT (CORS liberado)
       if (results.length === 0) {
         try {
           const wikiRes = await fetch(
-            `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.split(' ').slice(0,4).join('_'))}`,
-            { signal: AbortSignal.timeout(4000) }
+            `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(String(query).split(' ').slice(0,4).join('_'))}`,
+            { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined }
           );
           if (wikiRes.ok) {
             const wiki = await wikiRes.json();
             if (wiki.extract && wiki.extract.length > 50) {
               results.push({
                 title: wiki.title,
-                snippet: wiki.extract.slice(0, 600),
+                snippet: wiki.extract.slice(0, 900),
                 url: wiki.content_urls?.desktop?.page || 'https://pt.wikipedia.org'
               });
             }
           }
-        } catch(e) { console.warn('[Search] Wikipedia falhou'); }
+        } catch(e) { console.warn('[Search] Wikipedia summary falhou:', e?.message || e); }
       }
 
-      // Tentativa 3: Wikipedia Search API para encontrar artigo certo
       if (results.length === 0) {
         try {
           const searchRes = await fetch(
-            `https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=3`,
-            { signal: AbortSignal.timeout(4000) }
+            `https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=5`,
+            { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined }
           );
           if (searchRes.ok) {
             const data = await searchRes.json();
             const articles = data.query?.search || [];
-            for (const art of articles.slice(0, 2)) {
+            for (const art of articles.slice(0, 4)) {
               results.push({
                 title: art.title,
-                snippet: art.snippet.replace(/<[^>]+>/g, ''),
+                snippet: String(art.snippet || '').replace(/<[^>]+>/g, ''),
                 url: `https://pt.wikipedia.org/wiki/${encodeURIComponent(art.title)}`
               });
             }
           }
-        } catch(e) { console.warn('[Search] Wikipedia search falhou'); }
+        } catch(e) { console.warn('[Search] Wikipedia search falhou:', e?.message || e); }
       }
 
-      // Usa o Groq para formular resposta com os resultados
-      const systemPrompt = `Você é Gabriel. Responda em português sobre: "${query}".
-${results.length > 0 ? 'Use as informações abaixo como base, cite fontes quando relevante.' : 'Use seu conhecimento para dar a melhor resposta possível, seja claro que é baseado no seu treinamento.'}
-Seja informativo, direto e útil.`;
+      const systemPrompt = `Você é Gabriel. Responda em português sobre a pesquisa do usuário.
+Use as fontes abaixo quando existirem. Se forem insuficientes ou possivelmente desatualizadas, avise com honestidade.
+Entregue resposta útil, organizada e prática.`;
 
       const content = results.length > 0
-        ? `Pesquisa: "${query}"\n\nFontes encontradas:\n${results.map((r,i) => `[${i+1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`).join('\n\n')}`
-        : `Responda com seu melhor conhecimento sobre: "${query}"`;
+        ? `Pergunta/pesquisa: ${query}\n\nFontes encontradas:\n${results.map((r,i) => `[${i+1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`).join('\n\n')}`
+        : `Não houve fonte externa confiável via busca. Responda com conhecimento geral e avise que não conseguiu confirmar online: ${query}`;
 
-      return await call([{ role: 'user', content }], systemPrompt, 1500);
+      return await call([{ role: 'user', content }], systemPrompt, 2500, { temperature: 0.25 });
 
     } catch (e) {
       console.error('[Groq] Erro pesquisa:', e);
-      // Último recurso: responde com conhecimento do modelo
-      try {
-        return await call(
-          [{ role: 'user', content: `Responda sobre: ${query}` }],
-          `Você é Gabriel. Responda em português sobre "${query}" com seu conhecimento. Seja claro que é baseado no seu treinamento.`,
-          800
-        );
-      } catch(e2) {
-        return `Não consegui pesquisar "${query}" agora.`;
-      }
+      return `Não consegui pesquisar "${query}" agora. A conexão de busca falhou.`;
     }
   }
 
   // ══════════════════════════════════════════════════════════
-  // ── SISTEMA MULTI-AGENTE ──────────────────────────────────
+  // ── SISTEMA MULTI-AGENTE ─────────────────────────────────
   // ══════════════════════════════════════════════════════════
 
-  // ── Agente de Pesquisa ───────────────────────────────────
   async function agentSearch(task) {
-    const systemPrompt = `Você é o Agente de Pesquisa do Gabriel. Sua única função é buscar informações na web de forma precisa e abrangente.
-Receberá uma tarefa e deve:
-1. Identificar as melhores queries de busca
-2. Retornar os resultados de forma estruturada
-Responda APENAS em JSON: { "queries": ["query1","query2"], "summary": "resumo dos resultados", "sources": ["url1","url2"] }`;
-
+    const systemPrompt = `Você é o Agente de Pesquisa do Gabriel.
+Crie até 3 queries objetivas para pesquisar a tarefa. Retorne JSON: {"queries":["..."]}`;
     try {
-      // Busca múltiplas queries em paralelo
-      const queriesRes = await call([{ role: 'user', content: `Tarefa: ${task}\n\nQuais são as 2 melhores queries para buscar isso?` }],
-        `Retorne APENAS JSON: {"queries": ["q1","q2"]}`, 100);
-      
-      let queries = [task];
-      try { queries = JSON.parse(queriesRes.replace(/```json|```/g, '').trim()).queries || [task]; } catch(e) {}
-
-      const results = await Promise.all(queries.slice(0, 2).map(q => searchWeb(q)));
+      const raw = await call([{ role: 'user', content: `Tarefa: ${task}` }], systemPrompt, 200, { temperature: 0.2 });
+      const parsed = safeJsonParse(raw, { queries: [task] });
+      const queries = Array.isArray(parsed.queries) && parsed.queries.length ? parsed.queries : [task];
+      const results = await Promise.all(queries.slice(0, 3).map(q => searchWeb(q)));
       return { agent: 'search', task, result: results.join('\n\n---\n\n') };
     } catch(e) {
       return { agent: 'search', task, result: await searchWeb(task) };
     }
   }
 
-  // ── Agente de Análise ────────────────────────────────────
   async function agentAnalyze(task, context = '') {
-    const systemPrompt = `Você é o Agente de Análise do Gabriel. Analisa dados, gráficos, textos e informações de forma profunda e estruturada.
-Forneça análises detalhadas, padrões identificados e recomendações práticas em português.`;
-
-    const messages = [{ role: 'user', content: `${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa de análise: ${task}` }];
-    const result = await call(messages, systemPrompt, 2048);
+    const systemPrompt = `Você é o Agente de Análise do Gabriel.
+Analise profundamente, encontre padrões, riscos, lacunas e próximos passos. Responda em português estruturado.`;
+    const result = await call([{ role: 'user', content: `${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa: ${task}` }], systemPrompt, 4096, { temperature: 0.25 });
     return { agent: 'analyze', task, result };
   }
 
-  // ── Agente de Programação ────────────────────────────────
   async function agentCode(task, language = 'javascript') {
-    const systemPrompt = `Você é o Agente de Programação do Gabriel — especialista em desenvolvimento de software.
-
-REGRAS OBRIGATÓRIAS:
-1. Sempre escreva código COMPLETO e FUNCIONAL — nunca coloque "..." ou "// resto do código"
-2. Use blocos de código com a linguagem correta: \`\`\`javascript, \`\`\`python, \`\`\`html, etc
-3. Inclua comentários explicativos em português
-4. Explique brevemente o que o código faz antes e como usar depois
-5. Se o código for longo, divida em seções bem organizadas
-6. Detecte automaticamente a melhor linguagem para a tarefa
-7. Para apps web, sempre crie HTML+CSS+JS completo em um único arquivo
-8. Inclua exemplos de uso sempre que relevante
-
-Responda em português. Código deve ser pronto para usar.`;
-
-    const messages = [{ role: 'user', content: task }];
-    const result = await call(messages, systemPrompt, 4096);
+    const systemPrompt = `Você é o Agente de Programação do Gabriel.
+REGRAS:
+1. Código completo e funcional, sem placeholders.
+2. Nunca use "...", "resto do código" ou comentários para esconder implementação.
+3. Explique como usar.
+4. Para HTML/CSS/JS, entregue arquivo único quando fizer sentido.
+5. Responda em português.`;
+    const result = await call([{ role: 'user', content: `Linguagem preferida: ${language}\n\n${task}` }], systemPrompt, 8192, { temperature: 0.2 });
     return { agent: 'code', task, result };
   }
 
-  // ── Agente do Drive ──────────────────────────────────────
   async function agentDrive(task) {
-    const systemPrompt = `Você é o Agente do Google Drive do Gabriel. Especialista em organizar, criar e gerenciar arquivos no Drive.
-Responda indicando exatamente quais ações tomar: criar pasta, fazer upload, buscar arquivo, ou baixar.`;
-
+    const systemPrompt = `Você é o Agente do Google Drive do Gabriel.
+Use o contexto de arquivos para orientar ações concretas. Seja específico.`;
     let driveContext = '';
     try {
       if (window.Google?.isConnected()) {
-        const files = await window.Google.Drive.list('', 10);
-        driveContext = `Arquivos recentes no Drive:\n${files.map(f => `- ${f.name}`).join('\n')}`;
+        const files = await window.Google.Drive.list('', 20);
+        driveContext = `Arquivos recentes no Drive:\n${files.map(f => `- ${f.name} | id=${f.id} | ${f.mimeType}`).join('\n')}`;
       }
-    } catch(e) {}
+    } catch(e) { driveContext = 'Não foi possível listar o Drive: ' + e.message; }
 
-    const messages = [{ role: 'user', content: `${driveContext}\n\nTarefa: ${task}` }];
-    const result = await call(messages, systemPrompt, 1024);
+    const result = await call([{ role: 'user', content: `${driveContext}\n\nTarefa: ${task}` }], systemPrompt, 2048, { temperature: 0.2 });
     return { agent: 'drive', task, result };
   }
 
-  // ── Orquestrador principal ───────────────────────────────
   async function runAgents(userMessage) {
-    // Detecta qual agente usar baseado na mensagem
-    const routerPrompt = `Analise a mensagem e decida quais agentes devem ser ativados.
-Agentes disponíveis: search (pesquisa web), analyze (análise de dados/textos), code (programação), drive (Google Drive).
-Retorne APENAS JSON: {"agents": ["agente1"], "tasks": {"agente1": "tarefa específica"}}
-Ative no máximo 2 agentes por vez. Se for conversa simples, retorne {"agents": [], "tasks": {}}`;
+    const routerPrompt = `Analise a mensagem e decida quais agentes ativar.
+Agentes: search, analyze, code, drive.
+Retorne JSON: {"agents":["..."],"tasks":{"search":"...","analyze":"...","code":"...","drive":"..."}}
+Ative até 4 agentes se necessário. Se conversa simples, retorne {"agents":[],"tasks":{}}.`;
 
-    let agentPlan = { agents: [], tasks: {} };
     try {
-      const raw = await call([{ role: 'user', content: `Mensagem: "${userMessage}"` }], routerPrompt, 200);
-      agentPlan = JSON.parse(raw.replace(/```json|```/g, '').trim());
-    } catch(e) { return null; }
+      const raw = await call([{ role: 'user', content: `Mensagem: ${userMessage}` }], routerPrompt, 500, { temperature: 0.1 });
+      const plan = safeJsonParse(raw, { agents: [], tasks: {} });
+      const agents = Array.isArray(plan.agents) ? [...new Set(plan.agents)].slice(0, 4) : [];
+      if (!agents.length) return null;
 
-    if (!agentPlan.agents?.length) return null;
-
-    // Executa agentes em paralelo
-    const agentResults = await Promise.all(agentPlan.agents.map(agent => {
-      const task = agentPlan.tasks[agent] || userMessage;
-      switch(agent) {
-        case 'search':  return agentSearch(task);
-        case 'analyze': return agentAnalyze(task);
-        case 'code':    return agentCode(task);
-        case 'drive':   return agentDrive(task);
-        default:        return Promise.resolve(null);
+      const results = [];
+      for (const agent of agents) {
+        const task = plan.tasks?.[agent] || userMessage;
+        if (agent === 'search') results.push(await agentSearch(task));
+        else if (agent === 'analyze') results.push(await agentAnalyze(task));
+        else if (agent === 'code') results.push(await agentCode(task));
+        else if (agent === 'drive') results.push(await agentDrive(task));
       }
-    }));
-
-    return agentResults.filter(Boolean);
+      return results.filter(Boolean);
+    } catch(e) {
+      console.warn('[Groq] runAgents falhou:', e);
+      return null;
+    }
   }
 
-  // ── Chat com suporte a multi-agentes ─────────────────────
-  async function chatWithAgents(userMessage, conversationMessages = []) {
-    // Verifica se precisa de agentes especializados
+  async function chatWithAgents(userMessage, conversationMessages = [], options = {}) {
     const agentResults = await runAgents(userMessage);
-
     let enrichedMessage = userMessage;
     if (agentResults?.length) {
-      const agentContext = agentResults.map(r =>
-        `[${r.agent.toUpperCase()} AGENT RESULT]\n${r.result}`
-      ).join('\n\n');
+      const agentContext = agentResults.map(r => `[${r.agent.toUpperCase()} AGENT RESULT]\n${r.result}`).join('\n\n');
       enrichedMessage = `${userMessage}\n\n[CONTEXTO DOS AGENTES ESPECIALIZADOS]\n${agentContext}`;
     }
-
-    return await chat(enrichedMessage, conversationMessages);
+    return await chat(enrichedMessage, conversationMessages, options);
   }
 
-  // ── Gerar conteúdo completo para nota ──────────────────────
+  // ── Gerar conteúdo completo para nota ────────────────────
+
   async function generateNoteContent(topic, existingResponse) {
-    const systemPrompt = `Você é Gabriel. O usuário pediu para salvar informações sobre: "${topic}"
-Gere o conteúdo COMPLETO e DETALHADO para salvar numa nota.
-Escreva tudo — não resuma, não corte. Use formatação simples (sem markdown complexo).
-Responda APENAS com o conteúdo da nota, sem introdução ou explicação.`;
-    
+    const systemPrompt = `Você é Gabriel. Gere o conteúdo COMPLETO e DETALHADO para salvar numa nota.
+Não resuma, não corte, não use placeholders. Responda apenas com o conteúdo da nota.`;
     try {
       return await call(
-        [{ role: 'user', content: existingResponse || topic }],
+        [{ role: 'user', content: `Tema: ${topic}\n\nBase disponível:\n${existingResponse || topic}` }],
         systemPrompt,
-        4096
+        8192,
+        { temperature: 0.25 }
       );
     } catch(e) {
       return existingResponse || topic;
@@ -569,6 +643,7 @@ Responda APENAS com o conteúdo da nota, sem introdução ou explicação.`;
   return {
     chat,
     chatWithAgents,
+    reviewTaskCompletion,
     generateNoteContent,
     runAgents,
     agentSearch,
@@ -580,7 +655,9 @@ Responda APENAS com o conteúdo da nota, sem introdução ou explicação.`;
     generateTitle,
     searchWeb,
     setApiKey,
-    getApiKey
+    getApiKey,
+    getModel,
+    call
   };
 
 })();

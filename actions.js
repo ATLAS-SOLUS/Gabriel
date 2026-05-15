@@ -66,9 +66,14 @@ const Actions = (() => {
 
   // ── Resolver pasta por nome ──────────────────────────────
 
-  async function resolveFolder(folderName) {
+  async function resolveFolder(folderName, createIfMissing = true) {
     if (!folderName) return 0;
-    const folder = await GabrielDB.Folders.getByName(folderName);
+    const cleanName = String(folderName).trim();
+    if (!cleanName) return 0;
+    let folder = await GabrielDB.Folders.getByName(cleanName);
+    if (!folder && createIfMissing) {
+      folder = await GabrielDB.Folders.create(cleanName, 0);
+    }
     return folder ? folder.id : 0;
   }
 
@@ -190,6 +195,25 @@ const Actions = (() => {
     );
   }
 
+  // 🧠 Salvar memória manual
+  async function execMemoryAdd({ content, tags = [] }) {
+    if (!content || String(content).trim().length < 3) {
+      return result('memory_add', false, 'Conteúdo da memória não informado.');
+    }
+    try {
+      let id = null;
+      if (window.Memory?.add) {
+        id = await window.Memory.add(String(content).trim(), Array.isArray(tags) ? tags : []);
+      } else {
+        id = await GabrielDB.Memories.add(String(content).trim(), Array.isArray(tags) ? tags : [], null);
+      }
+      if (!id) return result('memory_add', true, 'Memória já existia ou era duplicada.', { duplicated: true });
+      return result('memory_add', true, 'Memória salva com sucesso 🧠', { id, content });
+    } catch (err) {
+      return result('memory_add', false, `Erro ao salvar memória: ${err.message}`);
+    }
+  }
+
   // 🌐 Pesquisa web
   async function execSearchWeb(params) {
     const { query } = params;
@@ -254,6 +278,39 @@ const Actions = (() => {
     }
   }
 
+  async function execGmailRead({ id }) {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gmail_read', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    if (!id) return result('gmail_read', false, 'ID do e-mail não informado.');
+    try {
+      const email = await window.Google.Gmail.getFull(id);
+      const body = (email.body || email.snippet || '').slice(0, 6000);
+      const summary = `📧 **${email.subject}**
+De: ${email.from}
+Para: ${email.to}
+Data: ${email.date || ''}
+
+${body}`;
+      return result('gmail_read', true, summary, { email });
+    } catch (err) {
+      return result('gmail_read', false, `Erro ao ler e-mail: ${err.message}`);
+    }
+  }
+
+  async function execGmailDraft({ to, subject, body }) {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gmail_draft', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    if (!to || !subject || !body) return result('gmail_draft', false, 'Informe destinatário, assunto e corpo do rascunho.');
+    try {
+      const draft = await window.Google.Gmail.createDraft({ to, subject, body });
+      return result('gmail_draft', true, `Rascunho criado para **${to}** com assunto "${subject}".`, { draft });
+    } catch (err) {
+      return result('gmail_draft', false, `Erro ao criar rascunho: ${err.message}`);
+    }
+  }
+
   // ── GMAIL: enviar e-mail ─────────────────────────────────
 
   async function execGmailSend({ to, subject, body }) {
@@ -314,6 +371,38 @@ const Actions = (() => {
   }
 
 
+  async function execGcalToday() {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gcal_today', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    try {
+      const events = await window.Google.Calendar.today();
+      if (!events.length) return result('gcal_today', true, 'Nenhum evento no Google Agenda para hoje.', { events: [] });
+      const summary = events.map(e => {
+        const title = e.summary || '(sem título)';
+        const start = e.start?.dateTime || e.start?.date || '';
+        const when = start ? new Date(start).toLocaleString('pt-BR') : 'horário não definido';
+        return `📅 **${title}** — ${when}`;
+      }).join('\n');
+      return result('gcal_today', true, summary, { events });
+    } catch (err) {
+      return result('gcal_today', false, `Erro ao buscar agenda de hoje: ${err.message}`);
+    }
+  }
+
+  async function execGcalDelete({ eventId }) {
+    if (!window.Google || !window.Google.isConnected()) {
+      return result('gcal_delete', false, 'Google não conectado. Conecte no Dashboard primeiro.');
+    }
+    if (!eventId) return result('gcal_delete', false, 'ID do evento não informado.');
+    try {
+      await window.Google.Calendar.delete(eventId);
+      return result('gcal_delete', true, 'Evento removido do Google Agenda.');
+    } catch (err) {
+      return result('gcal_delete', false, `Erro ao remover evento: ${err.message}`);
+    }
+  }
+
   // ── GOOGLE DRIVE: baixar/abrir arquivo ──────────────────
   async function execDriveDownload({ fileId, fileName }) {
     if (!window.Google?.isConnected()) return result('drive_download', false, 'Google não conectado.');
@@ -328,6 +417,30 @@ const Actions = (() => {
     } catch(err) { return result('drive_download', false, `Erro: ${err.message}`); }
   }
 
+
+  async function execDriveCreateFolder({ name, parentId = null }) {
+    if (!window.Google?.isConnected()) return result('drive_create_folder', false, 'Google não conectado.');
+    if (!name) return result('drive_create_folder', false, 'Nome da pasta não informado.');
+    try {
+      const folder = await window.Google.Drive.createFolder(name, parentId || null);
+      return result('drive_create_folder', true, `Pasta **${name}** criada no Google Drive.`, { folder });
+    } catch (err) {
+      return result('drive_create_folder', false, `Erro ao criar pasta no Drive: ${err.message}`);
+    }
+  }
+
+  async function execDriveReadText({ fileId, mimeType = '' }) {
+    if (!window.Google?.isConnected()) return result('drive_read_text', false, 'Google não conectado.');
+    if (!fileId) return result('drive_read_text', false, 'ID do arquivo não informado.');
+    try {
+      const text = await window.Google.Drive.readAnyText(fileId, mimeType);
+      return result('drive_read_text', true, `Conteúdo lido do Drive:
+
+${String(text || '').slice(0, 7000)}`, { text });
+    } catch (err) {
+      return result('drive_read_text', false, `Erro ao ler arquivo do Drive: ${err.message}`);
+    }
+  }
 
   // ── LIVROS ──────────────────────────────────────────────────
 
@@ -431,13 +544,18 @@ const Actions = (() => {
     create_finance: execCreateFinance,
     create_note:    execCreateNote,
     create_task:    execCreateTask,
+    memory_add:     execMemoryAdd,
     search_web:     execSearchWeb,
     get_weather:    execGetWeather,
     open_module:    execOpenModule,
     gmail_list:     execGmailList,
+    gmail_read:     execGmailRead,
     gmail_send:     execGmailSend,
+    gmail_draft:    execGmailDraft,
     gcal_list:      execGcalList,
+    gcal_today:     execGcalToday,
     gcal_create:    execGcalCreate,
+    gcal_delete:    execGcalDelete,
     create_book:    execCreateBook,
     update_book:    execUpdateBookProgress,
     list_books:     execListBooks,
@@ -445,6 +563,8 @@ const Actions = (() => {
     schedule_study: execScheduleStudy,
     study_stats:    execStudyStats,
     drive_download: execDriveDownload,
+    drive_create_folder: execDriveCreateFolder,
+    drive_read_text: execDriveReadText,
     drive_list:     execDriveList,
     drive_upload:   execDriveUpload,
     drive_search:   execDriveSearch,
@@ -541,11 +661,18 @@ const Actions = (() => {
 
   // Executa lista de ações em sequência
   async function execute(actions = []) {
-    if (!Array.isArray(actions) || actions.length === 0) return [];
+    if (!actions) return [];
+    if (!Array.isArray(actions)) actions = [actions];
+    actions = actions.flat().filter(Boolean);
+    if (actions.length === 0) return [];
 
     const results = [];
 
     for (const actionObj of actions) {
+      if (!actionObj || typeof actionObj !== 'object') {
+        results.push(result('unknown', false, 'Ação inválida.'));
+        continue;
+      }
       const { action, ...params } = actionObj;
 
       if (!action) {

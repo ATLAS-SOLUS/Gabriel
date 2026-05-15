@@ -16,9 +16,12 @@ const Memory = (() => {
 
   async function scheduleExtraction(userMessage, assistantResponse, conversationId) {
     clearTimeout(extractTimer);
-    extractTimer = setTimeout(async () => {
-      await extractAndSave(userMessage, assistantResponse, conversationId);
-    }, EXTRACT_DEBOUNCE);
+    return new Promise(resolve => {
+      extractTimer = setTimeout(async () => {
+        const saved = await extractAndSave(userMessage, assistantResponse, conversationId);
+        resolve(saved || []);
+      }, EXTRACT_DEBOUNCE);
+    });
   }
 
   async function extractAndSave(userMessage, assistantResponse, conversationId = null) {
