@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const CACHE_NAME    = 'gabriel-v13-oauth-force-client';
+const CACHE_NAME    = 'gabriel-v14-groq-token-safe';
 const OFFLINE_URL   = 'index.html';
 
 const CACHE_ASSETS = [

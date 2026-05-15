@@ -13,11 +13,20 @@ const Groq = (() => {
     fast:   'llama-3.1-8b-instant'
   };
 
-  const MAX_TOKENS_CHAT       = 8192;
-  const MAX_TOKENS_ACTIONS    = 12000;
-  const MAX_TOKENS_MEMORY     = 1024;
-  const MAX_TOKENS_REVIEW     = 4096;
-  const HISTORY_LIMIT         = 34;
+  // Groq on_demand costuma ter TPM baixo. Não adianta pedir 12k de saída:
+  // isso estoura antes mesmo de contar memória, histórico e anexos.
+  const MAX_TOKENS_CHAT       = 2200;
+  const MAX_TOKENS_ACTIONS    = 2800;
+  const MAX_TOKENS_MEMORY     = 420;
+  const MAX_TOKENS_REVIEW     = 900;
+  const HISTORY_LIMIT         = 8;
+
+  const TOKEN_SAFETY_BUDGET        = 10800; // fica abaixo do limite comum de 12k TPM
+  const MAX_SYSTEM_PROMPT_CHARS    = 9500;
+  const MAX_MESSAGE_CHARS          = 2800;
+  const MAX_USER_MESSAGE_CHARS     = 6500;
+  const MAX_ATTACHMENT_TEXT_CHARS  = 5000;
+  const MAX_AGENT_CONTEXT_CHARS    = 5200;
 
   const ACTION_SCHEMAS = `
 AÇÕES LOCAIS:
@@ -79,7 +88,75 @@ AÇÕES GOOGLE (somente se Google estiver conectado):
 
   function clampTokens(n) {
     const value = Number(n || MAX_TOKENS_CHAT);
-    return Math.max(64, Math.min(value, 16000));
+    return Math.max(64, Math.min(value, 4096));
+  }
+
+  function estimateTokens(value) {
+    if (value == null) return 0;
+    if (typeof value === 'string') return Math.ceil(value.length / 4);
+    if (Array.isArray(value)) return value.reduce((sum, item) => sum + estimateTokens(item), 0);
+    if (typeof value === 'object') {
+      if (value.type === 'image_url') return 900;
+      return estimateTokens(JSON.stringify(value));
+    }
+    return estimateTokens(String(value));
+  }
+
+  function clipText(text, maxChars, opts = {}) {
+    const raw = String(text || '');
+    if (raw.length <= maxChars) return raw;
+    const label = opts.label || 'conteúdo cortado para caber no limite do modelo';
+    const headSize = Math.max(500, Math.floor(maxChars * 0.72));
+    const tailSize = Math.max(250, maxChars - headSize - 180);
+    return `${raw.slice(0, headSize)}\n\n[${label}: ${raw.length - headSize - tailSize} caracteres removidos]\n\n${raw.slice(-tailSize)}`;
+  }
+
+  function compactContent(content, maxChars = MAX_MESSAGE_CHARS) {
+    if (typeof content === 'string') return clipText(content, maxChars);
+    if (Array.isArray(content)) {
+      return content.map(part => {
+        if (part?.type === 'text') return { ...part, text: clipText(part.text || '', maxChars) };
+        return part;
+      });
+    }
+    return content;
+  }
+
+  function compactMessages(messages = [], opts = {}) {
+    const maxHistory = opts.maxHistory ?? HISTORY_LIMIT;
+    const maxChars = opts.maxChars ?? MAX_MESSAGE_CHARS;
+    return (messages || []).slice(-maxHistory).map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: compactContent(m.content, maxChars)
+    }));
+  }
+
+  function fitRequestBudget(messages, systemPrompt, maxTokens) {
+    let fittedSystem = clipText(systemPrompt || '', MAX_SYSTEM_PROMPT_CHARS, { label: 'system prompt compactado' });
+    let fittedMessages = compactMessages(messages, { maxHistory: HISTORY_LIMIT, maxChars: MAX_MESSAGE_CHARS });
+    let outputTokens = Math.min(clampTokens(maxTokens), 4096);
+
+    let total = estimateTokens(fittedSystem) + estimateTokens(fittedMessages) + outputTokens;
+    if (total <= TOKEN_SAFETY_BUDGET) {
+      return { systemPrompt: fittedSystem, messages: fittedMessages, maxTokens: outputTokens };
+    }
+
+    outputTokens = Math.min(outputTokens, 1800);
+    fittedMessages = compactMessages(messages, { maxHistory: 5, maxChars: 1800 });
+    fittedSystem = clipText(fittedSystem, 7000, { label: 'system prompt compactado em modo econômico' });
+    total = estimateTokens(fittedSystem) + estimateTokens(fittedMessages) + outputTokens;
+    if (total <= TOKEN_SAFETY_BUDGET) {
+      return { systemPrompt: fittedSystem, messages: fittedMessages, maxTokens: outputTokens };
+    }
+
+    outputTokens = Math.min(outputTokens, 1100);
+    fittedMessages = compactMessages(messages, { maxHistory: 3, maxChars: 1100 });
+    fittedSystem = clipText(fittedSystem, 4600, { label: 'system prompt compactado no limite seguro' });
+    return { systemPrompt: fittedSystem, messages: fittedMessages, maxTokens: outputTokens };
+  }
+
+  function isGroqSizeLimitError(message = '') {
+    return /request too large|tokens per minute|TPM|rate limit|reduce your message size/i.test(String(message));
   }
 
   function cleanJson(raw) {
@@ -170,31 +247,68 @@ AÇÕES GOOGLE (somente se Google estiver conectado):
   async function call(messages, systemPrompt = '', maxTokens = MAX_TOKENS_CHAT, options = {}) {
     const apiKey = await getApiKey();
     const model = options.model || await getModel(options.vision ? 'vision' : 'text');
+    const fitted = fitRequestBudget(
+      messages || [],
+      systemPrompt || 'Você é Gabriel, assistente útil em português brasileiro.',
+      maxTokens
+    );
 
     const body = {
       model,
-      max_tokens: clampTokens(maxTokens),
+      max_tokens: fitted.maxTokens,
       temperature: options.temperature ?? 0.45,
       top_p: options.top_p ?? 0.9,
       messages: [
-        { role: 'system', content: systemPrompt || 'Você é Gabriel, assistente útil em português brasileiro.' },
-        ...messages
+        { role: 'system', content: fitted.systemPrompt || 'Você é Gabriel, assistente útil em português brasileiro.' },
+        ...fitted.messages
       ]
     };
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(body)
-    });
+    async function post(bodyToSend) {
+      return await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(bodyToSend)
+      });
+    }
+
+    let response = await post(body);
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       const errMsg = err?.error?.message || `Erro Groq: ${response.status}`;
-      if (response.status === 401 || response.status === 403 || /invalid_api_key|rate_limit/i.test(errMsg)) {
+
+      // Segundo corte: quando o Groq ainda reclamar de TPM/tamanho, refaz uma única vez
+      // em modo econômico, mantendo o pedido principal e os anexos essenciais.
+      if (!options.__compactRetry && isGroqSizeLimitError(errMsg)) {
+        const retryFitted = {
+          systemPrompt: clipText(fitted.systemPrompt, 3200, { label: 'prompt reduzido após limite Groq' }),
+          messages: compactMessages(messages || [], { maxHistory: 2, maxChars: 900 }),
+          maxTokens: Math.min(900, fitted.maxTokens)
+        };
+        const retryBody = {
+          ...body,
+          max_tokens: retryFitted.maxTokens,
+          messages: [
+            { role: 'system', content: retryFitted.systemPrompt },
+            ...retryFitted.messages
+          ]
+        };
+        response = await post(retryBody);
+        if (response.ok) {
+          localStorage.removeItem('gabriel_groq_key_error');
+          const data = await response.json();
+          return data.choices?.[0]?.message?.content || '';
+        }
+        const retryErr = await response.json().catch(() => ({}));
+        const retryMsg = retryErr?.error?.message || errMsg;
+        throw new Error('O pedido ficou grande demais para o limite atual do Groq. O Gabriel já tentou compactar automaticamente, mas o serviço ainda recusou. Tente pedir em partes menores ou aguarde um minuto e envie novamente. Detalhe: ' + retryMsg);
+      }
+
+      if (response.status === 401 || response.status === 403 || /invalid_api_key/i.test(errMsg)) {
         localStorage.setItem('gabriel_groq_key_error', '1');
       }
       throw new Error(errMsg);
@@ -218,19 +332,19 @@ AÇÕES GOOGLE (somente se Google estiver conectado):
     let memoryTxt = 'Nenhuma memória registrada ainda.';
     try {
       if (window.Memory?.formatForPrompt) {
-        memoryTxt = await window.Memory.formatForPrompt(userContext, 30);
+        memoryTxt = await window.Memory.formatForPrompt(userContext, 12);
       } else {
-        const memories = await GabrielDB.Memories.getRecent(30);
+        const memories = await GabrielDB.Memories.getRecent(12);
         memoryTxt = memories.length ? memories.map(m => `• ${m.content}`).join('\n') : memoryTxt;
       }
     } catch(e) {}
 
     const tasksTxt = tasks.length
-      ? tasks.slice(0, 20).map(t => `- ${t.title}${t.dueDate ? ` (${t.dueDate})` : ''}`).join('\n')
+      ? tasks.slice(0, 8).map(t => `- ${t.title}${t.dueDate ? ` (${t.dueDate})` : ''}`).join('\n')
       : 'Nenhuma tarefa pendente.';
 
     const eventsTxt = events.length
-      ? events.slice(0, 12).map(e => `- ${e.title} em ${e.date}${e.time ? ' às ' + e.time : ''}`).join('\n')
+      ? events.slice(0, 8).map(e => `- ${e.title} em ${e.date}${e.time ? ' às ' + e.time : ''}`).join('\n')
       : 'Nenhum evento próximo.';
 
     let googleCtx = '';
@@ -310,14 +424,11 @@ REGRAS PRÁTICAS:
     const systemPrompt = await buildSystemPrompt(userMessage, attachments);
     const usingVision = hasImageAttachment(attachments);
 
-    const history = (conversationMessages || []).slice(-HISTORY_LIMIT).map(m => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: String(m.content || '').slice(0, 12000)
-    }));
+    const history = compactMessages(conversationMessages || [], { maxHistory: HISTORY_LIMIT, maxChars: MAX_MESSAGE_CHARS });
 
     history.push({
       role: 'user',
-      content: buildUserContent(userMessage, attachments)
+      content: compactContent(buildUserContent(clipText(userMessage, MAX_USER_MESSAGE_CHARS, { label: 'mensagem do usuário compactada' }), attachments), MAX_USER_MESSAGE_CHARS)
     });
 
     let rawResponse;
@@ -368,10 +479,10 @@ Ações disponíveis:
 ${ACTION_SCHEMAS}`;
 
     const payload = {
-      userMessage,
-      assistantResponse,
+      userMessage: clipText(userMessage, 2200),
+      assistantResponse: clipText(assistantResponse, 2600),
       plannedActions: normalizeActionList(actions),
-      actionResults: (actionResults || []).map(r => ({ action: r.action, success: !!r.success, message: r.message })),
+      actionResults: (actionResults || []).slice(-12).map(r => ({ action: r.action, success: !!r.success, message: clipText(r.message || '', 500) })),
       hasAttachment: !!options.hasAttachment
     };
 
@@ -410,7 +521,7 @@ Se não houver, retorne { "memories": [] }.`;
 
     try {
       const raw = await call(
-        [{ role: 'user', content: `Usuário: ${userMessage}\n\nResposta do Gabriel: ${assistantResponse}` }],
+        [{ role: 'user', content: `Usuário: ${clipText(userMessage, 1500)}\n\nResposta do Gabriel: ${clipText(assistantResponse, 1800)}` }],
         systemPrompt,
         MAX_TOKENS_MEMORY,
         { temperature: 0.1 }
@@ -452,7 +563,7 @@ Se não houver tarefas, retorne { "tasks": [] }.`;
   async function generateTitle(firstMessage) {
     const systemPrompt = `Gere um título curto em português, com no máximo 5 palavras. Retorne apenas o título.`;
     try {
-      const title = await call([{ role: 'user', content: firstMessage }], systemPrompt, 50, { temperature: 0.2 });
+      const title = await call([{ role: 'user', content: clipText(firstMessage, 600) }], systemPrompt, 50, { temperature: 0.2 });
       return title.trim().replace(/^['"]|['"]$/g, '').slice(0, 50) || 'Nova conversa';
     } catch (e) {
       return 'Nova conversa';
@@ -469,7 +580,7 @@ Se não houver tarefas, retorne { "tasks": [] }.`;
         const res = await fetch('/.netlify/functions/web-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, count: 8 }),
+          body: JSON.stringify({ query, count: 5 }),
           signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined
         });
         if (res.ok) {
@@ -522,10 +633,10 @@ Use as fontes abaixo quando existirem. Se forem insuficientes ou possivelmente d
 Entregue resposta útil, organizada e prática.`;
 
       const content = results.length > 0
-        ? `Pergunta/pesquisa: ${query}\n\nFontes encontradas:\n${results.map((r,i) => `[${i+1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`).join('\n\n')}`
+        ? `Pergunta/pesquisa: ${query}\n\nFontes encontradas:\n${results.slice(0,5).map((r,i) => `[${i+1}] ${r.title}\n${clipText(r.snippet || '', 650)}\nURL: ${r.url}`).join('\n\n')}`
         : `Não houve fonte externa confiável via busca. Responda com conhecimento geral e avise que não conseguiu confirmar online: ${query}`;
 
-      return await call([{ role: 'user', content }], systemPrompt, 2500, { temperature: 0.25 });
+      return await call([{ role: 'user', content: clipText(content, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1200, { temperature: 0.25 });
 
     } catch (e) {
       console.error('[Groq] Erro pesquisa:', e);
@@ -554,7 +665,7 @@ Crie até 3 queries objetivas para pesquisar a tarefa. Retorne JSON: {"queries":
   async function agentAnalyze(task, context = '') {
     const systemPrompt = `Você é o Agente de Análise do Gabriel.
 Analise profundamente, encontre padrões, riscos, lacunas e próximos passos. Responda em português estruturado.`;
-    const result = await call([{ role: 'user', content: `${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa: ${task}` }], systemPrompt, 4096, { temperature: 0.25 });
+    const result = await call([{ role: 'user', content: clipText(`${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa: ${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1500, { temperature: 0.25 });
     return { agent: 'analyze', task, result };
   }
 
@@ -566,7 +677,7 @@ REGRAS:
 3. Explique como usar.
 4. Para HTML/CSS/JS, entregue arquivo único quando fizer sentido.
 5. Responda em português.`;
-    const result = await call([{ role: 'user', content: `Linguagem preferida: ${language}\n\n${task}` }], systemPrompt, 8192, { temperature: 0.2 });
+    const result = await call([{ role: 'user', content: clipText(`Linguagem preferida: ${language}\n\n${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 2400, { temperature: 0.2 });
     return { agent: 'code', task, result };
   }
 
@@ -581,7 +692,7 @@ Use o contexto de arquivos para orientar ações concretas. Seja específico.`;
       }
     } catch(e) { driveContext = 'Não foi possível listar o Drive: ' + e.message; }
 
-    const result = await call([{ role: 'user', content: `${driveContext}\n\nTarefa: ${task}` }], systemPrompt, 2048, { temperature: 0.2 });
+    const result = await call([{ role: 'user', content: clipText(`${driveContext}\n\nTarefa: ${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1000, { temperature: 0.2 });
     return { agent: 'drive', task, result };
   }
 
@@ -616,7 +727,7 @@ Ative até 4 agentes se necessário. Se conversa simples, retorne {"agents":[],"
     const agentResults = await runAgents(userMessage);
     let enrichedMessage = userMessage;
     if (agentResults?.length) {
-      const agentContext = agentResults.map(r => `[${r.agent.toUpperCase()} AGENT RESULT]\n${r.result}`).join('\n\n');
+      const agentContext = clipText(agentResults.map(r => `[${r.agent.toUpperCase()} AGENT RESULT]\n${r.result}`).join('\n\n'), MAX_AGENT_CONTEXT_CHARS);
       enrichedMessage = `${userMessage}\n\n[CONTEXTO DOS AGENTES ESPECIALIZADOS]\n${agentContext}`;
     }
     return await chat(enrichedMessage, conversationMessages, options);

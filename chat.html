@@ -389,11 +389,11 @@
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
-<script src="google.js?v=20260515-oauth-force-client-v3"></script>
+<script src="google.js?v=20260515-groq-token-safe"></script>
 <script src="auth.js"></script>
-<script src="groq.js"></script>
-<script src="actions.js"></script>
-<script src="memory.js"></script>
+<script src="groq.js?v=20260515-groq-token-safe"></script>
+<script src="actions.js?v=20260515-groq-token-safe"></script>
+<script src="memory.js?v=20260515-groq-token-safe"></script>
 <script src="notifications.js"></script>
 <script src="weather.js"></script>
 <script>
@@ -603,25 +603,38 @@ function readFileAsText(file) {
   });
 }
 
-async function resizeImageForVision(file, maxEdge = 1400, quality = 0.86) {
+async function resizeImageForVision(file, maxEdge = 768, quality = 0.62) {
   const originalDataUrl = await readFileAsDataURL(file);
   try {
     const img = new Image();
     img.src = originalDataUrl;
     await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
 
-    const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
-    if (scale >= 1 && file.size <= 2.5 * 1024 * 1024) return originalDataUrl;
+    if (file.size <= 260 * 1024 && Math.max(img.width, img.height) <= maxEdge) {
+      return originalDataUrl;
+    }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(img.width * scale));
-    canvas.height = Math.max(1, Math.round(img.height * scale));
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', quality);
+    let edge = maxEdge;
+    let q = quality;
+    let output = originalDataUrl;
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const scale = Math.min(1, edge / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      output = canvas.toDataURL('image/jpeg', q);
+      if (output.length <= 520000) break;
+      edge = Math.max(420, Math.round(edge * 0.78));
+      q = Math.max(0.42, q - 0.08);
+    }
+
+    return output;
   } catch (err) {
     console.warn('[Gabriel] Não foi possível redimensionar imagem:', err);
-    return originalDataUrl;
+    return originalDataUrl.length > 520000 ? originalDataUrl.slice(0, 520000) : originalDataUrl;
   }
 }
 
@@ -638,7 +651,7 @@ async function buildAttachmentForAI(file) {
   }
 
   const textLike = /text\//i.test(file.type || '') || /\.(txt|csv|json|md|html|css|js|ts|xml|log)$/i.test(file.name || '');
-  if (textLike && file.size <= 1024 * 1024) {
+  if (textLike && file.size <= 512 * 1024) {
     return { ...base, kind: 'text', text: await readFileAsText(file) };
   }
 
@@ -647,6 +660,18 @@ async function buildAttachmentForAI(file) {
     kind: 'file',
     note: 'Arquivo recebido e salvo como referência. Para análise visual direta, envie imagem JPG/PNG/WebP.'
   };
+}
+
+function clipForGroq(text, max = 6200) {
+  const raw = String(text || '');
+  if (raw.length <= max) return raw;
+  const head = raw.slice(0, Math.floor(max * 0.72));
+  const tail = raw.slice(-Math.floor(max * 0.20));
+  return head + '\n\n[conteúdo compactado para caber no limite do Groq: ' + (raw.length - head.length - tail.length) + ' caracteres removidos]\n\n' + tail;
+}
+
+function isGroqSizeError(err) {
+  return /request too large|tokens per minute|TPM|reduce your message size/i.test(String(err?.message || err || ''));
 }
 
 // ── Enviar mensagem ───────────────────────────────────────────
@@ -678,7 +703,7 @@ async function sendMessage(text) {
     currentConvId = conv.id; loadDrawer();
   }
 
-  const previousMessages = currentMessages.slice();
+  const previousMessages = currentMessages.slice(-10).map(m => ({ role: m.role, content: String(m.content || '').slice(0, 2500) }));
 
   // Arquivo anexado
   let userDisplay = content;
@@ -709,7 +734,7 @@ async function sendMessage(text) {
           msgContent += '\nImagem preparada para análise visual pelo modelo.';
           updateStep(rf, 'done', 'Imagem pronta para visão');
         } else if (attachmentForAI.kind === 'text') {
-          msgContent += '\n\n[CONTEÚDO DO ARQUIVO]\n' + String(attachmentForAI.text || '').slice(0, 8000);
+          msgContent += '\n\n[CONTEÚDO DO ARQUIVO — compactado]\n' + String(attachmentForAI.text || '').slice(0, 4200);
           updateStep(rf, 'done', 'Texto extraído do anexo');
         } else {
           updateStep(rf, 'info', 'Arquivo referenciado');
@@ -766,9 +791,9 @@ async function sendMessage(text) {
     if (needsDrive && window.Google?.isConnected()) {
       const rd = addAgentStep('Acessando Google Drive...', 'running');
       try {
-        const files = await Google.Drive.list('', 15);
+        const files = await Google.Drive.list('', 8);
         if (files.length > 0) {
-          agentCtx += '\n\n[ARQUIVOS NO DRIVE]\n' + files.map(f => '- ' + f.name + ' | id=' + f.id + ' | ' + (f.mimeType || '')).join('\n');
+          agentCtx += '\n\n[ARQUIVOS NO DRIVE]\n' + files.slice(0, 8).map(f => '- ' + f.name + ' | id=' + f.id + ' | ' + (f.mimeType || '')).join('\n');
           updateStep(rd, 'done', files.length + ' arquivo(s) encontrado(s)');
           if (/ver|exib|mostr|list|abrir/i.test(content)) files.slice(0, 3).forEach(f => showDriveFile(f));
         } else {
@@ -780,8 +805,8 @@ async function sendMessage(text) {
     // Fase 3 — Gerar resposta + ações
     const rr = addAgentStep(hasVision ? 'Analisando imagem e gerando resposta...' : 'Gerando resposta...', 'running');
     const enriched = agentCtx
-      ? msgContent + '\n\n---\n[INFORMAÇÕES COLETADAS PELOS AGENTES]\n' + agentCtx + '\n---\n\nCom base nessas informações, responda ao usuário e execute as ações necessárias.'
-      : msgContent;
+      ? clipForGroq(msgContent + '\n\n---\n[INFORMAÇÕES COLETADAS PELOS AGENTES]\n' + agentCtx + '\n---\n\nCom base nessas informações, responda ao usuário e execute as ações necessárias.', 6200)
+      : clipForGroq(msgContent, 6200);
 
     const chatResult = await Groq.chat(enriched, previousMessages, {
       attachments: attachmentForAI ? [attachmentForAI] : []
@@ -817,8 +842,8 @@ async function sendMessage(text) {
     } else if (/criar|cria|criar pasta|criar caderno|agendar|salvar|anotar|adicionar|enviar|mandar|registrar|lembrar/i.test(content)) {
       const retryStep = addAgentStep('Buscando ação que ficou faltando...', 'running');
       try {
-        const retryPrompt = `O usuário pediu: "${content}"\nA resposta foi: "${reply.slice(0, 900)}"\n\nSe existe alguma ação real para cumprir o pedido, retorne somente <gabriel_actions> com todas as ações necessárias. Se não houver, retorne texto curto dizendo que não há ação.`;
-        const retry = await Groq.chat(retryPrompt, previousMessages, { attachments: attachmentForAI ? [attachmentForAI] : [] });
+        const retryPrompt = `O usuário pediu: "${clipForGroq(content, 900)}"\nA resposta foi: "${clipForGroq(reply, 700)}"\n\nSe existe alguma ação real para cumprir o pedido, retorne somente <gabriel_actions> com todas as ações necessárias. Se não houver, retorne texto curto dizendo que não há ação.`;
+        const retry = await Groq.chat(retryPrompt, previousMessages.slice(-4), { attachments: [] });
         if (retry.actions?.length > 0) {
           updateStep(retryStep, 'info', 'Executando ' + retry.actions.length + ' ação(ões) pendente(s)');
           actionResults = await Actions.execute(retry.actions);
@@ -892,7 +917,7 @@ async function sendMessage(text) {
       document.getElementById('messages-area').appendChild(div);
       scrollToBottom();
     } else {
-      addBubble('gabriel', 'Ops, algo deu errado: ' + err.message);
+      addBubble('gabriel', isGroqSizeError(err) ? '⚠️ O pedido ficou grande demais para o limite atual do Groq. Eu já compactei automaticamente, mas o Groq ainda recusou. Tente mandar em partes menores ou aguarde 1 minuto antes de tentar de novo. Detalhe: ' + err.message : 'Ops, algo deu errado: ' + err.message);
     }
   }
 

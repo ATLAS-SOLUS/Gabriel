@@ -8,7 +8,7 @@ const Memory = (() => {
   // ── Configurações ────────────────────────────────────────
   const MAX_MEMORIES    = 200;   // limite total de memórias
   const MIN_MSG_LENGTH  = 15;    // mínimo de chars para tentar extrair
-  const EXTRACT_DEBOUNCE = 1500; // ms após última mensagem para extrair
+  const EXTRACT_DEBOUNCE = 22000; // evita bater no TPM do Groq logo após a resposta principal
 
   let extractTimer = null;
 
@@ -25,8 +25,13 @@ const Memory = (() => {
   }
 
   async function extractAndSave(userMessage, assistantResponse, conversationId = null) {
-    // Só extrai se a mensagem tiver conteúdo suficiente
+    // Só extrai se a mensagem tiver conteúdo suficiente.
+    // Se o ciclo ficou muito grande, não faz chamada extra ao Groq no mesmo minuto.
     if (!userMessage || userMessage.length < MIN_MSG_LENGTH) return [];
+    if ((String(userMessage).length + String(assistantResponse || '').length) > 6500) {
+      console.log('[Memory] Extração pulada: conversa grande para o limite TPM atual.');
+      return [];
+    }
 
     try {
       const memories = await Groq.extractMemories(userMessage, assistantResponse);
