@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const CACHE_NAME    = 'gabriel-v9-agent-vision';
+const CACHE_NAME    = 'gabriel-v12-google-oauth-hardcoded';
 const OFFLINE_URL   = 'index.html';
 
 const CACHE_ASSETS = [
@@ -69,7 +69,11 @@ self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) return;
 
   // APIs externas — Network First
-  const isApi = url.hostname.includes('groq.com') ||
+  const isApi = url.pathname.startsWith('/.netlify/functions/') ||
+                url.hostname.includes('accounts.google.com') ||
+                url.hostname.includes('googleapis.com') ||
+                url.hostname.includes('oauth2.googleapis.com') ||
+                url.hostname.includes('groq.com') ||
                 url.hostname.includes('wttr.in') ||
                 url.hostname.includes('duckduckgo.com') ||
                 url.hostname.includes('ipapi.co');
@@ -85,7 +89,28 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Assets locais — Cache First
+  // HTML/JS/CSS locais — Network First para evitar OAuth antigo preso no cache.
+  const isLocalAppAsset = url.origin === self.location.origin && (
+    event.request.mode === 'navigate' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css')
+  );
+
+  if (isLocalAppAsset) {
+    event.respondWith(
+      fetch(new Request(event.request, { cache: 'reload' })).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(cached => cached || caches.match(OFFLINE_URL)))
+    );
+    return;
+  }
+
+  // Demais assets locais — Cache First.
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;

@@ -5,36 +5,51 @@
 
 const Google = (() => {
 
-  // OAuth não fica mais travado em um Client ID antigo/apagado.
-  // O Client ID público e o Redirect URI vêm da Function /google-config,
-  // que lê as variáveis de ambiente do Netlify.
-  const DEFAULT_REDIRECT_PATH = '/auth/google/callback';
-  let oauthConfigCache = null;
+  // OAuth Google — configuração direta para evitar Client ID antigo/cacheado.
+  // Client ID é público no OAuth; Client Secret fica na Netlify Function google-auth.js.
+  const GOOGLE_OAUTH = {
+    client_id: '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com',
+    redirect_uri: 'https://atlasgabriel.netlify.app/auth/google/callback',
+    config_url: '/.netlify/functions/google-config'
+  };
 
-  function getDefaultRedirectUri() {
-    return `${window.location.origin}${DEFAULT_REDIRECT_PATH}`;
-  }
+  let oauthConfigCache = null;
 
   async function getOAuthConfig(force = false) {
     if (oauthConfigCache && !force) return oauthConfigCache;
 
+    // Primeiro usa o Client ID novo direto no frontend.
+    // A function fica como validação/debug, mas não bloqueia o login se ela falhar.
+    oauthConfigCache = {
+      client_id: GOOGLE_OAUTH.client_id,
+      redirect_uri: GOOGLE_OAUTH.redirect_uri,
+      source: 'hardcoded-google-js'
+    };
+
     try {
-      const res = await fetch('/.netlify/functions/google-config', { cache: 'no-store' });
+      const res = await fetch(GOOGLE_OAUTH.config_url + '?ts=' + Date.now(), { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok || !data.client_id) {
-        throw new Error(data.error || 'GOOGLE_CLIENT_ID não configurado no Netlify.');
+      if (res.ok && data.client_id && data.client_id === GOOGLE_OAUTH.client_id) {
+        oauthConfigCache = {
+          client_id: data.client_id,
+          redirect_uri: data.redirect_uri || GOOGLE_OAUTH.redirect_uri,
+          source: data.mode || 'google-config-function'
+        };
+      } else if (data.client_id) {
+        console.warn('[Google] Config retornou Client ID diferente; usando hardcoded novo.');
       }
-
-      oauthConfigCache = {
-        client_id: data.client_id,
-        redirect_uri: data.redirect_uri || getDefaultRedirectUri()
-      };
-      return oauthConfigCache;
     } catch (err) {
-      console.error('[Google] Falha ao carregar configuração OAuth:', err);
-      throw new Error('Google OAuth não configurado. Crie um novo Client ID no Google Cloud e configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REDIRECT_URI no Netlify.');
+      console.warn('[Google] google-config indisponível; usando OAuth hardcoded novo:', err);
     }
+
+    console.log('[Google] OAuth config ativa:', {
+      clientIdSuffix: oauthConfigCache.client_id.slice(-18),
+      redirect_uri: oauthConfigCache.redirect_uri,
+      source: oauthConfigCache.source
+    });
+
+    return oauthConfigCache;
   }
 
   const SCOPES = [
@@ -90,8 +105,16 @@ const Google = (() => {
       const config = await getOAuthConfig(true);
       const state = btoa(JSON.stringify({ ts: Date.now(), from: window.location.pathname }));
 
+      // Limpa qualquer resíduo de fluxo antigo para não reaproveitar configuração deletada.
+      localStorage.removeItem('gabriel_google_connected');
+      localStorage.removeItem('gabriel_google_access_token');
+      localStorage.removeItem('gabriel_google_refresh_token');
+      localStorage.removeItem('gabriel_google_token_expiry');
+      localStorage.removeItem('gabriel_google_last_error');
+
       localStorage.setItem('gabriel_oauth_state', state);
       localStorage.setItem('gabriel_google_redirect_uri', config.redirect_uri);
+      localStorage.setItem('gabriel_google_client_id_used', config.client_id);
 
       const params = new URLSearchParams({
         client_id:     config.client_id,
@@ -100,6 +123,7 @@ const Google = (() => {
         scope:         SCOPES,
         access_type:   'offline',
         prompt:        'consent select_account',
+        include_granted_scopes: 'true',
         state
       });
 

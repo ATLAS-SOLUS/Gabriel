@@ -94,11 +94,11 @@
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
-<script src="google.js"></script>
+<script src="google.js?v=20260515-oauth-hardcoded-v2"></script>
 <script src="auth.js"></script>
 <script>
 
-const FALLBACK_REDIRECT_URI = window.location.origin + '/auth/google/callback';
+const FALLBACK_REDIRECT_URI = 'https://atlasgabriel.netlify.app/auth/google/callback';
 
 function showState(id) {
   ['loading', 'success', 'error'].forEach(s => {
@@ -159,7 +159,7 @@ window.addEventListener('DOMContentLoaded', async function() {
     var tokenRes = await fetch('/.netlify/functions/google-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: code, redirect_uri: redirectUri })
+      body: JSON.stringify({ code: code, redirect_uri: redirectUri, client_id_used: localStorage.getItem('gabriel_google_client_id_used') || '' })
     });
 
     if (!tokenRes.ok) {
@@ -167,8 +167,9 @@ window.addEventListener('DOMContentLoaded', async function() {
       try { errData = await tokenRes.json(); } catch(e) {}
       var msg = errData.error || 'Erro HTTP ' + tokenRes.status;
       if (/deleted_client/i.test(msg)) {
-        msg = 'Client OAuth apagado no Google Cloud. Crie um novo Client ID e atualize GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI no Netlify.';
+        msg = 'O Google ainda recebeu um Client ID antigo/apagado. Publique o ZIP novo e limpe cache/PWA pelo arquivo reset-google.html.';
       }
+      localStorage.setItem('gabriel_google_last_error', msg);
       throw new Error(msg);
     }
 

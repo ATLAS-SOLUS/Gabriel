@@ -1,6 +1,11 @@
 // netlify/functions/google-config.js
-// Exponhe somente dados públicos do OAuth para o frontend.
-// O client_secret nunca deve ser enviado ao navegador.
+// Retorna somente dados públicos do OAuth para o frontend.
+// Client secret fica apenas no google-auth.js / ambiente do Netlify.
+
+const GOOGLE_OAUTH_PUBLIC = {
+  clientId: process.env.GOOGLE_CLIENT_ID || '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com',
+  redirectUri: process.env.GOOGLE_REDIRECT_URI || 'https://atlasgabriel.netlify.app/auth/google/callback'
+};
 
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.Origin || '*';
@@ -8,30 +13,27 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Cache-Control': 'no-store',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     'Content-Type': 'application/json'
   };
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'GET') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Método não permitido' }) };
+    return { statusCode: 405, headers, body: JSON.stringify({ ok: false, error: 'Método não permitido' }) };
   }
-
-  // Client ID é público por natureza no OAuth Web.
-  // Mantemos fallback para evitar o erro deleted_client quando a variável ainda não foi criada no Netlify.
-  const DEFAULT_GOOGLE_CLIENT_ID = '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com';
-  const DEFAULT_GOOGLE_REDIRECT_URI = 'https://atlasgabriel.netlify.app/auth/google/callback';
-
-  const clientId = process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || DEFAULT_GOOGLE_REDIRECT_URI;
 
   return {
     statusCode: 200,
     headers,
     body: JSON.stringify({
       ok: true,
-      client_id: clientId,
-      redirect_uri: redirectUri
+      mode: 'hardcoded',
+      client_id: GOOGLE_OAUTH_PUBLIC.clientId,
+      redirect_uri: GOOGLE_OAUTH_PUBLIC.redirectUri,
+      client_id_suffix: GOOGLE_OAUTH_PUBLIC.clientId.slice(-18),
+      updated_at: '2026-05-15T10:40:00-03:00'
     })
   };
 };
