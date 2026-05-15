@@ -57,9 +57,10 @@ exports.handler = async (event) => {
         full: info.url || info.thumburl || '',
         url: p.title ? `https://commons.wikimedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, '_'))}` : (info.descriptionurl || ''),
         source: 'Wikimedia Commons',
-        license: clean(meta.LicenseShortName?.value || '')
+        license: clean(meta.LicenseShortName?.value || ''),
+        mime: info.mime || ''
       };
-    }).filter(x => x.image);
+    }).filter(x => x.image && /^image\//i.test(x.mime || '') && !/\.pdf(\?|$)/i.test(x.title || x.url || ''));
   }
 
   async function openverse(query, count) {

@@ -723,8 +723,8 @@ Organize os resultados em português, com dados limpos e apresentáveis.
 Sempre entregue:
 1. Resumo curto do que encontrou.
 2. Tabela Markdown com Título, Tipo, Ano, Nota/Status e Fonte.
-3. Cards de imagem/pôster em Markdown quando houver image/poster.
-4. Observações úteis quando houver lacunas.
+3. Observações úteis quando houver lacunas.
+Não repita cards de imagem/pôster no texto: eles já serão anexados automaticamente antes do resumo.
 Não invente streaming, elenco ou temporadas se os dados não vieram nas fontes.`;
 
       const payload = results.slice(0, 10).map(r => ({

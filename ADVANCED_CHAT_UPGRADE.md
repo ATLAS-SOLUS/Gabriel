@@ -82,7 +82,7 @@ Observação: o formato `doc` é HTML compatível com Word/Google Docs. Para PDF
 O service worker foi atualizado para:
 
 ```txt
-gabriel-v16-agent-powers-vision-media
+gabriel-v17-format-premium
 ```
 
 Também foi incluído `document-utils.js` no cache e as APIs externas foram tratadas como Network First.

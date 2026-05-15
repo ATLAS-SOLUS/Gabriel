@@ -1,6 +1,6 @@
 # Gabriel — Upgrade de Agentes, Visão, Web e Mídia
 
-Versão: `gabriel-v16-agent-powers-vision-media`  
+Versão: `gabriel-v17-format-premium`  
 Data: 15/05/2026
 
 ## Objetivo
@@ -86,7 +86,7 @@ O roteador agora pode ativar até 8 agentes.
 Service Worker novo:
 
 ```txt
-gabriel-v16-agent-powers-vision-media
+gabriel-v17-format-premium
 ```
 
 Depois do deploy, abra:

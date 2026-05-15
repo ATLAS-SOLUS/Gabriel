@@ -79,6 +79,26 @@ exports.handler = async (event) => {
     }));
   }
 
+
+  function isGenericEntertainmentQuery(query) {
+    const q = stripHtml(query).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    return /^(traga|traz|trazer|mostra|mostrar|quero|busca|buscar|pesquisa|pesquisar)?\s*(filmes?|series?|filmes? e series?|series? e filmes?|filmes? populares|series? populares|recomendac(?:ao|oes).*)$/.test(q)
+      || /filmes? e series? populares recomendados/.test(q);
+  }
+
+  function genericFallback() {
+    return [
+      { type:'filme', title:'Interestelar', year:'2014', rating:'', status:'', summary:'Ficção científica emocional e grandiosa, boa para quem gosta de mistério, espaço e drama familiar.', url:'', source:'Sugestão fixa do Gabriel' },
+      { type:'filme', title:'A Origem', year:'2010', rating:'', status:'', summary:'Suspense de ficção científica com sonhos, camadas de realidade e ritmo forte.', url:'', source:'Sugestão fixa do Gabriel' },
+      { type:'filme', title:'Duna', year:'2021', rating:'', status:'', summary:'Ficção científica épica, visual forte e universo político bem construído.', url:'', source:'Sugestão fixa do Gabriel' },
+      { type:'filme', title:'Cidade de Deus', year:'2002', rating:'', status:'', summary:'Clássico brasileiro intenso, marcante e muito bem dirigido.', url:'', source:'Sugestão fixa do Gabriel' },
+      { type:'serie', title:'Dark', year:'2017', rating:'', status:'Ended', summary:'Série alemã de mistério, viagem no tempo e drama familiar.', url:'https://www.tvmaze.com/shows/17861/dark', source:'Sugestão fixa do Gabriel' },
+      { type:'serie', title:'Breaking Bad', year:'2008', rating:'', status:'Ended', summary:'Drama criminal com transformação de personagem e roteiro muito forte.', url:'https://www.tvmaze.com/shows/169/breaking-bad', source:'Sugestão fixa do Gabriel' },
+      { type:'serie', title:'The Last of Us', year:'2023', rating:'', status:'Running', summary:'Drama pós-apocalíptico com foco em sobrevivência e emoção.', url:'https://www.tvmaze.com/shows/46562/the-last-of-us', source:'Sugestão fixa do Gabriel' },
+      { type:'serie', title:'Stranger Things', year:'2016', rating:'', status:'Running', summary:'Aventura, suspense e nostalgia dos anos 80 com pegada sobrenatural.', url:'https://www.tvmaze.com/shows/2993/stranger-things', source:'Sugestão fixa do Gabriel' }
+    ];
+  }
+
   async function duckduckgo(query) {
     const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query + ' filme série')}&format=json&no_redirect=1&no_html=1`);
     if (!res.ok) return [];
@@ -95,6 +115,8 @@ exports.handler = async (event) => {
     const { query, type = 'auto' } = JSON.parse(event.body || '{}');
     if (!query) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Query ausente' }) };
 
+    const genericQuery = isGenericEntertainmentQuery(query);
+
     const wantsSeries = type === 'series' || type === 'serie' || type === 'auto';
     const wantsMovies = type === 'movies' || type === 'movie' || type === 'filme' || type === 'auto';
 
@@ -105,7 +127,11 @@ exports.handler = async (event) => {
     tasks.push(duckduckgo(query));
 
     const settled = await Promise.allSettled(tasks);
-    const results = settled.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+    let results = settled.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+
+    if (genericQuery) {
+      results = [...genericFallback(), ...results];
+    }
 
     const seen = new Set();
     const unique = results.filter(item => {
