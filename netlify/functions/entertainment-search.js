@@ -34,6 +34,8 @@ exports.handler = async (event) => {
         network: s.network?.name || s.webChannel?.name || '',
         summary: stripHtml(s.summary || ''),
         image: s.image?.medium || s.image?.original || '',
+        poster: s.image?.original || s.image?.medium || '',
+        imageUrl: s.image?.original || s.image?.medium || '',
         url: s.url || '',
         source: 'TVMaze'
       };
@@ -56,6 +58,8 @@ exports.handler = async (event) => {
       rating: m.vote_average || null,
       summary: m.overview || '',
       poster: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : '',
+      image: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : '',
+      imageUrl: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : '',
       url: m.id ? `https://www.themoviedb.org/movie/${m.id}` : '',
       source: 'TMDB'
     })).filter(r => r.title);

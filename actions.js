@@ -232,6 +232,14 @@ const Actions = (() => {
     return result('search_entertainment', true, info, { query, type });
   }
 
+  // 🖼️ Buscar imagens para mostrar no chat
+  async function execSearchImages(params) {
+    const { query, count = 6 } = params || {};
+    if (!query) return result('search_images', false, 'Termo da imagem não informado.');
+    const info = await Groq.searchImages(query, count);
+    return result('search_images', true, info, { query, count });
+  }
+
   // 📊 Criar tabela/CSV/DOC
   async function execCreateTable(params) {
     if (!window.DocumentUtils) return result('create_table', false, 'Motor de documentos não carregado.');
@@ -580,6 +588,7 @@ ${String(text || '').slice(0, 7000)}`, { text });
     memory_add:     execMemoryAdd,
     search_web:     execSearchWeb,
     search_entertainment: execSearchEntertainment,
+    search_images:  execSearchImages,
     create_table:   execCreateTable,
     create_document: execCreateDocument,
     get_weather:    execGetWeather,

@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const CACHE_NAME    = 'gabriel-v15-advanced-chat-tools';
+const CACHE_NAME    = 'gabriel-v16-agent-powers-vision-media';
 const OFFLINE_URL   = 'index.html';
 
 const CACHE_ASSETS = [
@@ -80,6 +80,10 @@ self.addEventListener('fetch', event => {
                 url.hostname.includes('wikipedia.org') ||
                 url.hostname.includes('tvmaze.com') ||
                 url.hostname.includes('themoviedb.org') ||
+                url.hostname.includes('wikimedia.org') ||
+                url.hostname.includes('openverse.org') ||
+                url.hostname.includes('pexels.com') ||
+                url.hostname.includes('unsplash.com') ||
                 url.hostname.includes('cdn.jsdelivr.net') ||
                 url.hostname.includes('ipapi.co');
 
