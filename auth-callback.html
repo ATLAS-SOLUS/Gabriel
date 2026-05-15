@@ -94,7 +94,7 @@
 
 <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
 <script src="db.js"></script>
-<script src="google.js?v=20260515-oauth-hardcoded-v2"></script>
+<script src="google.js?v=20260515-oauth-force-client-v3"></script>
 <script src="auth.js"></script>
 <script>
 
@@ -159,16 +159,22 @@ window.addEventListener('DOMContentLoaded', async function() {
     var tokenRes = await fetch('/.netlify/functions/google-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: code, redirect_uri: redirectUri, client_id_used: localStorage.getItem('gabriel_google_client_id_used') || '' })
+      body: JSON.stringify({ code: code, redirect_uri: redirectUri, client_id_used: localStorage.getItem('gabriel_google_client_id_used') || '', oauth_version: localStorage.getItem('gabriel_google_oauth_version') || '20260515-oauth-force-client-v3' })
     });
 
     if (!tokenRes.ok) {
       var errData = {};
       try { errData = await tokenRes.json(); } catch(e) {}
       var msg = errData.error || 'Erro HTTP ' + tokenRes.status;
+      var debug = [];
+      if (errData.code) debug.push('Código: ' + errData.code);
+      if (errData.backend_client_id_suffix) debug.push('Backend Client ID final: ...' + errData.backend_client_id_suffix);
+      if (errData.browser_client_id_suffix) debug.push('Navegador Client ID final: ...' + errData.browser_client_id_suffix);
+      if (errData.oauth_version) debug.push('Versão OAuth: ' + errData.oauth_version);
       if (/deleted_client/i.test(msg)) {
-        msg = 'O Google ainda recebeu um Client ID antigo/apagado. Publique o ZIP novo e limpe cache/PWA pelo arquivo reset-google.html.';
+        msg = 'O Google ainda recebeu um Client ID apagado na troca do token. Esta versão força o Client ID novo; se persistir, o Netlify ainda publicou uma Function antiga.';
       }
+      if (debug.length) msg += ' | ' + debug.join(' | ');
       localStorage.setItem('gabriel_google_last_error', msg);
       throw new Error(msg);
     }

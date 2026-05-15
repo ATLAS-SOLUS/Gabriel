@@ -1,11 +1,12 @@
 // netlify/functions/google-config.js
 // Retorna somente dados públicos do OAuth para o frontend.
-// Client secret fica apenas no google-auth.js / ambiente do Netlify.
+// Correção forte: ignora process.env para não deixar variável antiga do Netlify devolver Client ID apagado.
 
-const GOOGLE_OAUTH_PUBLIC = {
-  clientId: process.env.GOOGLE_CLIENT_ID || '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com',
-  redirectUri: process.env.GOOGLE_REDIRECT_URI || 'https://atlasgabriel.netlify.app/auth/google/callback'
-};
+const GOOGLE_OAUTH_PUBLIC = Object.freeze({
+  clientId: '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com',
+  redirectUri: 'https://atlasgabriel.netlify.app/auth/google/callback',
+  version: '20260515-oauth-force-client-v3'
+});
 
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.Origin || '*';
@@ -29,11 +30,12 @@ exports.handler = async (event) => {
     headers,
     body: JSON.stringify({
       ok: true,
-      mode: 'hardcoded',
+      mode: 'hardcoded-force-no-env',
       client_id: GOOGLE_OAUTH_PUBLIC.clientId,
       redirect_uri: GOOGLE_OAUTH_PUBLIC.redirectUri,
-      client_id_suffix: GOOGLE_OAUTH_PUBLIC.clientId.slice(-18),
-      updated_at: '2026-05-15T10:40:00-03:00'
+      client_id_suffix: GOOGLE_OAUTH_PUBLIC.clientId.slice(-24),
+      oauth_version: GOOGLE_OAUTH_PUBLIC.version,
+      updated_at: '2026-05-15T11:05:00-03:00'
     })
   };
 };

@@ -45,3 +45,20 @@
   for = "/.netlify/functions/*"
   [headers.values]
     Cache-Control = "no-store"
+
+
+# GOOGLE_OAUTH_FORCE_FINAL — evitar cache na configuração OAuth
+[[headers]]
+  for = "/oauth-debug.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/auth-callback.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/google.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"

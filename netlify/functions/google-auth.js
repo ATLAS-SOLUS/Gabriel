@@ -1,16 +1,28 @@
 // netlify/functions/google-auth.js
-// Troca authorization code por tokens e renova access_token via refresh_token.
-// Gabriel PWA — OAuth hardcoded para uso interno.
-// Atenção: este arquivo roda como Function no Netlify. Não envie client_secret para HTML/JS público.
+// Gabriel PWA — Google OAuth token bridge
+// Correção forte para 401 deleted_client:
+// - NÃO usa process.env para Client ID/Secret, porque variável antiga no Netlify pode sobrescrever o client novo.
+// - Usa sempre o OAuth Client novo criado em 15/05/2026.
+// - Valida se o frontend iniciou login com o mesmo Client ID.
+// Atenção: este arquivo roda como Netlify Function. Não importe este arquivo em HTML/JS público.
 
-const GOOGLE_OAUTH = {
-  clientId: process.env.GOOGLE_CLIENT_ID || '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com',
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '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',
-  redirectUri: process.env.GOOGLE_REDIRECT_URI || 'https://atlasgabriel.netlify.app/auth/google/callback'
-};
+const GOOGLE_OAUTH = Object.freeze({
+  clientId: '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com',
+  clientSecret: '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',
+  redirectUri: 'https://atlasgabriel.netlify.app/auth/google/callback',
+  version: '20260515-oauth-force-client-v3'
+});
 
 function json(statusCode, headers, body) {
   return { statusCode, headers, body: JSON.stringify(body) };
+}
+
+function safeSuffix(value) {
+  return String(value || '').slice(-24);
+}
+
+function normalizeText(value) {
+  return String(value || '').trim();
 }
 
 exports.handler = async (event) => {
@@ -19,7 +31,9 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Cache-Control': 'no-store',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     'Content-Type': 'application/json'
   };
 
@@ -32,12 +46,17 @@ exports.handler = async (event) => {
 
     const CLIENT_ID = GOOGLE_OAUTH.clientId;
     const CLIENT_SECRET = GOOGLE_OAUTH.clientSecret;
-    const REDIRECT_URI = body.redirect_uri || GOOGLE_OAUTH.redirectUri;
+    const REDIRECT_URI = GOOGLE_OAUTH.redirectUri;
+    const clientIdUsedByBrowser = normalizeText(body.client_id_used);
 
-    if (!CLIENT_ID || !CLIENT_SECRET) {
-      return json(500, headers, {
+    if (clientIdUsedByBrowser && clientIdUsedByBrowser !== CLIENT_ID) {
+      return json(409, headers, {
         ok: false,
-        error: 'Credenciais OAuth ausentes no código/ambiente.'
+        error: 'O navegador iniciou o login com um Client ID diferente do backend. Limpe o cache/PWA em /reset-google.html e faça novo login.',
+        code: 'CLIENT_ID_FRONTEND_BACKEND_MISMATCH',
+        browser_client_id_suffix: safeSuffix(clientIdUsedByBrowser),
+        backend_client_id_suffix: safeSuffix(CLIENT_ID),
+        oauth_version: GOOGLE_OAUTH.version
       });
     }
 
@@ -59,6 +78,8 @@ exports.handler = async (event) => {
         return json(400, headers, { ok: false, error: 'Código ausente' });
       }
 
+      // Importante: o redirect_uri precisa ser exatamente o cadastrado no Google Cloud e o mesmo usado no login.
+      // Não aceitamos valor vindo do localStorage/body para evitar URI velho/cacheado quebrando a troca do code.
       tokenBody = new URLSearchParams({
         code: body.code,
         client_id: CLIENT_ID,
@@ -79,30 +100,43 @@ exports.handler = async (event) => {
     if (!tokenRes.ok || tokenData.error) {
       const rawError = tokenData.error_description || tokenData.error || `HTTP ${tokenRes.status}`;
       let friendly = rawError;
+      let code = tokenData.error || 'GOOGLE_TOKEN_ERROR';
 
       if (/deleted_client/i.test(rawError)) {
-        friendly = 'O Google ainda recebeu um Client ID apagado. Limpe cache/PWA e confirme se o deploy novo substituiu google.js e as Functions.';
+        code = 'GOOGLE_DELETED_CLIENT';
+        friendly = 'O Google respondeu que o Client ID usado na troca do token foi apagado. Esta versão força o Client ID novo no backend; se aparecer de novo, o deploy publicado ainda é antigo ou existe cache de Function no Netlify.';
       } else if (/redirect_uri_mismatch/i.test(rawError)) {
+        code = 'GOOGLE_REDIRECT_URI_MISMATCH';
         friendly = 'Redirect URI diferente do cadastrado no Google Cloud. Use exatamente: https://atlasgabriel.netlify.app/auth/google/callback';
       } else if (/invalid_client/i.test(rawError)) {
-        friendly = 'Client ID/Client Secret inválidos ou de clientes diferentes no Google Cloud.';
+        code = 'GOOGLE_INVALID_CLIENT';
+        friendly = 'Client Secret inválida ou pertencente a outro Client ID no Google Cloud.';
+      } else if (/invalid_grant/i.test(rawError)) {
+        code = 'GOOGLE_INVALID_GRANT';
+        friendly = 'Código OAuth expirado ou já usado. Volte ao login e autorize novamente.';
       }
 
       console.error('[google-auth] Erro Google:', {
         action,
         status: tokenRes.status,
-        error: tokenData,
-        clientIdSuffix: CLIENT_ID.slice(-18),
-        redirectUri: REDIRECT_URI
+        code,
+        googleError: tokenData,
+        backendClientIdSuffix: safeSuffix(CLIENT_ID),
+        browserClientIdSuffix: safeSuffix(clientIdUsedByBrowser),
+        redirectUri: REDIRECT_URI,
+        oauthVersion: GOOGLE_OAUTH.version
       });
 
       return json(tokenRes.status || 400, headers, {
         ok: false,
         error: friendly,
+        code,
         raw_error: rawError,
         google_error: tokenData.error || null,
-        client_id_suffix: CLIENT_ID.slice(-18),
-        redirect_uri: REDIRECT_URI
+        backend_client_id_suffix: safeSuffix(CLIENT_ID),
+        browser_client_id_suffix: safeSuffix(clientIdUsedByBrowser),
+        redirect_uri: REDIRECT_URI,
+        oauth_version: GOOGLE_OAUTH.version
       });
     }
 
@@ -111,10 +145,12 @@ exports.handler = async (event) => {
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
       expires_in: tokenData.expires_in || 3600,
-      token_type: tokenData.token_type || 'Bearer'
+      token_type: tokenData.token_type || 'Bearer',
+      backend_client_id_suffix: safeSuffix(CLIENT_ID),
+      oauth_version: GOOGLE_OAUTH.version
     });
   } catch (err) {
     console.error('[google-auth] Erro interno:', err);
-    return json(500, headers, { ok: false, error: 'Erro interno: ' + err.message });
+    return json(500, headers, { ok: false, error: 'Erro interno: ' + err.message, oauth_version: GOOGLE_OAUTH.version });
   }
 };

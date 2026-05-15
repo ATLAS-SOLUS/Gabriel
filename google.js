@@ -10,6 +10,7 @@ const Google = (() => {
   const GOOGLE_OAUTH = {
     client_id: '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com',
     redirect_uri: 'https://atlasgabriel.netlify.app/auth/google/callback',
+    version: '20260515-oauth-force-client-v3',
     config_url: '/.netlify/functions/google-config'
   };
 
@@ -23,7 +24,7 @@ const Google = (() => {
     oauthConfigCache = {
       client_id: GOOGLE_OAUTH.client_id,
       redirect_uri: GOOGLE_OAUTH.redirect_uri,
-      source: 'hardcoded-google-js'
+      source: 'hardcoded-google-js-v3'
     };
 
     try {
@@ -115,6 +116,7 @@ const Google = (() => {
       localStorage.setItem('gabriel_oauth_state', state);
       localStorage.setItem('gabriel_google_redirect_uri', config.redirect_uri);
       localStorage.setItem('gabriel_google_client_id_used', config.client_id);
+      localStorage.setItem('gabriel_google_oauth_version', config.version || GOOGLE_OAUTH.version || '20260515-oauth-force-client-v3');
 
       const params = new URLSearchParams({
         client_id:     config.client_id,

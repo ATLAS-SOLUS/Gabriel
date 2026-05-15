@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diagnóstico Google OAuth — Gabriel</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f7fb; color:#101828; margin:0; padding:24px; }
+    .card { max-width:880px; margin:0 auto; background:#fff; border-radius:18px; padding:22px; box-shadow:0 10px 30px rgba(16,24,40,.08); }
+    h1 { margin-top:0; font-size:24px; }
+    pre { background:#0b1220; color:#d7e3ff; padding:16px; border-radius:14px; overflow:auto; white-space:pre-wrap; }
+    button, a.btn { display:inline-block; border:0; background:#2563eb; color:white; padding:12px 16px; border-radius:12px; text-decoration:none; cursor:pointer; margin:6px 6px 6px 0; }
+    .danger { background:#dc2626; }
+    .muted { color:#667085; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Diagnóstico Google OAuth</h1>
+    <p class="muted">Use esta tela para confirmar qual Client ID o site publicado está usando.</p>
+    <button onclick="run()">Atualizar diagnóstico</button>
+    <button class="danger" onclick="clearAll()">Limpar cache/tokens</button>
+    <a class="btn" href="/login.html?v=20260515-oauth-force-client-v3">Ir para login</a>
+    <pre id="out">Carregando...</pre>
+  </div>
+<script>
+const EXPECTED_CLIENT_ID = '864884431271-d7titgkf021ljjjsueh1vrii9erh6fbv.apps.googleusercontent.com';
+const EXPECTED_REDIRECT = 'https://atlasgabriel.netlify.app/auth/google/callback';
+const EXPECTED_VERSION = '20260515-oauth-force-client-v3';
+
+async function run() {
+  const out = document.getElementById('out');
+  const data = {
+    expected_client_id: EXPECTED_CLIENT_ID,
+    expected_redirect_uri: EXPECTED_REDIRECT,
+    expected_version: EXPECTED_VERSION,
+    page_url: location.href,
+    localStorage: {},
+    google_config_function: null,
+    service_workers: []
+  };
+
+  [
+    'gabriel_google_client_id_used',
+    'gabriel_google_redirect_uri',
+    'gabriel_google_oauth_version',
+    'gabriel_google_last_error',
+    'gabriel_google_connected'
+  ].forEach(k => data.localStorage[k] = localStorage.getItem(k));
+
+  try {
+    const res = await fetch('/.netlify/functions/google-config?ts=' + Date.now(), { cache:'no-store' });
+    data.google_config_function = await res.json();
+  } catch (e) {
+    data.google_config_function = { error: e.message };
+  }
+
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    data.service_workers = regs.map(r => ({ scope: r.scope, active: !!r.active, waiting: !!r.waiting, installing: !!r.installing }));
+  }
+
+  data.ok = data.google_config_function && data.google_config_function.client_id === EXPECTED_CLIENT_ID;
+  out.textContent = JSON.stringify(data, null, 2);
+}
+
+async function clearAll() {
+  Object.keys(localStorage).filter(k => k.startsWith('gabriel_')).forEach(k => localStorage.removeItem(k));
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch(e) {}
+  await run();
+  alert('Cache/tokens limpos. Faça login novamente.');
+}
+run();
+</script>
+</body>
+</html>
