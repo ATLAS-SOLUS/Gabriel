@@ -5,8 +5,37 @@
 
 const Google = (() => {
 
-  const CLIENT_ID    = '796196296469-pu0h3695e6mbig82rdpegl82f5pkr4bo.apps.googleusercontent.com';
-  const REDIRECT_URI = 'https://atlasgabriel.netlify.app/auth/google/callback';
+  // OAuth não fica mais travado em um Client ID antigo/apagado.
+  // O Client ID público e o Redirect URI vêm da Function /google-config,
+  // que lê as variáveis de ambiente do Netlify.
+  const DEFAULT_REDIRECT_PATH = '/auth/google/callback';
+  let oauthConfigCache = null;
+
+  function getDefaultRedirectUri() {
+    return `${window.location.origin}${DEFAULT_REDIRECT_PATH}`;
+  }
+
+  async function getOAuthConfig(force = false) {
+    if (oauthConfigCache && !force) return oauthConfigCache;
+
+    try {
+      const res = await fetch('/.netlify/functions/google-config', { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.client_id) {
+        throw new Error(data.error || 'GOOGLE_CLIENT_ID não configurado no Netlify.');
+      }
+
+      oauthConfigCache = {
+        client_id: data.client_id,
+        redirect_uri: data.redirect_uri || getDefaultRedirectUri()
+      };
+      return oauthConfigCache;
+    } catch (err) {
+      console.error('[Google] Falha ao carregar configuração OAuth:', err);
+      throw new Error('Google OAuth não configurado. Crie um novo Client ID no Google Cloud e configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REDIRECT_URI no Netlify.');
+    }
+  }
 
   const SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email',
@@ -56,19 +85,28 @@ const Google = (() => {
   }
 
   // ── Iniciar fluxo OAuth ──────────────────────────────────
-  function connect() {
-    const state = btoa(JSON.stringify({ ts: Date.now(), from: window.location.pathname }));
-    localStorage.setItem('gabriel_oauth_state', state);
-    const params = new URLSearchParams({
-      client_id:     CLIENT_ID,
-      redirect_uri:  REDIRECT_URI,
-      response_type: 'code',
-      scope:         SCOPES,
-      access_type:   'offline',
-      prompt:        'consent select_account',
-      state
-    });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  async function connect() {
+    try {
+      const config = await getOAuthConfig(true);
+      const state = btoa(JSON.stringify({ ts: Date.now(), from: window.location.pathname }));
+
+      localStorage.setItem('gabriel_oauth_state', state);
+      localStorage.setItem('gabriel_google_redirect_uri', config.redirect_uri);
+
+      const params = new URLSearchParams({
+        client_id:     config.client_id,
+        redirect_uri:  config.redirect_uri,
+        response_type: 'code',
+        scope:         SCOPES,
+        access_type:   'offline',
+        prompt:        'consent select_account',
+        state
+      });
+
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+    } catch (err) {
+      alert(err.message || 'Falha ao iniciar login Google.');
+    }
   }
 
   // ── Renovar token com refresh_token via Netlify Function ───
@@ -538,7 +576,7 @@ const Google = (() => {
     connect, disconnect,
     isConnected, isTokenValid,
     getConnectedEmail, getConnectedName, getConnectedPicture, getConnectedUserId,
-    saveTokens, getUserInfo, getAccessToken, getRefreshToken, refreshAccessToken, ensureTokenValid,
+    saveTokens, getUserInfo, getAccessToken, getRefreshToken, refreshAccessToken, ensureTokenValid, getOAuthConfig,
     getStatus, request,
     Gmail, Calendar, Drive, Photos, Keep, Translate
   };

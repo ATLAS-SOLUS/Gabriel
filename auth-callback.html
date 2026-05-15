@@ -98,7 +98,7 @@
 <script src="auth.js"></script>
 <script>
 
-const REDIRECT_URI = 'https://atlasgabriel.netlify.app/auth/google/callback';
+const FALLBACK_REDIRECT_URI = window.location.origin + '/auth/google/callback';
 
 function showState(id) {
   ['loading', 'success', 'error'].forEach(s => {
@@ -146,16 +146,30 @@ window.addEventListener('DOMContentLoaded', async function() {
     stepDone(1);
 
     // Passo 2 — troca code por tokens
+    var redirectUri = localStorage.getItem('gabriel_google_redirect_uri') || FALLBACK_REDIRECT_URI;
+    try {
+      if (window.Google && Google.getOAuthConfig) {
+        var cfg = await Google.getOAuthConfig();
+        redirectUri = cfg.redirect_uri || redirectUri;
+      }
+    } catch(e) {
+      console.warn('[Callback] Config OAuth não carregada; usando redirect salvo/fallback:', e);
+    }
+
     var tokenRes = await fetch('/.netlify/functions/google-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: code, redirect_uri: REDIRECT_URI })
+      body: JSON.stringify({ code: code, redirect_uri: redirectUri })
     });
 
     if (!tokenRes.ok) {
       var errData = {};
       try { errData = await tokenRes.json(); } catch(e) {}
-      throw new Error(errData.error || 'Erro HTTP ' + tokenRes.status);
+      var msg = errData.error || 'Erro HTTP ' + tokenRes.status;
+      if (/deleted_client/i.test(msg)) {
+        msg = 'Client OAuth apagado no Google Cloud. Crie um novo Client ID e atualize GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI no Netlify.';
+      }
+      throw new Error(msg);
     }
 
     var tokenData = await tokenRes.json();
