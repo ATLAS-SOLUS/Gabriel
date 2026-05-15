@@ -3,7 +3,7 @@
 // Gabriel PWA
 // ============================================================
 
-const CACHE_NAME    = 'gabriel-v14-groq-token-safe';
+const CACHE_NAME    = 'gabriel-v15-advanced-chat-tools';
 const OFFLINE_URL   = 'index.html';
 
 const CACHE_ASSETS = [
@@ -23,6 +23,7 @@ const CACHE_ASSETS = [
   'auth.js',
   'groq.js',
   'actions.js',
+  'document-utils.js',
   'memory.js',
   'notifications.js',
   'weather.js',
@@ -76,6 +77,10 @@ self.addEventListener('fetch', event => {
                 url.hostname.includes('groq.com') ||
                 url.hostname.includes('wttr.in') ||
                 url.hostname.includes('duckduckgo.com') ||
+                url.hostname.includes('wikipedia.org') ||
+                url.hostname.includes('tvmaze.com') ||
+                url.hostname.includes('themoviedb.org') ||
+                url.hostname.includes('cdn.jsdelivr.net') ||
                 url.hostname.includes('ipapi.co');
 
   if (isApi) {

@@ -37,6 +37,9 @@ AÇÕES LOCAIS:
 - create_task: { "action": "create_task", "title": "...", "dueDate": "YYYY-MM-DD", "folderName": "..." }
 - memory_add: { "action": "memory_add", "content": "fato duradouro para lembrar", "tags": ["..."] }
 - search_web: { "action": "search_web", "query": "..." }
+- search_entertainment: { "action": "search_entertainment", "query": "nome do filme/série", "type": "auto|filme|serie" }
+- create_table: { "action": "create_table", "title": "...", "headers": ["Coluna 1"], "rows": [["valor"]], "format": "md|csv|html|doc", "fileName": "tabela", "saveToDrive": false }
+- create_document: { "action": "create_document", "title": "...", "content": "conteúdo completo", "format": "txt|md|html|doc|pdf", "fileName": "documento", "saveToDrive": false }
 - get_weather: { "action": "get_weather", "city": "..." }
 - open_module: { "action": "open_module", "module": "dashboard|chat|folders|agenda|finance|notes|games" }
 - create_book: { "action": "create_book", "title": "...", "author": "...", "totalChapters": 0, "totalPages": 0, "folderName": "Livros" }
@@ -386,6 +389,14 @@ Você NÃO deve fazer tarefa pela metade. Antes de responder, siga internamente:
 4. Conferir se falta alguma etapa, dado, formatação ou ação.
 5. Entregar uma resposta final limpa, objetiva e completa.
 
+MODO MICRO-AGENTES:
+- Para tarefas grandes, pense como uma equipe: pesquisador, analista, formatador, documentador, programador e auditor.
+- Divida a entrega em partes claras, junte tudo e revise no final.
+- Se o usuário pedir tabela, entregue tabela Markdown bem formada e, quando fizer sentido, use create_table.
+- Se pedir documento, relatório, PDF, arquivo, roteiro, proposta ou material pronto, use create_document com conteúdo completo.
+- Se pedir filmes/séries, use search_entertainment antes de concluir.
+- Para respostas com dados, prefira seções, tabelas, checklist e conclusão prática.
+
 NUNCA faça isto:
 - Não use "...", "etc", "continua", "restante do código" ou placeholders quando o usuário pediu algo completo.
 - Não diga que salvou/criou/agendou/enviou se não incluiu a ação correspondente.
@@ -411,10 +422,11 @@ REGRAS PRÁTICAS:
 4. Conteúdo de nota/e-mail/documento deve ir completo no campo da ação, não resumido.
 5. Se uma tarefa tem várias etapas, gere várias ações no mesmo bloco.
 6. Para pesquisa atual, use search_web antes de concluir.
-7. Para imagem, descreva o que vê, extraia texto visível quando possível e use isso na resposta/ações.
-8. Se faltarem dados obrigatórios que impedem execução real, pergunte só o mínimo necessário. Se der para fazer uma versão útil com os dados atuais, faça.
-9. Depois das ações, a resposta deve confirmar o que foi feito e mencionar qualquer limitação real.
-10. Seja caprichoso: títulos bons, listas claras, mensagem bem formatada, conclusão útil.`;
+7. Para filmes, séries, elenco, temporadas ou recomendações de entretenimento, use search_entertainment.
+8. Para imagem, descreva o que vê, extraia texto visível quando possível e use isso na resposta/ações.
+9. Se faltarem dados obrigatórios que impedem execução real, pergunte só o mínimo necessário. Se der para fazer uma versão útil com os dados atuais, faça.
+10. Depois das ações, a resposta deve confirmar o que foi feito e mencionar qualquer limitação real.
+11. Seja caprichoso: títulos bons, tabelas corretas, listas claras, mensagem bem formatada, conclusão útil.`;
   }
 
   // ── Chat principal ───────────────────────────────────────
@@ -644,6 +656,87 @@ Entregue resposta útil, organizada e prática.`;
     }
   }
 
+
+
+  // ── Pesquisa filmes/séries ───────────────────────────────
+
+  async function searchEntertainment(query, type = 'auto') {
+    try {
+      const res = await fetch('/.netlify/functions/entertainment-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, type }),
+        signal: AbortSignal.timeout ? AbortSignal.timeout(9000) : undefined
+      });
+      if (!res.ok) throw new Error('Busca de entretenimento falhou: ' + res.status);
+      const data = await res.json();
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (!results.length) return `Não encontrei resultados confiáveis para "${query}".`;
+
+      const systemPrompt = `Você é o Gabriel no modo curador de filmes e séries.
+Organize os resultados em português, com dados limpos e apresentáveis.
+Sempre entregue:
+1. Resumo curto do que encontrou.
+2. Tabela Markdown com Título, Tipo, Ano, Nota/Status e Fonte.
+3. Observações úteis quando houver lacunas.
+Não invente streaming, elenco ou temporadas se os dados não vieram nas fontes.`;
+
+      const payload = results.slice(0, 10).map(r => ({
+        titulo: r.title,
+        tipo: r.type,
+        ano: r.year || '',
+        status: r.status || '',
+        nota: r.rating || '',
+        generos: r.genres || [],
+        resumo: clipText(r.summary || '', 600),
+        url: r.url || '',
+        fonte: r.source || ''
+      }));
+
+      return await call(
+        [{ role: 'user', content: `Pesquisa: ${query}\n\nDados encontrados:\n${JSON.stringify(payload, null, 2)}` }],
+        systemPrompt,
+        1500,
+        { temperature: 0.2 }
+      );
+    } catch (e) {
+      console.warn('[Entertainment] falhou:', e);
+      return `Não consegui consultar a busca de filmes/séries agora. Detalhe: ${e.message}`;
+    }
+  }
+
+  function looksLikeComplexTask(text = '') {
+    return /completo|completa|grande|profundo|detalhado|relat[oó]rio|documento|pdf|docx?|tabela|comparativo|planejamento|plano|roteiro|proposta|organiza|organizar|pesquise.+e|analise.+e|crie.+arquivo|micro.?agente|m[oó]dulos?|v[aá]rias etapas|tudo/i.test(String(text || ''));
+  }
+
+  function fallbackAgentPlan(userMessage = '') {
+    const msg = String(userMessage || '');
+    const agents = [];
+    const tasks = {};
+    if (/pesquis|busca|not[ií]cia|atual|pre[cç]o|quem [ée]|o que [ée]|como funciona|lan[cç]amento|novidade/i.test(msg)) {
+      agents.push('search'); tasks.search = msg;
+    }
+    if (/filme|s[eé]rie|temporada|epis[oó]dio|elenco|cinema|netflix|prime|disney|hbo|tv/i.test(msg)) {
+      agents.push('entertainment'); tasks.entertainment = msg;
+    }
+    if (/c[oó]digo|programa|script|fun[cç][aã]o|desenvolv|implementar|app|sistema|html|css|javascript|node/i.test(msg)) {
+      agents.push('code'); tasks.code = msg;
+    }
+    if (/drive|arquivo|minha foto|meus documentos|pasta|baixar|mostrar arquivo|ver arquivo/i.test(msg)) {
+      agents.push('drive'); tasks.drive = msg;
+    }
+    if (/tabela|planilha|dados|comparativo|formatad/i.test(msg)) {
+      agents.push('data'); tasks.data = msg;
+    }
+    if (/documento|pdf|docx?|relat[oó]rio|proposta|contrato|roteiro|arquivo/i.test(msg)) {
+      agents.push('document'); tasks.document = msg;
+    }
+    if (looksLikeComplexTask(msg)) {
+      agents.push('analyze'); tasks.analyze = msg;
+    }
+    return { agents: [...new Set(agents)].slice(0, 6), tasks };
+  }
+
   // ══════════════════════════════════════════════════════════
   // ── SISTEMA MULTI-AGENTE ─────────────────────────────────
   // ══════════════════════════════════════════════════════════
@@ -652,21 +745,46 @@ Entregue resposta útil, organizada e prática.`;
     const systemPrompt = `Você é o Agente de Pesquisa do Gabriel.
 Crie até 3 queries objetivas para pesquisar a tarefa. Retorne JSON: {"queries":["..."]}`;
     try {
-      const raw = await call([{ role: 'user', content: `Tarefa: ${task}` }], systemPrompt, 200, { temperature: 0.2 });
+      const raw = await call([{ role: 'user', content: `Tarefa: ${task}` }], systemPrompt, 260, { temperature: 0.15 });
       const parsed = safeJsonParse(raw, { queries: [task] });
       const queries = Array.isArray(parsed.queries) && parsed.queries.length ? parsed.queries : [task];
-      const results = await Promise.all(queries.slice(0, 3).map(q => searchWeb(q)));
-      return { agent: 'search', task, result: results.join('\n\n---\n\n') };
+      const results = [];
+      for (const q of queries.slice(0, 3)) results.push(await searchWeb(q));
+      return { agent: 'search', label: 'Pesquisa', task, result: results.join('\n\n---\n\n') };
     } catch(e) {
-      return { agent: 'search', task, result: await searchWeb(task) };
+      return { agent: 'search', label: 'Pesquisa', task, result: await searchWeb(task) };
     }
+  }
+
+  async function agentEntertainment(task) {
+    const result = await searchEntertainment(task, /filme/i.test(task) && !/s[eé]rie/i.test(task) ? 'filme' : 'auto');
+    return { agent: 'entertainment', label: 'Filmes e séries', task, result };
   }
 
   async function agentAnalyze(task, context = '') {
     const systemPrompt = `Você é o Agente de Análise do Gabriel.
-Analise profundamente, encontre padrões, riscos, lacunas e próximos passos. Responda em português estruturado.`;
-    const result = await call([{ role: 'user', content: clipText(`${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa: ${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1500, { temperature: 0.25 });
-    return { agent: 'analyze', task, result };
+Analise profundamente, encontre padrões, riscos, lacunas e próximos passos.
+Entregue em português estruturado, sem enrolação.`;
+    const result = await call([{ role: 'user', content: clipText(`${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa: ${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1400, { temperature: 0.25 });
+    return { agent: 'analyze', label: 'Análise', task, result };
+  }
+
+  async function agentData(task, context = '') {
+    const systemPrompt = `Você é o Agente Formatador de Dados do Gabriel.
+Transforme a tarefa e o contexto em dados bonitos e úteis.
+Quando fizer sentido, entregue tabela Markdown válida.
+Não invente números. Se faltar dado, marque como "não informado".`;
+    const result = await call([{ role: 'user', content: clipText(`${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa: ${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1300, { temperature: 0.2 });
+    return { agent: 'data', label: 'Dados/Tabela', task, result };
+  }
+
+  async function agentDocument(task, context = '') {
+    const systemPrompt = `Você é o Agente Documentador do Gabriel.
+Prepare conteúdo pronto para virar documento, relatório, proposta, DOC ou PDF.
+Use título, seções, subtítulos, tabelas quando fizer sentido e conclusão.
+Não use placeholders nem "continua".`;
+    const result = await call([{ role: 'user', content: clipText(`${context ? 'Contexto:\n' + context + '\n\n' : ''}Tarefa: ${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1800, { temperature: 0.25 });
+    return { agent: 'document', label: 'Documento', task, result };
   }
 
   async function agentCode(task, language = 'javascript') {
@@ -677,8 +795,8 @@ REGRAS:
 3. Explique como usar.
 4. Para HTML/CSS/JS, entregue arquivo único quando fizer sentido.
 5. Responda em português.`;
-    const result = await call([{ role: 'user', content: clipText(`Linguagem preferida: ${language}\n\n${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 2400, { temperature: 0.2 });
-    return { agent: 'code', task, result };
+    const result = await call([{ role: 'user', content: clipText(`Linguagem preferida: ${language}\n\n${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 2200, { temperature: 0.2 });
+    return { agent: 'code', label: 'Código', task, result };
   }
 
   async function agentDrive(task) {
@@ -693,28 +811,51 @@ Use o contexto de arquivos para orientar ações concretas. Seja específico.`;
     } catch(e) { driveContext = 'Não foi possível listar o Drive: ' + e.message; }
 
     const result = await call([{ role: 'user', content: clipText(`${driveContext}\n\nTarefa: ${task}`, MAX_AGENT_CONTEXT_CHARS) }], systemPrompt, 1000, { temperature: 0.2 });
-    return { agent: 'drive', task, result };
+    return { agent: 'drive', label: 'Drive', task, result };
   }
 
-  async function runAgents(userMessage) {
-    const routerPrompt = `Analise a mensagem e decida quais agentes ativar.
-Agentes: search, analyze, code, drive.
-Retorne JSON: {"agents":["..."],"tasks":{"search":"...","analyze":"...","code":"...","drive":"..."}}
-Ative até 4 agentes se necessário. Se conversa simples, retorne {"agents":[],"tasks":{}}.`;
-
+  async function planAgents(userMessage) {
+    const routerPrompt = `Analise a mensagem e decida quais micro-agentes ativar.
+Agentes disponíveis: search, entertainment, analyze, code, drive, data, document.
+Retorne SOMENTE JSON válido:
+{"agents":["..."],"tasks":{"search":"...","entertainment":"...","analyze":"...","code":"...","drive":"...","data":"...","document":"..."}}
+Ative até 6 agentes se necessário. Se for conversa simples, retorne {"agents":[],"tasks":{}}.`;
     try {
-      const raw = await call([{ role: 'user', content: `Mensagem: ${userMessage}` }], routerPrompt, 500, { temperature: 0.1 });
-      const plan = safeJsonParse(raw, { agents: [], tasks: {} });
-      const agents = Array.isArray(plan.agents) ? [...new Set(plan.agents)].slice(0, 4) : [];
+      const raw = await call([{ role: 'user', content: `Mensagem: ${clipText(userMessage, 1800)}` }], routerPrompt, 500, { temperature: 0.08 });
+      const plan = safeJsonParse(raw, fallbackAgentPlan(userMessage));
+      const fallback = fallbackAgentPlan(userMessage);
+      const merged = [...new Set([...(Array.isArray(plan.agents) ? plan.agents : []), ...fallback.agents])]
+        .filter(a => ['search','entertainment','analyze','code','drive','data','document'].includes(a))
+        .slice(0, 6);
+      return { agents: merged, tasks: { ...(fallback.tasks || {}), ...(plan.tasks || {}) } };
+    } catch(e) {
+      return fallbackAgentPlan(userMessage);
+    }
+  }
+
+  async function runAgents(userMessage, options = {}) {
+    try {
+      const plan = await planAgents(userMessage);
+      let agents = Array.isArray(plan.agents) ? plan.agents : [];
+      if (!agents.length && looksLikeComplexTask(userMessage)) agents = ['analyze'];
       if (!agents.length) return null;
 
       const results = [];
+      let sharedContext = '';
       for (const agent of agents) {
         const task = plan.tasks?.[agent] || userMessage;
-        if (agent === 'search') results.push(await agentSearch(task));
-        else if (agent === 'analyze') results.push(await agentAnalyze(task));
-        else if (agent === 'code') results.push(await agentCode(task));
-        else if (agent === 'drive') results.push(await agentDrive(task));
+        let out = null;
+        if (agent === 'search') out = await agentSearch(task);
+        else if (agent === 'entertainment') out = await agentEntertainment(task);
+        else if (agent === 'analyze') out = await agentAnalyze(task, sharedContext);
+        else if (agent === 'code') out = await agentCode(task);
+        else if (agent === 'drive') out = await agentDrive(task);
+        else if (agent === 'data') out = await agentData(task, sharedContext);
+        else if (agent === 'document') out = await agentDocument(task, sharedContext);
+        if (out) {
+          results.push(out);
+          sharedContext = clipText(sharedContext + `\n\n[${out.label || out.agent}]\n${out.result}`, MAX_AGENT_CONTEXT_CHARS);
+        }
       }
       return results.filter(Boolean);
     } catch(e) {
@@ -765,6 +906,9 @@ Não resuma, não corte, não use placeholders. Responda apenas com o conteúdo 
     extractTasks,
     generateTitle,
     searchWeb,
+    searchEntertainment,
+    planAgents,
+    looksLikeComplexTask,
     setApiKey,
     getApiKey,
     getModel,

@@ -223,6 +223,39 @@ const Actions = (() => {
     return result('search_web', true, searchResult, { query });
   }
 
+
+  // 🎬 Filmes e séries
+  async function execSearchEntertainment(params) {
+    const { query, type = 'auto' } = params;
+    if (!query) return result('search_entertainment', false, 'Nome do filme/série não informado.');
+    const info = await Groq.searchEntertainment(query, type);
+    return result('search_entertainment', true, info, { query, type });
+  }
+
+  // 📊 Criar tabela/CSV/DOC
+  async function execCreateTable(params) {
+    if (!window.DocumentUtils) return result('create_table', false, 'Motor de documentos não carregado.');
+    try {
+      const created = await DocumentUtils.createTable(params || {});
+      const msg = `Tabela **${params.title || created.fileName}** criada${created.fileName ? ' como `' + created.fileName + '`' : ''}.` + (created.drive ? ' Também foi salva no Drive.' : '');
+      return result('create_table', true, msg + (created.markdown ? '\n\n' + created.markdown : ''), created);
+    } catch (err) {
+      return result('create_table', false, `Erro ao criar tabela: ${err.message}`);
+    }
+  }
+
+  // 📄 Criar documento/PDF/DOC/TXT
+  async function execCreateDocument(params) {
+    if (!window.DocumentUtils) return result('create_document', false, 'Motor de documentos não carregado.');
+    if (!params?.title && !params?.content) return result('create_document', false, 'Informe título ou conteúdo do documento.');
+    try {
+      const created = await DocumentUtils.createDocument(params || {});
+      return result('create_document', true, `Documento **${created.fileName}** gerado e baixado.` + (created.drive ? ' Também foi salvo no Drive.' : ''), created);
+    } catch (err) {
+      return result('create_document', false, `Erro ao criar documento: ${err.message}`);
+    }
+  }
+
   // 🌤️ Clima
   async function execGetWeather(params) {
     let { city } = params;
@@ -546,6 +579,9 @@ ${String(text || '').slice(0, 7000)}`, { text });
     create_task:    execCreateTask,
     memory_add:     execMemoryAdd,
     search_web:     execSearchWeb,
+    search_entertainment: execSearchEntertainment,
+    create_table:   execCreateTable,
+    create_document: execCreateDocument,
     get_weather:    execGetWeather,
     open_module:    execOpenModule,
     gmail_list:     execGmailList,
